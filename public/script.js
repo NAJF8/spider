@@ -16,6 +16,7 @@ const db = getDatabase(app);
 let products = [];
 let categories = [];
 let cart = JSON.parse(localStorage.getItem('spider_cart')) || [];
+if (!Array.isArray(cart)) cart = [];
 
 // DOM Elements
 const productsGrid = document.getElementById('productsGrid');
@@ -38,7 +39,8 @@ function init() {
 }
 
 function formatPrice(price) {
-    return price.toLocaleString('ar-IQ') + ' د.ع';
+    if (!price || isNaN(price)) return '0 د.ع';
+    return Number(price).toLocaleString('ar-IQ') + ' د.ع';
 }
 
 function fetchData() {
@@ -54,6 +56,9 @@ function fetchData() {
         } else {
             categoriesGrid.innerHTML = '<div class="empty-cart">لا توجد أقسام حالياً</div>';
         }
+    }, (error) => {
+        console.error("Firebase categories read error:", error);
+        categoriesGrid.innerHTML = `<div class="empty-cart">خطأ في جلب الأقسام: ${error.message}</div>`;
     });
 
     // Fetch Products
@@ -68,6 +73,9 @@ function fetchData() {
         } else {
             productsGrid.innerHTML = '<div class="empty-cart">لا توجد منتجات حالياً</div>';
         }
+    }, (error) => {
+        console.error("Firebase products read error:", error);
+        productsGrid.innerHTML = `<div class="empty-cart">خطأ في جلب المنتجات: ${error.message}</div>`;
     });
 }
 

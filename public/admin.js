@@ -60,7 +60,8 @@ let products = [];
 let categories = [];
 
 function formatPrice(price) {
-    return price.toLocaleString('ar-IQ') + ' د.ع';
+    if (!price || isNaN(price)) return '0 د.ع';
+    return Number(price).toLocaleString('ar-IQ') + ' د.ع';
 }
 
 function loadDashboardData() {
@@ -301,3 +302,37 @@ window.saveOrderStatus = async function(orderId) {
         alert('خطأ أثناء التحديث');
     }
 }
+
+// Modal Management Fixes
+document.addEventListener('DOMContentLoaded', () => {
+    const modals = [document.getElementById('productModal'), document.getElementById('orderModal')];
+    
+    // Close when clicking outside
+    window.addEventListener('click', (e) => {
+        modals.forEach(modal => {
+            if (e.target === modal) {
+                modal.classList.remove('open');
+            }
+        });
+    });
+    
+    // Close on Escape key
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            modals.forEach(modal => modal.classList.remove('open'));
+        }
+    });
+});
+
+// Ensure only one modal opens at a time
+const originalOpenProductModal = window.openProductModal;
+window.openProductModal = function(id = null) {
+    document.getElementById('orderModal').classList.remove('open');
+    originalOpenProductModal(id);
+};
+
+const originalViewOrder = window.viewOrder;
+window.viewOrder = function(orderId) {
+    document.getElementById('productModal').classList.remove('open');
+    originalViewOrder(orderId);
+};
