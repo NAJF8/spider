@@ -234,7 +234,7 @@ function renderProducts(productsToRender) {
     productsGrid.innerHTML = '';
     const visibleProducts = productsToRender.filter(p => !p.isHidden);
     if (!visibleProducts.length) {
-        productsGrid.innerHTML = '<div class="empty-state-card"><i class="fa-solid fa-box-open"></i><h4>ماكو منتجات متوفرة بهذا القسم حالياً</h4><p>جرّب قسم ثاني أو اضغط عرض الكل.</p><button class="btn btn-primary" onclick="filterByCategory('')">عرض كل المنتجات</button></div>';
+        productsGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-box-open"></i><h4>ماكو منتجات متوفرة بهذا القسم حالياً</h4><p>جرّب قسم ثاني أو اضغط عرض الكل.</p><button class="btn btn-primary" onclick="filterByCategory('')">عرض كل المنتجات</button></div>`;
         return;
     }
     // Show featured items on the initial landing view, all matching items in a filtered section.
