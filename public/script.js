@@ -83,7 +83,7 @@ function applyCurrentDataMode() {
         products = [...DEMO_PRODUCTS];
         bundles = [...DEMO_BUNDLES];
         renderCategories();
-        renderProducts(products);
+        activeCategoryId ? window.filterByCategory(activeCategoryId) : renderProducts(products);
         renderBundles(bundles);
         renderOffersGrid();
     } else {
@@ -106,7 +106,7 @@ function applyCurrentDataMode() {
         }
 
         if (hasLiveProducts && products.length > 0) {
-            renderProducts(products);
+            activeCategoryId ? window.filterByCategory(activeCategoryId) : renderProducts(products);
         } else {
             productsGrid.innerHTML = `
                 <div class="empty-state-card">
@@ -179,39 +179,38 @@ function fetchData() {
     });
 }
 
+function getPublicCategoryImage(cat) {
+    const token = `${cat.id || ''} ${cat.name || ''}`.toLowerCase();
+    if (/gpu|كرت|شاشة رسومية/.test(token)) return 'assets/gpu.jpg';
+    if (/laptop|لابتوب/.test(token)) return 'assets/laptop.jpg';
+    if (/cpu|معالج/.test(token)) return 'assets/cpu.jpg';
+    if (/monitor|شاشات|عرض/.test(token)) return 'assets/monitor.jpg';
+    if (/accessor|ملحق|سماعات/.test(token)) return 'assets/headset.jpg';
+    if (/bundle|computer|pc|كمبيوتر|تجميعة/.test(token)) return 'assets/gaming-pc.jpg';
+    if (/game|كونسول|ألعاب/.test(token)) return 'assets/gamepad.jpg';
+    if (/ram|ذاكرة/.test(token)) return 'assets/cpu.jpg';
+    return 'assets/gaming-pc.jpg';
+}
 function renderCategories() {
+    if (!categoriesGrid) return;
     categoriesGrid.innerHTML = '';
-    const visibleCategories = categories.filter(c => !c.isHidden);
-
-    if (visibleCategories.length === 0) {
-        categoriesGrid.innerHTML = `
-            <div class="empty-state-card">
-                <i class="fa-solid fa-folder-open"></i>
-                <h4>لا توجد أقسام ظاهرة حالياً</h4>
-                <p>يمكنك تفعيل ظهور الأقسام من لوحة الأدمن.</p>
-            </div>`;
+    const visible = categories.filter(cat => !cat.isHidden);
+    const topLevel = visible.filter(cat => !cat.parentCategory);
+    if (!topLevel.length) {
+        categoriesGrid.innerHTML = '<div class="empty-state-card">لا توجد أقسام ظاهرة حالياً</div>';
         return;
     }
-
-    const landingCategories = [
-        { id: 'cat-accessories', name: 'الألعاب والكونسول', image: 'images/products/headset-hyperx.svg' },
-        { id: 'cat-accessories', name: 'الملحقات', image: 'images/products/headset-hyperx.svg' },
-        { id: 'cat-monitors', name: 'الشاشات', image: 'images/products/monitor-lg-ultragear.svg' },
-        { id: 'cat-gpus', name: 'كروت الشاشة', image: 'images/products/gpu-rtx-4070ti.svg' },
-        { id: 'cat-cpus', name: 'المعالجات', image: 'images/products/cpu-ryzen-7800x3d.svg' },
-        { id: 'cat-laptops', name: 'اللابتوبات', image: 'images/products/laptop-rog-strix.svg' },
-        { id: 'cat-bundles', name: 'أجهزة الكمبيوتر', image: 'images/products/bundle-spider-pro.svg' }
-    ];
-
-    landingCategories.forEach(cat => {
-        const html = `
-            <div class="category-card" onclick="filterByCategory('${cat.id}')">
-                <div class="category-card-media"><img src="${cat.image}" alt="${cat.name}"></div>
-                <div class="category-name">${cat.name}</div>
-                <div class="category-arrow"><i class="fa-solid fa-arrow-left"></i></div>
-            </div>
-        `;
-        categoriesGrid.insertAdjacentHTML('beforeend', html);
+    // The seven-card visual layout is a presentation choice, never a substitute for Firebase categories.
+    const rank = ['cat-bundles','cat-laptops','cat-cpus','cat-gpus','cat-monitors','cat-accessories'];
+    const ordered = [...topLevel].sort((a,b) => (rank.indexOf(a.id) < 0 ? 99 : rank.indexOf(a.id)) - (rank.indexOf(b.id) < 0 ? 99 : rank.indexOf(b.id)));
+    ordered.forEach(cat => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'category-card';
+        const image = cat.image || getPublicCategoryImage(cat);
+        card.innerHTML = `<div class="category-card-media"><img src="${image}" alt="" loading="lazy" onerror="this.onerror=null;this.src='images/default-category.svg'"></div><span class="category-name">${cat.name}</span><span class="category-arrow" aria-hidden="true">→</span>`;
+        card.addEventListener('click', () => window.filterByCategory(cat.id));
+        categoriesGrid.appendChild(card);
     });
 }
 
@@ -220,51 +219,41 @@ function truncateArabicText(text, maxLength = 90) {
     return text.length > maxLength ? text.slice(0, maxLength).trim() + '...' : text;
 }
 
+const DEMO_ART = {
+    'demo-laptop-1': 'assets/product-laptop.jpg',
+    'demo-gpu-1': 'assets/product-gpu.jpg',
+    'demo-cpu-1': 'assets/product-cpu.jpg',
+    'demo-monitor-1': 'assets/product-monitor.jpg',
+    'demo-headset-1': 'assets/product-headset.jpg'
+};
+const PRODUCT_IMAGE_FALLBACK = 'images/default-product.svg';
+function getProductImage(product) {
+    return isPreviewMode() && DEMO_ART[product.id] ? DEMO_ART[product.id] : (product.image || PRODUCT_IMAGE_FALLBACK);
+}
 function renderProducts(productsToRender) {
     productsGrid.innerHTML = '';
     const visibleProducts = productsToRender.filter(p => !p.isHidden);
-
-    if (visibleProducts.length === 0) {
-        productsGrid.innerHTML = `
-            <div class="empty-state-card">
-                <i class="fa-solid fa-box-open"></i>
-                <h4>لم يتم العثور على منتجات في هذا القسم</h4>
-                <p>جرب تصفح باقي الأقسام أو إزالة فلاتر البحث.</p>
-                <button class="btn btn-primary btn-sm" onclick="filterByCategory('')" style="margin-top: 10px;">
-                    عرض جميع المنتجات
-                </button>
-            </div>`;
+    if (!visibleProducts.length) {
+        productsGrid.innerHTML = '<div class="empty-state-card"><i class="fa-solid fa-box-open"></i><h4>ماكو منتجات متوفرة بهذا القسم حالياً</h4><p>جرّب قسم ثاني أو اضغط عرض الكل.</p><button class="btn btn-primary" onclick="filterByCategory('')">عرض كل المنتجات</button></div>';
         return;
     }
-
-    let listToDisplay = [...visibleProducts];
-    if (listToDisplay.length > 5) {
-        const featured = listToDisplay.filter(p => p.isFeatured);
-        listToDisplay = [...featured, ...listToDisplay.filter(p => !p.isFeatured)].slice(0, 5);
-    }
-
-    listToDisplay.forEach(prod => {
-        const price = prod.price || 0;
-        const oldPriceHtml = prod.originalPrice && prod.originalPrice > price
-            ? `<span class="product-old-price">${formatPrice(prod.originalPrice)}</span>`
-            : '';
-        const subtitle = prod.shortDescription || truncateArabicText(prod.description || '', 62);
-        const html = `
-            <div class="product-card">
-                <button class="fav-btn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
-                <img src="${prod.image || 'images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy">
-                <div class="product-info">
-                    <h3 class="product-title">${prod.name}</h3>
-                    <div class="product-subtitle">${subtitle}</div>
-                    <div class="product-price-row">
-                        <span class="product-price">${formatPrice(price)}</span>
-                        ${oldPriceHtml}
-                    </div>
-                    <button class="btn btn-primary" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
-                </div>
-            </div>
-        `;
-        productsGrid.insertAdjacentHTML('beforeend', html);
+    // Show featured items on the initial landing view, all matching items in a filtered section.
+    const showAll = Boolean(activeCategoryId || activeSearchQuery);
+    const items = showAll ? visibleProducts : visibleProducts.slice().sort((a,b) => Number(!!b.isFeatured)-Number(!!a.isFeatured)).slice(0,5);
+    items.forEach(prod => {
+        const price = Number(prod.price || 0);
+        const card = document.createElement('article');
+        card.className = 'product-card';
+        card.innerHTML = `
+            <div class="product-photo"><img src="${getProductImage(prod)}" alt="${prod.name}" loading="lazy" onerror="this.onerror=null;this.src='${PRODUCT_IMAGE_FALLBACK}'"></div>
+            <div class="product-info">
+              <h3 class="product-title">${prod.name}</h3>
+              <p class="product-subtitle">${truncateArabicText(prod.description || '', 65)}</p>
+              <div class="product-price-row" dir="rtl"><span class="product-price" dir="ltr">${formatPrice(price)}</span>${prod.originalPrice > price ? `<span class="product-old-price" dir="ltr">${formatPrice(prod.originalPrice)}</span>` : ''}</div>
+              <button class="btn btn-primary add-product-button"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+            </div>`;
+        card.querySelector('.add-product-button').addEventListener('click', () => window.addToCart(prod.id));
+        productsGrid.appendChild(card);
     });
 }
 
@@ -284,7 +273,7 @@ function renderBundles(bundlesToRender) {
         const html = `
             <div class="bundle-card">
                 <span class="bundle-badge">${discountBadge}</span>
-                <img class="bundle-image" src="${b.image || 'images/products/bundle-spider-pro.svg'}" alt="${bundleName}" loading="lazy">
+                <img class="bundle-image" src="${b.image || 'images/products/bundle-spider-pro.svg'}" alt="${bundleName}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg'">
                 <h3 class="bundle-title">${bundleName}</h3>
                 <p class="bundle-subtitle">${b.subtitle || ''}</p>
                 <ul class="bundle-parts">${partsHtml}</ul>
@@ -299,27 +288,26 @@ function renderBundles(bundlesToRender) {
     });
 }
 
-window.filterByCategory = function(categoryId) {
+let activeCategoryId = '';
+let activeSearchQuery = '';
+window.filterByCategory = function(categoryId = '') {
+    activeCategoryId = categoryId;
+    activeSearchQuery = '';
+    if (searchInput) searchInput.value = '';
+    const title = document.getElementById('productsSectionTitle');
+    const cat = categories.find(c => c.id === categoryId);
+    if (title) title.textContent = cat ? cat.name : 'المنتجات المميزة';
     if (!categoryId) {
         renderProducts(products);
     } else {
-        const parentCat = categories.find(c => c.id === categoryId);
-        let matchIds = [categoryId];
-        if (parentCat) {
-            const childIds = Array.isArray(parentCat.subcategoryIds)
-                ? parentCat.subcategoryIds
-                : categories.filter(c => c.parentCategory === categoryId).map(c => c.id);
-            matchIds = [categoryId, ...childIds];
-        }
-
-        const filtered = products.filter(p => {
-            const pCat = p.categoryId || p.category;
-            return (matchIds.includes(pCat) || (categoryId === 'cat-bundles' && pCat === 'cat-bundles')) && !p.isHidden;
+        const visibleChildIds = categories.filter(c => c.parentCategory === categoryId && !c.isHidden).map(c => c.id);
+        const matchIds = new Set([categoryId, ...visibleChildIds]);
+        if (cat && Array.isArray(cat.subcategoryIds)) cat.subcategoryIds.forEach(id => {
+            if (categories.some(c => c.id === id && !c.isHidden)) matchIds.add(id);
         });
-        renderProducts(filtered.length ? filtered : products);
+        renderProducts(products.filter(p => matchIds.has(p.categoryId || p.category)));
     }
-    const section = document.getElementById('products-section');
-    if (section) section.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('products-section')?.scrollIntoView({behavior: 'smooth',block:'start'});
 };
 
 function renderOffersGrid() {
@@ -464,6 +452,10 @@ function updateCartUI() {
 }
 
 function setupListeners() {
+    document.getElementById('showAllProducts')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        window.filterByCategory('');
+    });
     if (toggleDemoBtn) {
         toggleDemoBtn.addEventListener('click', () => {
             const nextMode = !isPreviewMode();
@@ -522,6 +514,8 @@ function setupListeners() {
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
+            activeSearchQuery = query;
+            activeCategoryId = '';
             if (query === '') {
                 renderProducts(products);
                 renderBundles(bundles);

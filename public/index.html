@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
     <div class="demo-banner" id="demoNoticeBanner">
@@ -43,7 +43,7 @@
 
             <div class="header-actions">
                 <a href="admin.html" class="action-btn" title="لوحة الإدارة"><i class="fa-regular fa-user"></i></a>
-                <a href="#" class="action-btn" title="المفضلة"><i class="fa-regular fa-heart"></i></a>
+                <a href="#products-section" class="action-btn" title="تصفح المنتجات"><i class="fa-regular fa-heart"></i></a>
                 <a href="#" class="action-btn cart-btn" id="openCartBtn" title="السلة">
                     <span class="cart-icon-wrapper">
                         <i class="fa-solid fa-cart-shopping"></i>
@@ -95,25 +95,8 @@
                     </div>
                 </div>
 
-                <div class="hero-visual">
-                    <div class="hero-scene">
-                        <div class="hero-copy-badge">GOOD<br>GEAR<br>BETTER<br>PLAYERS</div>
-                        <div class="hero-monitor">
-                            <div class="hero-monitor-screen">
-                                <i class="fa-solid fa-spider"></i>
-                            </div>
-                            <div class="hero-monitor-stand"></div>
-                        </div>
-                        <div class="hero-tower">
-                            <span></span><span></span><span></span>
-                        </div>
-                        <div class="hero-keyboard"></div>
-                        <div class="hero-mouse"></div>
-                        <div class="hero-chair">
-                            <span class="chair-logo"><i class="fa-solid fa-spider"></i></span>
-                            <span class="chair-text">SPIDER</span>
-                        </div>
-                    </div>
+                <div class="hero-visual" aria-label="صورة إعداد ألعاب SPIDER">
+                    <img class="hero-setup-image" src="assets/hero-setup.jpg" alt="إعداد ألعاب بإضاءة حمراء وكمبيوتر وشاشة" fetchpriority="high">
                 </div>
             </div>
         </section>
@@ -129,8 +112,8 @@
         <section id="products-section" class="section products-section">
             <div class="section-container">
                 <div class="section-header">
-                    <a href="#products-section" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
-                    <h2 class="section-title">المنتجات المميزة</h2>
+                    <a href="#products-section" id="showAllProducts" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+                    <h2 class="section-title" id="productsSectionTitle">المنتجات المميزة</h2>
                 </div>
                 <div class="products-grid" id="productsGrid">
                     <div class="loading-spinner">جاري تحميل المنتجات...</div>
@@ -144,17 +127,17 @@
                     <a href="#products-section" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
                     <h2 class="section-title">أشهر العلامات التجارية</h2>
                 </div>
-                <div class="brands-flex">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/ASUS_Logo.svg" alt="ASUS">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/MSI_Logo.svg" alt="MSI">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Gigabyte_Technology_logo_2008.svg" alt="Gigabyte">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/ASRock_logo.svg" alt="ASRock">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5f/AMD_Logo.svg" alt="AMD">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c9/Intel-logo.svg" alt="Intel">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg" alt="NVIDIA">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/HyperX_logo.svg" alt="HyperX">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/LG_logo_%282015%29.svg" alt="LG">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg" alt="Samsung">
+                <div class="brands-flex" aria-label="العلامات التجارية">
+                    <span class="brand-wordmark brand-0">ASUS</span>
+                    <span class="brand-wordmark brand-1">msi</span>
+                    <span class="brand-wordmark brand-2">GIGABYTE</span>
+                    <span class="brand-wordmark brand-3">ASRock</span>
+                    <span class="brand-wordmark brand-4">AMD</span>
+                    <span class="brand-wordmark brand-5">intel</span>
+                    <span class="brand-wordmark brand-6">NVIDIA</span>
+                    <span class="brand-wordmark brand-7">HYPERX</span>
+                    <span class="brand-wordmark brand-8">LG</span>
+                    <span class="brand-wordmark brand-9">SAMSUNG</span>
                 </div>
             </div>
         </section>
@@ -169,7 +152,7 @@
                             <p>أحدث كروت الشاشة</p>
                             <a href="#products-section" onclick="filterByCategory('cat-gpus'); return true;" class="btn btn-dark-outline">تسوّق كروت الشاشة <i class="fa-solid fa-arrow-left"></i></a>
                         </div>
-                        <img src="images/products/gpu-rtx-4070ti.svg" alt="GPU Showcase">
+                        
                     </article>
 
                     <div class="promo-stack">
@@ -179,7 +162,7 @@
                                 <p>أداء بدون حدود</p>
                                 <a href="#products-section" onclick="filterByCategory('cat-laptops'); return true;">تسوّق الآن <i class="fa-solid fa-arrow-left"></i></a>
                             </div>
-                            <img src="images/products/laptop-rog-strix.svg" alt="Laptop Showcase">
+                            
                         </article>
                         <article class="promo-card small promo-card-setup">
                             <div class="promo-card-text">
@@ -311,6 +294,6 @@
         </button>
     </div>
 
-    <script type="module" src="script.js?v=3"></script>
+    <script type="module" src="script.js?v=4"></script>
 </body>
 </html>

@@ -256,3 +256,84 @@ a{text-decoration:none;color:inherit} img{display:block;max-width:100%} button,i
   .chat-tooltip{display:none}
   .chat-fab{width:84px;height:84px}
 }
+
+
+/* SPIDER customer storefront: reference-matched 2026 design */
+:root{--primary:#ed303b;--primary-red:#ed303b;--primary-dark:#ce202b;--radius:14px;--shadow:0 6px 24px rgba(22,28,42,.045)}
+body{background:#fbfcfe}
+.section{padding:27px 0}
+.section-container,.header-container,.nav-container,.hero-container{width:min(94%,1360px)}
+.main-header{position:relative;background:#101114}
+.header-container{padding:12px 0;gap:24px}
+.brand-mark{background:none;box-shadow:none;width:42px;height:46px;border-radius:0;font-size:2.3rem}
+.brand-text strong{font-size:1.65rem}.brand-text span{font-size:.56rem;letter-spacing:1.7px}
+.search-bar input{height:43px;background:#28292e;font-size:.83rem}
+.nav-links a{padding:11px 0;font-size:.83rem}
+.hero-section{padding:0;background:#0e0f11;min-height:386px;border-top:1px solid #e02732}
+.hero-container{width:100%;max-width:1500px;min-height:386px;gap:0;grid-template-columns:42% 58%;direction:ltr}
+.hero-content{direction:rtl;grid-column:1;grid-row:1;z-index:2;padding:36px 28px 26px 58px;text-align:left;background:linear-gradient(90deg,#0b0c0e 45%,rgba(11,12,14,.96) 72%,rgba(11,12,14,.45))}
+.hero-kicker{font-size:.87rem;letter-spacing:3px;margin-bottom:8px;direction:ltr}
+.hero-title{font-size:4.75rem;letter-spacing:0;margin-bottom:0;direction:ltr;font-style:italic}
+.hero-slogan{font-size:1.64rem;margin:0 0 10px;direction:ltr;font-weight:800;letter-spacing:1px}
+.hero-desc{font-size:1.08rem;line-height:1.7;max-width:450px;margin-bottom:15px;color:#efeff0;direction:rtl}
+.hero-actions{justify-content:flex-start;margin-bottom:20px}
+.hero-actions .btn{font-size:.9rem;padding:11px 24px;border-radius:9px}
+.hero-features{justify-content:flex-start;gap:14px;margin-top:20px;direction:ltr}
+.feature-item{gap:7px}.feature-item i{font-size:1.35rem}.feature-item strong{font-size:.78rem}.feature-item span{font-size:.69rem}
+.hero-visual{grid-column:2;grid-row:1;min-height:386px;height:386px;position:relative;overflow:hidden}
+.hero-setup-image{height:100%;width:100%;object-fit:cover;object-position:50% 53%;max-width:none}
+.hero-visual::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(11,12,14,.2),transparent 45%)}
+.categories-section{padding-top:19px}
+.categories-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}
+.category-card{min-width:0;min-height:130px;border-radius:14px;box-shadow:var(--shadow);padding:12px 8px 9px;gap:5px;font:inherit;background:#fff;color:var(--text)}
+.category-card-media{height:65px;width:86px;max-width:95%;padding:0;background:transparent;border:none;border-radius:4px}
+.category-card-media img{width:100%;height:100%;object-fit:contain}
+.category-name{font-size:.78rem;line-height:1.35}
+.category-arrow{font-size:1rem;line-height:1;margin-top:2px}
+.section-header{margin-bottom:14px}
+.section-title{font-size:1.55rem}
+.view-all-link{font-size:.84rem}
+.products-grid{gap:13px;grid-template-columns:repeat(5,minmax(0,1fr))}
+.product-card{padding:12px;border-radius:14px;min-width:0;min-height:340px}
+.product-photo{height:156px;display:grid;place-items:center;background:#fff;overflow:hidden;margin-bottom:7px}
+.product-photo img{height:100%;width:100%;object-fit:contain}
+.product-info{gap:5px}
+.product-title{font-size:.83rem;line-height:1.45;min-height:36px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.product-subtitle{font-size:.72rem;line-height:1.5;min-height:33px;max-height:35px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.product-price-row{margin-top:auto;gap:5px;justify-content:center;min-height:40px;direction:ltr}
+.product-price{font-size:1rem;white-space:nowrap;letter-spacing:-.3px;direction:ltr;font-variant-numeric:tabular-nums}
+.product-old-price{font-size:.68rem;white-space:nowrap}
+.product-card .btn{margin-top:6px;padding:9px 3px;border-radius:8px;font-size:.77rem;gap:5px;width:100%;box-shadow:none}
+.brands-flex{border-radius:13px;box-shadow:var(--shadow);padding:17px 22px;gap:14px}
+.brand-wordmark{font-family:Arial,Helvetica,sans-serif;font-size:1.05rem;font-weight:900;text-align:center;white-space:nowrap;color:#111;letter-spacing:-.3px}
+.brand-1{font-style:italic;color:#cb2235}.brand-4{font-size:1.17rem}.brand-5{font-weight:600;color:#20537e}.brand-6{font-size:.92rem;color:#258c39}.brand-7{font-style:italic;color:#e22a42}
+.promo-showcase-grid{grid-template-columns:1.08fr .92fr;gap:12px}
+.promo-stack{gap:12px}
+.promo-card{min-height:206px;border-radius:12px;padding:19px;box-shadow:var(--shadow);background-size:cover;background-position:center;direction:rtl}
+.promo-card.large{min-height:321px}
+.promo-card.small{min-height:155px}
+.promo-card-gpu{background-image:linear-gradient(90deg,rgba(8,10,16,.04),rgba(8,10,16,.93) 70%),url('assets/promo-graphics.jpg')}
+.promo-card-laptop{background-image:linear-gradient(90deg,rgba(8,10,16,.15),rgba(8,10,16,.92) 75%),url('assets/promo-laptop.jpg')}
+.promo-card-setup{background-image:linear-gradient(90deg,rgba(8,10,16,.08),rgba(8,10,16,.92) 75%),url('assets/promo-gaming.jpg')}
+.promo-card-text{align-items:flex-start;gap:4px;max-width:64%}
+.promo-card h3{font-size:1.55rem;line-height:1.25}.promo-card p{font-size:.85rem}
+.promo-card .btn-dark-outline{font-size:.82rem;padding:9px 12px;margin-top:8px}
+.promo-kicker{letter-spacing:2px;font-size:.95rem}
+.promo-card::before{display:none}
+.chatbot-container{right:14px;bottom:13px}
+.chat-fab{width:66px;height:66px;border-radius:18px}
+.chat-tooltip{left:72px;bottom:44px;font-size:.74rem;min-width:125px;padding:9px}
+.chat-window{bottom:74px;width:330px;max-height:min(520px,80vh);display:flex;flex-direction:column}
+.chat-messages{height:270px;min-height:130px;flex:1}
+.modal-overlay.open{padding:12px;overflow-y:auto;overscroll-behavior:contain}
+.modal-content{width:min(94vw,680px);max-height:calc(100dvh - 24px);display:flex;flex-direction:column}
+.modal-header{flex-shrink:0;position:sticky;top:0;background:#fff;z-index:2}
+.modal-body{overflow-y:auto;min-height:0;overscroll-behavior:contain}
+#checkoutForm{display:flex;flex-direction:column}
+#submitOrderBtn{position:sticky;bottom:0;z-index:2;box-shadow:0 -10px 20px rgba(255,255,255,.86)}
+.order-summary-box .summary-row span{min-width:0;overflow-wrap:anywhere}
+@media(max-width:1100px){.hero-container{grid-template-columns:45% 55%}.hero-content{padding-left:25px}.hero-title{font-size:4rem}.hero-slogan{font-size:1.35rem}.hero-desc{font-size:.92rem}.products-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.categories-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:700px){.header-container{display:grid;grid-template-columns:1fr auto;gap:10px}.header-search-wrap{grid-row:2;grid-column:1/-1}.hero-container{grid-template-columns:1fr;direction:rtl}.hero-content{grid-column:1;grid-row:2;padding:18px 20px 24px;background:#111317;text-align:right}.hero-visual{grid-column:1;grid-row:1;min-height:190px;height:190px}.hero-title{font-size:3rem}.hero-slogan{font-size:1.14rem}.hero-desc{font-size:.93rem}.hero-features{gap:12px}.feature-item i{font-size:1.2rem}.categories-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.category-card{min-height:120px}.category-card-media{height:55px}.products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.product-card{padding:8px;min-height:290px}.product-photo{height:108px}.product-title{font-size:.73rem}.product-subtitle{font-size:.65rem}.product-price{font-size:.81rem}.product-card .btn{font-size:.66rem}.brands-flex{grid-template-columns:repeat(5,minmax(0,1fr))}.brand-wordmark{font-size:.68rem}.promo-showcase-grid{grid-template-columns:1fr}.promo-card.large{min-height:245px}.promo-card.small{min-height:135px}.chat-tooltip{display:none}.chat-fab{width:58px;height:58px}.modal-content{max-height:calc(100dvh - 16px)}}
+body:has(#checkoutModal.open){overflow:hidden}
+#products-section{scroll-margin-top:18px}
+@media(max-width:700px){.form-grid{grid-template-columns:1fr}.chat-window{right:0;bottom:70px;width:min(330px,calc(100vw - 24px))}.cart-sidebar{width:min(420px,100vw)}}
