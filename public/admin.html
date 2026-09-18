@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم | SPIDER NAJAF</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
 </head>
@@ -14,45 +14,52 @@
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
         <div class="login-box">
-            <h2><i class="fa-solid fa-spider"></i> SPIDER NAJAF</h2>
-            <p>لوحة الإدارة والتحكم</p>
-            <div id="login-error" class="error-msg"></div>
+            <div class="spider-logo-badge"><i class="fa-solid fa-spider"></i></div>
+            <h2>SPIDER NAJAF</h2>
+            <p>لوحة الإدارة والتحكم العليا</p>
+            <div id="login-error" class="error-msg hidden"></div>
             <button id="login-google-btn" class="btn btn-google">
                 <i class="fa-brands fa-google"></i> تسجيل الدخول باستخدام Google
             </button>
+            <small class="login-hint">الدخول محصور لحساب سوبر مشرف المعتمد فقط.</small>
         </div>
     </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- Admin Screen -->
     <div id="admin-screen" class="screen hidden">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="adminSidebar">
             <div class="sidebar-logo">
                 <i class="fa-solid fa-spider"></i>
                 <div class="logo-text">
                     <span class="title">SPIDER</span>
                     <span class="sub">N A J A F</span>
-                    <span class="sub2">GEAR UP YOUR WORLD</span>
+                    <span class="sub2">SUPER ADMIN PANEL</span>
                 </div>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
             <ul class="nav-links">
-                <li><a href="#" class="active"><i class="fa-solid fa-house"></i> الرئيسية</a></li>
-                <li><a href="#"><i class="fa-solid fa-box"></i> المنتجات</a></li>
-                <li><a href="#"><i class="fa-solid fa-border-all"></i> الأقسام</a></li>
-                <li><a href="#"><i class="fa-solid fa-cart-shopping"></i> الطلبات <span class="badge" id="ordersBadge">0</span></a></li>
-                <li><a href="#"><i class="fa-solid fa-users"></i> العملاء</a></li>
-                <li><a href="#"><i class="fa-solid fa-tags"></i> الخصومات</a></li>
-                <li><a href="#"><i class="fa-solid fa-image"></i> المحتوى</a></li>
-                <li><a href="#"><i class="fa-solid fa-chart-line"></i> التقارير</a></li>
-                <li><a href="#"><i class="fa-solid fa-users-gear"></i> المستخدمون</a></li>
-                <li><a href="#"><i class="fa-solid fa-gear"></i> الإعدادات</a></li>
+                <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
+                <li class="nav-divider"></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة العملاء"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المحتوى"><i class="fa-solid fa-image"></i> <span>المحتوى</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="التقارير والإحصائيات"><i class="fa-solid fa-chart-line"></i> <span>التقارير</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المستخدمين"><i class="fa-solid fa-users-gear"></i> <span>المستخدمون</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إعدادات المتجر"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span> <span class="badge-sub">قريباً</span></a></li>
             </ul>
             
             <div class="sidebar-help">
-                <i class="fa-regular fa-circle-question"></i>
-                <p>تحتاج مساعدة؟<br>تواصل معنا في أي وقت</p>
-                <button class="btn btn-help">مركز المساعدة</button>
+                <i class="fa-solid fa-shield-halved"></i>
+                <p><strong>حساب سوبر مشرف</strong><br>كامل الصلاحيات مفعلة</p>
+                <div class="version-tag">SPIDER v1.2.0 • Pro</div>
             </div>
         </aside>
 
@@ -60,130 +67,254 @@
         <main class="main-content">
             <!-- Topbar -->
             <header class="topbar">
-                <div class="user-info">
-                    <img src="https://via.placeholder.com/40" alt="Admin" class="avatar" id="adminAvatar">
-                    <div class="user-text">
-                        <strong id="adminName">مدير النظام</strong>
-                        <span>مدير النظام</span>
+                <div class="topbar-right">
+                    <button class="mobile-toggle-btn" id="sidebarToggleBtn" title="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
+                    <div class="user-info">
+                        <img src="https://via.placeholder.com/45" alt="Admin" class="avatar" id="adminAvatar">
+                        <div class="user-text">
+                            <strong id="adminName">محمد مسلم</strong>
+                            <span class="super-admin-badge" id="adminRole"><i class="fa-solid fa-crown"></i> سوبر مشرف</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="topbar-actions">
-                    <div class="search-box">
-                        <i class="fa-solid fa-search"></i>
-                        <input type="text" placeholder="ابحث عن منتج، طلب، أو عميل...">
-                    </div>
-                    <button class="icon-btn notification-btn"><i class="fa-regular fa-bell"></i><span class="badge">3</span></button>
+                    <a href="index.html" target="_blank" class="btn btn-outline" title="زيارة متجر الزبائن"><i class="fa-solid fa-store"></i> عرض المتجر</a>
                     <button class="btn btn-danger" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
                 </div>
             </header>
 
-            <div class="dashboard-header">
-                <div>
-                    <h1>مرحباً بك</h1>
-                    <p>إليك نظرة عامة على متجرك اليوم</p>
+            <!-- ================= VIEW 1: DASHBOARD ================= -->
+            <section id="view-dashboard" class="admin-view active">
+                <div class="dashboard-header">
+                    <div>
+                        <h1>مرحباً بك في لوحة الإدارة</h1>
+                        <p>إليك نظرة عامة على نشاط متجر SPIDER NAJAF</p>
+                    </div>
+                    <div class="dashboard-actions">
+                        <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                    </div>
                 </div>
-                <div class="dashboard-actions">
-                    <select class="date-select"><option>آخر 7 أيام</option></select>
-                    <button class="btn btn-danger"><i class="fa-solid fa-download"></i> تصدير تقرير</button>
-                </div>
-            </div>
 
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                    <div class="stat-details">
-                        <p>إجمالي الطلبات</p>
-                        <h3 id="statOrders">0</h3>
-                        <span class="trend positive">+12% مقارنة بالأسبوع الماضي</span>
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card" onclick="switchView('view-orders')">
+                        <div class="stat-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+                        <div class="stat-details">
+                            <p>إجمالي الطلبات</p>
+                            <h3 id="statOrders">0</h3>
+                            <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> نشاط المتجر</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-details">
+                            <p>عدد العملاء الفريدين</p>
+                            <h3 id="statCustomers">0</h3>
+                            <span class="trend positive"><i class="fa-solid fa-user-check"></i> عميل مسجل</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green"><i class="fa-solid fa-money-bill-wave"></i></div>
+                        <div class="stat-details">
+                            <p>إجمالي المبيعات المكتملة</p>
+                            <h3 id="statSales">0 د.ع</h3>
+                            <span class="trend positive"><i class="fa-solid fa-coins"></i> إيرادات فعلية</span>
+                        </div>
+                    </div>
+                    <div class="stat-card" onclick="switchView('view-products')">
+                        <div class="stat-icon bg-purple"><i class="fa-solid fa-box"></i></div>
+                        <div class="stat-details">
+                            <p>إجمالي المنتجات</p>
+                            <h3 id="statProducts">0</h3>
+                            <span class="trend neutral" id="statCategoriesSummary">0 أقسام</span>
+                        </div>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-blue"><i class="fa-solid fa-users"></i></div>
-                    <div class="stat-details">
-                        <p>عدد العملاء</p>
-                        <h3 id="statCustomers">0</h3>
-                        <span class="trend positive">+8% مقارنة بالأسبوع الماضي</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-green"><i class="fa-solid fa-money-bill"></i></div>
-                    <div class="stat-details">
-                        <p>إجمالي المبيعات</p>
-                        <h3 id="statSales">0 د.ع</h3>
-                        <span class="trend positive">+18% مقارنة بالأسبوع الماضي</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon bg-purple"><i class="fa-solid fa-box"></i></div>
-                    <div class="stat-details">
-                        <p>عدد المنتجات</p>
-                        <h3 id="statProducts">0</h3>
-                        <span class="trend neutral">0 أقسام</span>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Main Grid -->
-            <div class="main-grid">
-                <div class="chart-container box">
-                    <h3>المبيعات</h3>
-                    <div class="chart-placeholder">
-                        <!-- Chart visualization -->
-                        <img src="https://via.placeholder.com/600x250?text=Sales+Chart" style="width:100%;border-radius:10px;">
+                <!-- Main Grid -->
+                <div class="main-grid">
+                    <div class="recent-orders box">
+                        <div class="box-header">
+                            <h3><i class="fa-solid fa-clock-rotate-left"></i> أحدث الطلبات</h3>
+                            <a href="#" onclick="switchView('view-orders'); return false;" class="view-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="orders-table">
+                                <thead>
+                                    <tr>
+                                        <th>رقم الطلب</th>
+                                        <th>العميل</th>
+                                        <th>المنتجات</th>
+                                        <th>المجموع</th>
+                                        <th>الحالة</th>
+                                        <th>إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersTableBody">
+                                    <tr><td colspan="6" class="text-center">جاري التحميل...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="top-products box">
+                        <div class="box-header">
+                            <h3><i class="fa-solid fa-fire"></i> المنتجات المميزة</h3>
+                            <a href="#" onclick="switchView('view-products'); return false;" class="view-link">إدارة المنتجات <i class="fa-solid fa-arrow-left"></i></a>
+                        </div>
+                        <div class="top-products-list" id="topProductsList">
+                            <!-- Top products populated here -->
+                        </div>
                     </div>
                 </div>
                 
-                <div class="recent-orders box">
-                    <div class="box-header">
-                        <h3>أحدث الطلبات</h3>
-                        <a href="#">عرض الكل</a>
-                    </div>
-                    <table class="orders-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>العميل</th>
-                                <th>المنتجات</th>
-                                <th>المجموع</th>
-                                <th>الحالة</th>
-                                <th>إجراء</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody">
-                            <tr><td colspan="6" class="text-center">جاري التحميل...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="bottom-grid">
-                <div class="top-products box">
-                    <div class="box-header">
-                        <h3>أفضل المنتجات مبيعاً</h3>
-                        <a href="#">عرض الكل</a>
-                    </div>
-                    <div class="top-products-list" id="topProductsList">
-                        <!-- Top products -->
-                    </div>
-                </div>
-                
-                <div class="quick-actions box">
-                    <h3>إجراءات سريعة</h3>
+                <div class="quick-actions-section box">
+                    <h3><i class="fa-solid fa-bolt"></i> وصول سريع</h3>
                     <div class="actions-grid">
-                        <button class="action-card" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج</button>
-                        <a href="#ordersTableBody" class="action-card"><i class="fa-solid fa-truck-fast"></i> الطلبات النشطة</a>
-                        <a href="#" class="action-card"><i class="fa-solid fa-chart-pie"></i> التقارير</a>
-                        <a href="#" class="action-card"><i class="fa-solid fa-users"></i> العملاء</a>
+                        <button class="action-card" onclick="openProductModal()"><i class="fa-solid fa-plus-circle"></i> إضافة منتج جديد</button>
+                        <button class="action-card" onclick="switchView('view-products')"><i class="fa-solid fa-boxes-stacked"></i> إدارة المنتجات</button>
+                        <button class="action-card" onclick="switchView('view-categories')"><i class="fa-solid fa-folder-tree"></i> إدارة الأقسام</button>
+                        <button class="action-card" onclick="switchView('view-orders')"><i class="fa-solid fa-truck-ramp-box"></i> جميع الطلبات</button>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- ================= VIEW 2: PRODUCTS MANAGEMENT ================= -->
+            <section id="view-products" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-box"></i> إدارة المنتجات</h2>
+                        <p>عرض وإضافة وتعديل وحذف المنتجات والتحكم بظهورها في المتجر</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                </div>
+
+                <div class="filter-bar box">
+                    <div class="search-input-group">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="productSearchInput" placeholder="بحث بالاسم أو الوصف...">
+                    </div>
+                    <select id="productCategoryFilter" class="filter-select">
+                        <option value="">جميع الأقسام</option>
+                    </select>
+                    <select id="productStatusFilter" class="filter-select">
+                        <option value="">جميع الحالات</option>
+                        <option value="visible">معروض في المتجر</option>
+                        <option value="hidden">مخفي مؤقتاً</option>
+                    </select>
+                </div>
+
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الصورة</th>
+                                    <th>اسم المنتج</th>
+                                    <th>القسم</th>
+                                    <th>السعر</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsFullTableBody">
+                                <tr><td colspan="6" class="text-center">جاري تحميل المنتجات...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 3: CATEGORIES MANAGEMENT ================= -->
+            <section id="view-categories" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-border-all"></i> إدارة الأقسام</h2>
+                        <p>تنظيم تصنيفات المتجر وإضافة وتعديل الأقسام وتحديد ظهورها</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openCategoryModal()"><i class="fa-solid fa-plus"></i> إضافة قسم جديد</button>
+                </div>
+
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الأيقونة</th>
+                                    <th>اسم القسم</th>
+                                    <th>معرف القسم (ID)</th>
+                                    <th>عدد المنتجات</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesFullTableBody">
+                                <tr><td colspan="6" class="text-center">جاري تحميل الأقسام...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 4: ORDERS MANAGEMENT ================= -->
+            <section id="view-orders" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-cart-shopping"></i> إدارة الطلبات</h2>
+                        <p>متابعة وتحديث حالات طلبات العملاء وتفاصيل الشحن والمبالغ</p>
+                    </div>
+                </div>
+
+                <div class="order-status-tabs">
+                    <button class="tab-btn active" onclick="filterOrdersTab('all')">جميع الطلبات (<span id="countOrdersAll">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('pending')">قيد التجهيز (<span id="countOrdersPending">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('completed')">مكتملة (<span id="countOrdersCompleted">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('cancelled')">ملغية (<span id="countOrdersCancelled">0</span>)</button>
+                </div>
+
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>رقم الطلب</th>
+                                    <th>اسم العميل</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>المحافظة / المدينة</th>
+                                    <th>إجمالي المبلغ</th>
+                                    <th>تاريخ الطلب</th>
+                                    <th>الحالة</th>
+                                    <th>التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersFullTableBody">
+                                <tr><td colspan="8" class="text-center">جاري تحميل الطلبات...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 5: PLACEHOLDER (COMING SOON) ================= -->
+            <section id="view-placeholder" class="admin-view">
+                <div class="placeholder-box box">
+                    <div class="placeholder-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                    <h2 id="placeholderTitle">هذا القسم قيد التطوير</h2>
+                    <p class="placeholder-desc">تم حجز هذا القسم لصلاحيات سوبر مشرف (Super Admin). نحن نعمل على استكمال ميزاته في التحديث القادم مع ضمان أعلى معايير الأمان والأداء.</p>
+                    <div class="placeholder-features">
+                        <span><i class="fa-solid fa-check"></i> بنية الصلاحيات جاهزة في Firebase Rules</span>
+                        <span><i class="fa-solid fa-check"></i> محمية برقم UID الخاص بك حصراً</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="switchView('view-dashboard')"><i class="fa-solid fa-house"></i> العودة إلى الرئيسية</button>
+                </div>
+            </section>
         </main>
     </div>
 
-    <!-- Modals -->
-    <!-- Add/Edit Product Modal -->
+    <!-- ================= MODALS ================= -->
+
+    <!-- Product Modal (Add / Edit) -->
     <div class="modal-overlay" id="productModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -194,43 +325,93 @@
                 <form id="productForm">
                     <input type="hidden" id="prodId">
                     <div class="form-group">
-                        <label>اسم المنتج</label>
-                        <input type="text" id="prodName" required>
+                        <label>اسم المنتج <span class="req">*</span></label>
+                        <input type="text" id="prodName" required placeholder="مثال: ASUS TUF Gaming F15">
                     </div>
                     <div class="form-group">
-                        <label>القسم</label>
+                        <label>القسم <span class="req">*</span></label>
                         <select id="prodCategory" required>
-                            <!-- Categories will load here -->
+                            <!-- Categories load here -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>السعر (د.ع)</label>
-                        <input type="number" id="prodPrice" required>
+                        <label>السعر بالدينار العراقي (د.ع) <span class="req">*</span></label>
+                        <input type="number" id="prodPrice" required placeholder="مثال: 1250000">
                     </div>
                     <div class="form-group">
                         <label>الوصف / المواصفات</label>
-                        <textarea id="prodDesc"></textarea>
+                        <textarea id="prodDesc" placeholder="المعالج، كرت الشاشة، الرام، سعة التخزين..."></textarea>
                     </div>
                     <div class="form-group">
                         <label>صورة المنتج</label>
-                        <div style="display:flex; gap:10px; margin-bottom:10px;">
-                            <input type="file" id="prodImageFile" accept="image/png, image/jpeg, image/webp" style="flex-grow:1;">
-                            <button type="button" id="uploadImageBtn" class="btn" style="background:#222; color:white;">تحضير ومعاينة</button>
+                        <div class="image-upload-row">
+                            <input type="file" id="prodImageFile" accept="image/png, image/jpeg, image/webp">
+                            <button type="button" id="uploadImageBtn" class="btn btn-dark">معاينة وضغط</button>
                         </div>
-                        <div id="imagePreviewContainer" style="display:none; text-align:center; padding:10px; border:1px dashed #ccc; border-radius:6px; margin-bottom:10px;">
-                            <img id="imagePreview" src="" style="max-width:100%; max-height:200px; border-radius:8px; margin-bottom:10px;">
-                            <div id="imageDetails" style="font-size:0.8rem; color:#666; margin-bottom:10px;"></div>
-                            <button type="button" id="confirmUploadBtn" class="btn btn-primary" style="width:100%;">رفع الصورة إلى GitHub</button>
+                        <div id="imagePreviewContainer" class="image-preview-box" style="display:none;">
+                            <img id="imagePreview" src="" alt="Preview">
+                            <div id="imageDetails" class="image-details-text"></div>
+                            <button type="button" id="confirmUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
                         </div>
                         <input type="hidden" id="prodImage" placeholder="/images/products/...">
-                        <small>يتم الآن الضغط محلياً (WebP) ثم الرفع المباشر والآمن إلى GitHub عبر Cloudflare Workers. يجب تشغيل الخادم الخلفي ليعمل الرفع بنجاح.</small>
+                        <small class="form-hint">يتم ضغط الصورة محلياً وتحويلها إلى WebP لسرعة المتجر، ثم رفعها عبر الخادم الخلفي الآمن.</small>
                     </div>
-                    <button type="submit" class="btn btn-danger w-100">حفظ المنتج</button>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="prodHidden">
+                            <span>إخفاء هذا المنتج مؤقتاً من المتجر (لن يظهر للزبائن)</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> حفظ المنتج</button>
                 </form>
             </div>
         </div>
     </div>
     
+    <!-- Category Modal (Add / Edit) -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle">إضافة قسم جديد</h2>
+                <button class="close-btn" onclick="closeCategoryModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="catId">
+                    <div class="form-group">
+                        <label>اسم القسم <span class="req">*</span></label>
+                        <input type="text" id="catName" required placeholder="مثال: كروت الشاشة">
+                    </div>
+                    <div class="form-group">
+                        <label>أيقونة القسم (FontAwesome) <span class="req">*</span></label>
+                        <select id="catIcon" required>
+                            <option value="fa-desktop">كمبيوتر مكتبي (fa-desktop)</option>
+                            <option value="fa-laptop">لابتوبات (fa-laptop)</option>
+                            <option value="fa-microchip">معالجات (fa-microchip)</option>
+                            <option value="fa-memory">كروت شاشة / ذاكرة (fa-memory)</option>
+                            <option value="fa-tv">شاشات (fa-tv)</option>
+                            <option value="fa-headphones">سماعات وملحقات (fa-headphones)</option>
+                            <option value="fa-gamepad">ألعاب وكونسول (fa-gamepad)</option>
+                            <option value="fa-hard-drive">وحدات تخزين (fa-hard-drive)</option>
+                            <option value="fa-keyboard">كيبوردات وماوس (fa-keyboard)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>وصف القسم (اختياري)</label>
+                        <textarea id="catDesc" placeholder="نبذة مختصرة عن نوع المنتجات في هذا القسم"></textarea>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="catHidden">
+                            <span>إخفاء هذا القسم مؤقتاً من المتجر</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> حفظ القسم</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Order Details Modal -->
     <div class="modal-overlay" id="orderModal">
         <div class="modal-content">
@@ -239,7 +420,7 @@
                 <button class="close-btn" onclick="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" id="orderDetailsContent">
-                <!-- details -->
+                <!-- Order details rendered dynamically -->
             </div>
         </div>
     </div>

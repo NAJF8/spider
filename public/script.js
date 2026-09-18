@@ -54,11 +54,16 @@ function fetchData() {
             });
             renderCategories();
         } else {
-            categoriesGrid.innerHTML = '<div class="empty-cart">لا توجد أقسام حالياً</div>';
+            categoriesGrid.innerHTML = `
+                <div class="empty-state-card">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <h4>أقسام المتجر قيد التحديث</h4>
+                    <p>نعمل على تجهيز أفضل تصنيفات البي سي واللابتوبات الاحترافية.</p>
+                </div>`;
         }
     }, (error) => {
         console.error("Firebase categories read error:", error);
-        categoriesGrid.innerHTML = `<div class="empty-cart">خطأ في جلب الأقسام: ${error.message}</div>`;
+        categoriesGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-triangle-exclamation"></i><h4>خطأ في جلب الأقسام</h4><p>${error.message}</p></div>`;
     });
 
     // Fetch Products
@@ -71,19 +76,36 @@ function fetchData() {
             });
             renderProducts(products);
         } else {
-            productsGrid.innerHTML = '<div class="empty-cart">لا توجد منتجات حالياً</div>';
+            productsGrid.innerHTML = `
+                <div class="empty-state-card">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                    <h4>لا توجد منتجات معروضة حالياً</h4>
+                    <p>سيتم إضافة عروض وتجهيزات الألعاب والكمبيوتر قريباً عبر لوحة الإدارة.</p>
+                </div>`;
         }
     }, (error) => {
         console.error("Firebase products read error:", error);
-        productsGrid.innerHTML = `<div class="empty-cart">خطأ في جلب المنتجات: ${error.message}</div>`;
+        productsGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-triangle-exclamation"></i><h4>خطأ في جلب المنتجات</h4><p>${error.message}</p></div>`;
     });
 }
 
 function renderCategories() {
     categoriesGrid.innerHTML = '';
-    const icons = ['fa-gamepad', 'fa-headphones', 'fa-desktop', 'fa-microchip', 'fa-memory', 'fa-laptop', 'fa-computer'];
-    categories.forEach((cat, index) => {
-        const icon = icons[index % icons.length];
+    const visibleCategories = categories.filter(c => !c.isHidden);
+    
+    if (visibleCategories.length === 0) {
+        categoriesGrid.innerHTML = `
+            <div class="empty-state-card">
+                <i class="fa-solid fa-folder-open"></i>
+                <h4>لا توجد أقسام ظاهرة حالياً</h4>
+                <p>يمكنك تفعيل ظهور الأقسام من لوحة الأدمن.</p>
+            </div>`;
+        return;
+    }
+
+    const defaultIcons = ['fa-gamepad', 'fa-headphones', 'fa-desktop', 'fa-microchip', 'fa-memory', 'fa-laptop', 'fa-tv'];
+    visibleCategories.forEach((cat, index) => {
+        const icon = cat.icon || defaultIcons[index % defaultIcons.length];
         const html = `
             <div class="category-card" onclick="filterByCategory('${cat.id}')">
                 <i class="fa-solid ${icon} category-icon"></i>
@@ -97,12 +119,19 @@ function renderCategories() {
 
 function renderProducts(productsToRender) {
     productsGrid.innerHTML = '';
-    if (productsToRender.length === 0) {
-        productsGrid.innerHTML = '<div class="empty-cart">لم يتم العثور على منتجات</div>';
+    const visibleProducts = productsToRender.filter(p => !p.isHidden);
+    
+    if (visibleProducts.length === 0) {
+        productsGrid.innerHTML = `
+            <div class="empty-state-card">
+                <i class="fa-solid fa-box-open"></i>
+                <h4>لم يتم العثور على منتجات في هذا القسم</h4>
+                <p>جرب تصفح باقي الأقسام أو إزالة فلاتر البحث.</p>
+            </div>`;
         return;
     }
     
-    productsToRender.forEach(prod => {
+    visibleProducts.forEach(prod => {
         const price = prod.price || 0;
         const html = `
             <div class="product-card">
@@ -124,7 +153,7 @@ window.filterByCategory = function(categoryId) {
     if(!categoryId) {
         renderProducts(products);
     } else {
-        const filtered = products.filter(p => p.categoryId === categoryId || p.category === categoryId);
+        const filtered = products.filter(p => (p.categoryId === categoryId || p.category === categoryId) && !p.isHidden);
         renderProducts(filtered);
     }
     document.getElementById('products-section').scrollIntoView({behavior: 'smooth'});

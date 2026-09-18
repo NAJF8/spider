@@ -8,6 +8,26 @@
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
+    "offers": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "settings": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "users": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "reports": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "admins": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
     "orders": {
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       "$orderId": {
