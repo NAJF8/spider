@@ -7,20 +7,17 @@
 export const DEMO_NOTICE = "تنويه: المنتجات والأسعار والتجميعات المعروضة تجريبية لمعاينة تصميم المتجر وتجربة وظائفه، وليست عروض بيع حقيقية.";
 
 export const DEMO_CATEGORIES = [
+    // === القسم الرئيسي: مكونات الحاسوب الشخصي ===
     {
         id: "cat-pc-parts",
         name: "مكونات الحاسوب الشخصي",
         icon: "fa-microchip",
         description: "معالجات، كروت شاشة، لوحات أم، رامات ووحدات تخزين",
         isHidden: false,
-        subcategories: [
-            { id: "sub-cpus", name: "المعالجات (CPUs)" },
-            { id: "sub-gpus", name: "كروت الشاشة (GPUs)" },
-            { id: "sub-motherboards", name: "اللوحات الأم (Motherboards)" },
-            { id: "sub-ram", name: "الذاكرة العشوائية (RAM)" },
-            { id: "sub-storage", name: "التخزين (SSD & NVMe)" }
-        ]
+        isParent: true,
+        subcategoryIds: ["cat-cpus", "cat-gpus", "cat-motherboards", "cat-ram", "cat-storage", "cat-psu", "cat-cooling", "cat-cases"]
     },
+    // أقسام فرعية: مكونات الحاسوب
     {
         id: "cat-cpus",
         name: "المعالجات",
@@ -62,6 +59,31 @@ export const DEMO_CATEGORIES = [
         isHidden: false
     },
     {
+        id: "cat-psu",
+        name: "مزودات الطاقة",
+        icon: "fa-plug",
+        parentCategory: "cat-pc-parts",
+        description: "مزودات طاقة Corsair و EVGA و Seasonic بكفاءة 80+ Gold",
+        isHidden: false
+    },
+    {
+        id: "cat-cooling",
+        name: "أنظمة التبريد",
+        icon: "fa-fan",
+        parentCategory: "cat-pc-parts",
+        description: "مبردات مائية وهوائية للمعالجات بأفضل الأداء وأقل ضوضاء",
+        isHidden: false
+    },
+    {
+        id: "cat-cases",
+        name: "صناديق الحاسبة",
+        icon: "fa-box",
+        parentCategory: "cat-pc-parts",
+        description: "كيسات وأبراج PC بتصاميم احترافية وإضاءة ARGB",
+        isHidden: false
+    },
+    // === الأقسام الرئيسية الأخرى ===
+    {
         id: "cat-laptops",
         name: "اللابتوبات",
         icon: "fa-laptop",
@@ -77,7 +99,7 @@ export const DEMO_CATEGORIES = [
     },
     {
         id: "cat-bundles",
-        name: "التجميعات والعروض",
+        name: "التجميعات",
         icon: "fa-desktop",
         description: "تجميعات PC احترافية متكاملة جاهزة للتشغيل",
         isHidden: false

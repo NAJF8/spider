@@ -85,6 +85,7 @@ function applyCurrentDataMode() {
         renderCategories();
         renderProducts(products);
         renderBundles(bundles);
+        renderOffersGrid();
     } else {
         categories = [...liveCategories];
         products = [...liveProducts];
@@ -117,6 +118,7 @@ function applyCurrentDataMode() {
                     </button>
                 </div>`;
         }
+        renderOffersGrid();
 
         if (bundlesGrid) {
             bundlesGrid.innerHTML = `
@@ -191,13 +193,40 @@ function renderCategories() {
         return;
     }
 
+    // Only show top-level categories (no parentCategory) to avoid duplication
+    const topLevelCats = visibleCategories.filter(c => !c.parentCategory);
     const defaultIcons = ['fa-microchip', 'fa-memory', 'fa-border-all', 'fa-bars', 'fa-hard-drive', 'fa-laptop', 'fa-tv', 'fa-desktop', 'fa-headphones'];
-    visibleCategories.forEach((cat, index) => {
+
+    topLevelCats.forEach((cat, index) => {
         const icon = cat.icon || defaultIcons[index % defaultIcons.length];
+
+        // Get subcategories for parent categories
+        let subHtml = '';
+        if (cat.subcategoryIds && cat.subcategoryIds.length > 0) {
+            const subs = categories.filter(c => cat.subcategoryIds.includes(c.id) && !c.isHidden);
+            if (subs.length > 0) {
+                subHtml = `<div class="category-subs">${subs.map(s => 
+                    `<span class="sub-chip" onclick="event.stopPropagation(); filterByCategory('${s.id}')">${s.name}</span>`
+                ).join('')}</div>`;
+            }
+        } else if (cat.isParent) {
+            // Fallback: look for children that have this as parentCategory
+            const children = categories.filter(c => c.parentCategory === cat.id && !c.isHidden);
+            if (children.length > 0) {
+                subHtml = `<div class="category-subs">${children.map(s => 
+                    `<span class="sub-chip" onclick="event.stopPropagation(); filterByCategory('${s.id}')">${s.name}</span>`
+                ).join('')}</div>`;
+            }
+        }
+
+        const isParentCat = cat.isParent || (cat.subcategoryIds && cat.subcategoryIds.length > 0);
+        const cardClass = isParentCat ? 'category-card category-card-parent' : 'category-card';
+        
         const html = `
-            <div class="category-card" onclick="filterByCategory('${cat.id}')">
+            <div class="${cardClass}" onclick="filterByCategory('${cat.id}')">
                 <i class="fa-solid ${icon} category-icon"></i>
                 <div class="category-name">${cat.name}</div>
+                ${subHtml}
                 <div class="category-arrow"><i class="fa-solid fa-arrow-left"></i></div>
             </div>
         `;
@@ -249,16 +278,18 @@ function renderBundles(bundlesToRender) {
     }
 
     bundlesToRender.forEach(b => {
+        const bundleName = b.name || b.title || 'تجميعة SPIDER';
+        const discountBadge = b.discount || b.discountBadge || '';
         const partsHtml = (b.parts || []).map(p => `<li><i class="fa-solid fa-check"></i> ${p}</li>`).join('');
         const html = `
             <div class="bundle-card">
                 <div class="bundle-image-box">
-                    <span class="bundle-discount-badge">${b.discountBadge || 'توفير خاص'}</span>
-                    <img src="${b.image || '/images/products/bundle-spider-pro.svg'}" alt="${b.name}">
+                    ${discountBadge ? `<span class="bundle-discount-badge">${discountBadge}</span>` : ''}
+                    <img src="${b.image || '/images/products/bundle-spider-pro.svg'}" alt="${bundleName}" loading="lazy">
                 </div>
                 <div class="bundle-content">
                     <div>
-                        <h3 class="bundle-title">${b.name}</h3>
+                        <h3 class="bundle-title">${bundleName}</h3>
                         <p class="bundle-subtitle">${b.subtitle || ''}</p>
                         <ul class="bundle-parts-list">
                             ${partsHtml}
@@ -278,21 +309,70 @@ function renderBundles(bundlesToRender) {
         `;
         bundlesGrid.insertAdjacentHTML('beforeend', html);
     });
+
 }
 
 window.filterByCategory = function(categoryId) {
     if (!categoryId) {
         renderProducts(products);
     } else {
+        // When a parent category is clicked, also include all its children products
+        const parentCat = categories.find(c => c.id === categoryId);
+        let matchIds = [categoryId];
+        if (parentCat) {
+            const childIds = Array.isArray(parentCat.subcategoryIds)
+                ? parentCat.subcategoryIds
+                : categories
+                .filter(c => c.parentCategory === categoryId)
+                .map(c => c.id);
+            matchIds = [categoryId, ...childIds];
+        }
+
         const filtered = products.filter(p => {
-            const matchesId = p.categoryId === categoryId || p.category === categoryId || p.parentCategory === categoryId;
-            return matchesId && !p.isHidden;
+            const catMatch = matchIds.includes(p.categoryId) || matchIds.includes(p.category);
+            return catMatch && !p.isHidden;
         });
         renderProducts(filtered);
     }
     const section = document.getElementById('products-section');
     if (section) section.scrollIntoView({ behavior: 'smooth' });
 };
+
+// Render discounted products in the Offers section
+function renderOffersGrid() {
+    const offersGrid = document.getElementById('offersProductsGrid');
+    if (!offersGrid) return;
+    offersGrid.innerHTML = '';
+    const discounted = products.filter(p => p.originalPrice && p.originalPrice > p.price && !p.isHidden);
+    if (discounted.length === 0) {
+        offersGrid.innerHTML = `<div class="empty-state-card" style="background: rgba(255,255,255,0.05); border-color: #333; color: #aaa;">
+            <i class="fa-solid fa-tag" style="color: #555;"></i>
+            <h4 style="color: #ccc;">لا توجد عروض حالياً</h4>
+            <p>تفقد قريباً لأقوى خصومات الأسبوع</p>
+        </div>`;
+        return;
+    }
+    discounted.forEach(prod => {
+        const discount = Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100);
+        const html = `
+            <div class="product-card" style="background: #1a1a22; border-color: #2a2a35; color: white;">
+                <span style="position: absolute; top: 10px; left: 10px; background: var(--primary-red); color: white; font-size: 0.78rem; font-weight: 800; padding: 3px 9px; border-radius: 20px;">خصم ${discount}%</span>
+                <button class="fav-btn" style="background: #252530; border-color: #333;" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
+                <img src="${prod.image || '/images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy" style="background: #111;">
+                <div class="product-info">
+                    <h3 class="product-title" style="color: white;">${prod.name}</h3>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                        <span class="product-price" style="color: var(--primary-red);">${formatPrice(prod.price)}</span>
+                        <span style="text-decoration: line-through; color: #666; font-size: 0.9rem;">${formatPrice(prod.originalPrice)}</span>
+                    </div>
+                    <button class="add-to-cart-btn" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+                </div>
+            </div>
+        `;
+        offersGrid.insertAdjacentHTML('beforeend', html);
+    });
+}
+
 
 window.addToCart = function(productId) {
     const product = products.find(p => p.id === productId);

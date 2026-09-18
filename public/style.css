@@ -33,14 +33,14 @@ a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
 img { max-width: 100%; height: auto; display: block; }
 
-/* Global Responsive Containers - Modern 1440px wide-screen format */
+/* Global Responsive Containers - Modern 1600px wide-screen format */
 .section { padding: 60px 0; }
 .section-container,
 .header-container,
 .nav-container,
 .footer-container,
 .hero-container {
-    max-width: 1440px;
+    max-width: 1600px;
     width: 95%;
     margin: 0 auto;
     padding: 0 20px;
@@ -410,6 +410,47 @@ img { max-width: 100%; height: auto; display: block; }
     background: var(--primary-red);
     color: white;
 }
+/* Parent category card spans full width and shows subcategory chips */
+.category-card-parent {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 22px 28px;
+    min-height: auto;
+    background: linear-gradient(135deg, #fff 0%, #fef4f5 100%);
+    border-color: rgba(230,57,70,0.2);
+}
+.category-card-parent .category-icon { font-size: 2.2rem; margin-bottom: 0; }
+.category-card-parent .category-name { font-size: 1.15rem; margin-left: auto; }
+.category-card-parent .category-arrow { margin-top: 0; }
+.category-subs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1 1 100%;
+    margin-top: 10px;
+}
+.sub-chip {
+    background: #f3f4f6;
+    color: #444;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.sub-chip:hover {
+    background: var(--primary-red);
+    color: white;
+    border-color: var(--primary-red);
+    transform: translateY(-2px);
+}
 
 /* Products Grid */
 .products-grid {
@@ -719,7 +760,7 @@ img { max-width: 100%; height: auto; display: block; }
     z-index: 1000;
 }
 .demo-banner-content {
-    max-width: 1440px;
+    max-width: 1600px;
     width: 95%;
     margin: 0 auto;
     display: flex;

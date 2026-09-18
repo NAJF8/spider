@@ -76,11 +76,11 @@
         <div class="nav-container">
             <ul class="nav-links">
                 <li><a href="index.html" class="active">الرئيسية</a></li>
-                <li><a href="#categories-section">أجهزة الكمبيوتر</a></li>
-                <li><a href="#categories-section">اللابتوبات</a></li>
-                <li><a href="#categories-section">القطع</a></li>
-                <li><a href="#categories-section">الملحقات</a></li>
-                <li><a href="#products-section">العروض</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-pc-parts'); return true;">مكونات الحاسوب</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-laptops'); return true;">اللابتوبات</a></li>
+                <li><a href="#bundles-section">التجميعات</a></li>
+                <li><a href="#offers-section">العروض</a></li>
+                <li><a href="#categories-section">جميع الأقسام</a></li>
             </ul>
         </div>
     </nav>
@@ -200,36 +200,53 @@
             </div>
         </section>
 
-        <!-- Promo Banners -->
-        <section class="section">
+        <!-- Offers / Deals Section -->
+        <section id="offers-section" class="section" style="background: linear-gradient(135deg, #0d0d0d 0%, #1a0d0f 100%); padding: 70px 0;">
             <div class="section-container">
-                <div class="promo-grid">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title" style="color: white;"><i class="fa-solid fa-fire" style="color: var(--primary-red); margin-left: 8px;"></i> العروض والخصومات</h2>
+                        <p style="color: #999; font-size: 0.9rem; margin-top: 4px;">أقوى صفقات الأسبوع على أحدث المنتجات</p>
+                    </div>
+                    <a href="#products-section" class="view-all" style="color: var(--primary-red);">كل المنتجات <i class="fa-solid fa-arrow-left"></i></a>
+                </div>
+                <!-- Promo Banners Grid -->
+                <div class="promo-grid" style="margin-top: 30px;">
                     <div class="promo-card dark">
                         <div class="promo-content">
+                            <p style="color: var(--primary-red); font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px;">عرض محدود</p>
                             <h3>POWER<br>YOUR PASSION</h3>
-                            <p>أحدث كروت الشاشة</p>
-                            <a href="#" class="btn btn-outline-light"><i class="fa-solid fa-cart-shopping"></i> تسوق كروت الشاشة</a>
+                            <p>أحدث كروت الشاشة RTX 4070 Ti<br>بأفضل الأسعار في العراق</p>
+                            <a href="#products-section" onclick="filterByCategory('cat-gpus'); return true;" class="btn btn-outline-light" style="margin-top: 16px;"><i class="fa-solid fa-cart-shopping"></i> تسوق كروت الشاشة</a>
                         </div>
                     </div>
                     <div class="promo-column">
                         <div class="promo-card small dark">
                             <div class="promo-content">
                                 <h3>اللابتوبات</h3>
-                                <p>أداء بدون حدود <i class="fa-solid fa-arrow-left"></i></p>
+                                <p>أداء بدون حدود <a href="#products-section" onclick="filterByCategory('cat-laptops'); return true;" style="color: var(--primary-red);">تسوق الآن <i class="fa-solid fa-arrow-left"></i></a></p>
                             </div>
                         </div>
                         <div class="promo-card small dark">
                             <div class="promo-content">
                                 <h3>تجهيزات الألعاب</h3>
-                                <p>اصنع تجربتك الخاصة <i class="fa-solid fa-arrow-left"></i></p>
+                                <p>اصنع تجربتك الخاصة <a href="#products-section" onclick="filterByCategory('cat-accessories'); return true;" style="color: var(--primary-red);">تسوق الآن <i class="fa-solid fa-arrow-left"></i></a></p>
                             </div>
                         </div>
                     </div>
                 </div>
+                <!-- Featured Offers Products - highlighted products with discounts -->
+                <div style="margin-top: 36px;">
+                    <h3 style="color: white; font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;"><i class="fa-solid fa-tag" style="color: var(--primary-red); margin-left: 8px;"></i> منتجات بسعر مخفض</h3>
+                    <div class="products-grid" id="offersProductsGrid" style="min-height: auto;">
+                        <!-- Populated by script.js with products that have originalPrice > price -->
+                    </div>
+                </div>
             </div>
         </section>
-        
+
         <!-- Features Bottom -->
+
         <section class="features-bottom">
             <div class="section-container features-bottom-flex">
                 <div class="feat-box">
