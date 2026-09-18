@@ -420,6 +420,8 @@ document.getElementById('uploadImageBtn').addEventListener('click', () => {
 
 const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.YOUR-ACCOUNT.workers.dev'; // User must replace this!
 
+const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.YOUR-ACCOUNT.workers.dev';
+
 document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
     if (!currentProcessedImageBase64) return;
     
@@ -432,7 +434,6 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         if (!idToken) throw new Error('AUTH_REQUIRED');
         
-        // Convert base64 to Blob
         const byteCharacters = atob(currentProcessedImageBase64);
         const byteArrays = [];
         for (let offset = 0; offset < byteCharacters.length; offset += 512) {
@@ -441,8 +442,7 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
             for (let i = 0; i < slice.length; i++) {
                 byteNumbers[i] = slice.charCodeAt(i);
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
+            byteArrays.push(new Uint8Array(byteNumbers));
         }
         const blob = new Blob(byteArrays, { type: 'image/webp' });
         
@@ -452,22 +452,42 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
         
         const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${idToken}`
-            },
+            headers: { 'Authorization': `Bearer ${idToken}` },
             body: formData
         });
         
         const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
         
-        if (!response.ok) {
-            throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+        // Polling Phase: GitHub Actions takes ~30-60 seconds to deploy
+        btn.textContent = 'تم الرفع! بانتظار توفر الصورة...';
+        
+        let attempts = 0;
+        let isAvailable = false;
+        
+        while (attempts < 15) {
+            attempts++;
+            try {
+                // cache 'no-store' is critical to bypass browser caching the 404
+                const checkRes = await fetch(data.imageUrl, { method: 'HEAD', cache: 'no-store' });
+                if (checkRes.ok) {
+                    isAvailable = true;
+                    break;
+                }
+            } catch (e) {
+                // Ignore fetch errors during polling
+            }
+            await new Promise(r => setTimeout(r, 4000));
         }
         
-        // Only on absolute success we populate the input!
+        if (!isAvailable) {
+            alert('تم الرفع إلى GitHub بنجاح، لكن لم يتم تحديث المتجر حتى الآن. سيتم حفظ الرابط، وقد تظهر الصورة بعد دقائق.');
+        }
+
+        // Only populate the input after verifying it's on GitHub
         document.getElementById('prodImage').value = data.path;
         
-        btn.textContent = 'تم الرفع بنجاح!';
+        btn.textContent = isAvailable ? 'تم توفر الصورة بنجاح!' : 'تم التحديث (مُعلّق بالخادم)';
         btn.style.backgroundColor = '#2e7d32';
         
         setTimeout(() => {
@@ -475,16 +495,17 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
             btn.textContent = originalText;
             btn.style.backgroundColor = '';
             btn.disabled = false;
-        }, 2000);
+        }, 3000);
         
     } catch (error) {
         console.error("Upload failed:", error);
-        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال بالخادم. يرجى التأكد من تشغيل Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT في admin.js.' : `فشل الرفع: ${error.message}`);
+        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال. تأكد من إعداد Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT.' : `فشل الرفع: ${error.message}`);
         btn.textContent = 'إعادة المحاولة';
         btn.style.backgroundColor = '#c62828';
         btn.disabled = false;
     }
 });
+
 
 
 // Hide preview container when modal closes
