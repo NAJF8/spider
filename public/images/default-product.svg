@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#f8f9fa"/>
+  <circle cx="200" cy="200" r="100" fill="#e63946" opacity="0.1"/>
+  <path d="M200 120 l40 120 l-80 0 z" fill="#e63946" opacity="0.8"/>
+  <path d="M160 260 l80 0 l-40 -60 z" fill="#1a1a1a" opacity="0.9"/>
+  <text x="200" y="320" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1a1a1a" text-anchor="middle">SPIDER NAJAF</text>
+  <text x="200" y="350" font-family="Arial, sans-serif" font-size="14" fill="#666" text-anchor="middle">لا توجد صورة للمنتج</text>
+</svg>

@@ -212,9 +212,18 @@
                         <textarea id="prodDesc"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>رابط الصورة</label>
-                        <input type="text" id="prodImage" placeholder="https://...">
-                        <small>بسبب عدم توفر Firebase Storage، يرجى إدخال رابط مباشر للصورة، أو وضعها في مجلد public واستخدام اسم الملف.</small>
+                        <label>صورة المنتج</label>
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="file" id="prodImageFile" accept="image/png, image/jpeg, image/webp" style="flex-grow:1;">
+                            <button type="button" id="uploadImageBtn" class="btn" style="background:#222; color:white;">تحضير ومعاينة</button>
+                        </div>
+                        <div id="imagePreviewContainer" style="display:none; text-align:center; padding:10px; border:1px dashed #ccc; border-radius:6px; margin-bottom:10px;">
+                            <img id="imagePreview" src="" style="max-width:100%; max-height:200px; border-radius:8px; margin-bottom:10px;">
+                            <div id="imageDetails" style="font-size:0.8rem; color:#666; margin-bottom:10px;"></div>
+                            <button type="button" id="confirmUploadBtn" class="btn btn-primary" style="width:100%;">رفع الصورة إلى GitHub</button>
+                        </div>
+                        <input type="hidden" id="prodImage" placeholder="/images/products/...">
+                        <small>بسبب قيود الخطة المجانية، يتم معالجة وضغط الصورة محلياً (WebP) ثم رفعها عبر واجهة برمجية. إذا لم تتوفر واجهة برمجية، يمكنك إدخال المسار يدوياً أو تركها فارغة لاستخدام الصورة الافتراضية.</small>
                     </div>
                     <button type="submit" class="btn btn-danger w-100">حفظ المنتج</button>
                 </form>

@@ -107,7 +107,7 @@ function renderProducts(productsToRender) {
         const html = `
             <div class="product-card">
                 <button class="fav-btn"><i class="fa-regular fa-heart"></i></button>
-                <img src="${prod.image || 'https://via.placeholder.com/200'}" alt="${prod.name}" class="product-image">
+                <img src="${prod.image || '/images/default-product.svg'}" alt="${prod.name}" class="product-image">
                 <div class="product-info">
                     <h3 class="product-title">${prod.name}</h3>
                     <div class="product-specs">${prod.description || ''}</div>
@@ -193,7 +193,7 @@ function updateCartUI() {
         total += (item.price * item.quantity);
         const html = `
             <div class="cart-item">
-                <img src="${item.image || 'https://via.placeholder.com/80'}" class="cart-item-img">
+                <img src="${item.image || '/images/default-product.svg'}" class="cart-item-img">
                 <div class="cart-item-details">
                     <div class="cart-item-title">${item.name}</div>
                     <div class="cart-item-price">${formatPrice(item.price)}</div>

@@ -154,7 +154,7 @@ function renderTopProducts() {
     top.forEach(prod => {
         const html = `
             <div class="top-product-item">
-                <img src="${prod.image || 'https://via.placeholder.com/50'}" class="tp-img">
+                <img src="${prod.image || '/images/default-product.svg'}" class="tp-img">
                 <div class="tp-info">
                     <div class="tp-name">${prod.name}</div>
                     <div class="tp-price">${formatPrice(prod.price || 0)}</div>
@@ -335,4 +335,112 @@ const originalViewOrder = window.viewOrder;
 window.viewOrder = function(orderId) {
     document.getElementById('productModal').classList.remove('open');
     originalViewOrder(orderId);
+};
+// Image Upload Logic (Client-side Compression & Preview)
+let currentProcessedImageBase64 = null;
+let currentProcessedImageName = null;
+
+document.getElementById('uploadImageBtn').addEventListener('click', () => {
+    const fileInput = document.getElementById('prodImageFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('الرجاء اختيار صورة أولاً');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    
+    // Validate type
+    if (!file.type.match(/image\/(png|jpeg|webp)/)) {
+        alert('صيغة غير مدعومة. الرجاء اختيار PNG, JPEG, أو WebP');
+        return;
+    }
+    
+    // Validate size (e.g. max 5MB before compression)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('حجم الصورة كبير جداً. الحد الأقصى 5 ميجابايت');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            // Compress and convert to WebP using Canvas
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            // Fill background white in case of transparent PNG
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Output WebP
+            const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
+            currentProcessedImageBase64 = webpDataUrl.split(',')[1];
+            
+            const originalName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-');
+            const uniqueId = Date.now().toString(36);
+            currentProcessedImageName = `${originalName}-${uniqueId}.webp`;
+            
+            // Show Preview
+            document.getElementById('imagePreview').src = webpDataUrl;
+            
+            // Estimate size
+            const base64Length = currentProcessedImageBase64.length - (currentProcessedImageBase64.indexOf(',') + 1);
+            const padding = (currentProcessedImageBase64.charAt(currentProcessedImageBase64.length - 2) === '=') ? 2 : ((currentProcessedImageBase64.charAt(currentProcessedImageBase64.length - 1) === '=') ? 1 : 0);
+            const fileSize = (base64Length * 0.75) - padding;
+            const kbSize = (fileSize / 1024).toFixed(2);
+            
+            document.getElementById('imageDetails').textContent = `الأبعاد: ${Math.round(width)}x${Math.round(height)} | الحجم المقدر: ${kbSize} KB | الصيغة: WebP`;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
+    if (!currentProcessedImageBase64) return;
+    
+    // Simulate Backend Requirement
+    const backendExists = false; // We do not have a secure Cloud Function running
+    
+    if (!backendExists) {
+        alert('ملاحظة هامة:\n\nلرفع الصورة مباشرة إلى GitHub بشكل آمن، يتطلب المشروع خادماً خلفياً (Backend) مثل Cloud Functions.\n\nبما أن خطة Firebase الحالية مجانية (Spark) ولا تدعم الوظائف السحابية أو الاتصالات الخارجية، لا يمكن استكمال الرفع برمجياً من المتصفح بدون كشف الـ GitHub Token للعلن (وهو خطر أمني كبير).\n\nالرجاء إما ترقية المشروع إلى Blaze لإنشاء Cloud Function، أو رفع الصورة يدوياً عبر موقع GitHub إلى مجلد public/images/products.');
+        
+        // We will assign a fallback local path for testing purposes
+        const fakePath = `/images/products/${currentProcessedImageName}`;
+        document.getElementById('prodImage').value = fakePath;
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        alert(`تم اعتماد مسار الصورة كالتالي:\n${fakePath}\n\nيرجى رفع الملف الفعلي بنفس الاسم إلى مستودع GitHub الخاص بك ليتم عرضه بنجاح.`);
+        return;
+    }
+    
+});
+
+// Hide preview container when modal closes
+const origCloseProductModalForImg = window.closeProductModal;
+window.closeProductModal = function() {
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('prodImageFile').value = '';
+    origCloseProductModalForImg();
 };
