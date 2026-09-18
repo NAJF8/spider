@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سبايدر النجف | Spider Najaf</title>
+    <!-- خطوط جوجل (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ملف التنسيق -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- الهيدر -->
+    <header id="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="#">
+                    <i class="fa-solid fa-spider"></i>
+                    <span>سبايدر النجف</span>
+                    <small>Spider Najaf</small>
+                </a>
+            </div>
+            
+            <nav id="desktop-nav">
+                <ul>
+                    <li><a href="#hero">الرئيسية</a></li>
+                    <li><a href="#categories">الأقسام</a></li>
+                    <li><a href="#products-section">المنتجات</a></li>
+                    <li><a href="#" onclick="openDeliveryModal(event)"><i class="fa-solid fa-truck"></i> خدمة التوصيل</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="ابحث عن منتج، ماركة، أو قسم...">
+                    <i class="fa-solid fa-search"></i>
+                </div>
+                
+                <div class="cart-btn" onclick="toggleCart()">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span id="cart-count">0</span>
+                </div>
+                
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- قائمة الموبايل -->
+        <nav id="mobile-nav" class="hidden">
+            <ul>
+                <li><a href="#hero" onclick="toggleMobileMenu()">الرئيسية</a></li>
+                <li><a href="#categories" onclick="toggleMobileMenu()">الأقسام</a></li>
+                <li><a href="#products-section" onclick="toggleMobileMenu()">المنتجات</a></li>
+                <li><a href="#" onclick="openDeliveryModal(event); toggleMobileMenu();"><i class="fa-solid fa-truck"></i> خدمة التوصيل</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="hero">
+            <div class="hero-content">
+                <h1>سبايدر النجف</h1>
+                <p>كل احتياجاتك من الحاسبات والإلكترونيات بمكان واحد.</p>
+                <div class="hero-buttons">
+                    <a href="#products-section" class="btn btn-primary">تصفح المنتجات</a>
+                    <a href="#" onclick="openDeliveryModal(event)" class="btn btn-outline">اطلب الآن</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section id="categories" class="section-container">
+            <h2 class="section-title">تسوق حسب الأقسام</h2>
+            <div class="categories-grid" id="categories-grid">
+                <!-- يتم توليد الأقسام هنا عبر JavaScript -->
+            </div>
+        </section>
+
+        <!-- Offers Section (توليد منتجات مخفضة) -->
+        <section id="offers" class="section-container bg-light">
+            <h2 class="section-title">العروض المميزة 🔥</h2>
+            <div class="products-grid" id="offers-grid">
+                <!-- منتجات العروض -->
+            </div>
+        </section>
+
+        <!-- Main Products Section -->
+        <section id="products-section" class="section-container">
+            <h2 class="section-title">جميع المنتجات</h2>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterProducts('All', this)">الكل</button>
+                <button class="filter-btn" onclick="filterProducts('Laptops', this)">لابتوبات</button>
+                <button class="filter-btn" onclick="filterProducts('PC Components', this)">قطع الكمبيوتر</button>
+                <button class="filter-btn" onclick="filterProducts('Accessories', this)">إكسسوارات</button>
+                <button class="filter-btn" onclick="filterProducts('Gaming', this)">ألعاب (Gaming)</button>
+            </div>
+
+            <div class="products-grid" id="main-products-grid">
+                <!-- المنتجات الأساسية يتم توليدها هنا -->
+            </div>
+        </section>
+
+        <!-- Delivery Banner -->
+        <section id="delivery-banner" class="section-container">
+            <div class="delivery-banner-content">
+                <div class="text">
+                    <h2><i class="fa-solid fa-truck-fast"></i> خدمة التوصيل</h2>
+                    <p>اطلب منتجاتك الآن ونوصلها لك إلى باب بيتك في جميع محافظات العراق.</p>
+                </div>
+                <button class="btn btn-primary" onclick="openDeliveryModal(event)">معلومات التوصيل</button>
+            </div>
+        </section>
+
+        <!-- Brands Section -->
+        <section id="brands" class="section-container">
+            <h2 class="section-title">أشهر الماركات العالمية</h2>
+            <div class="brands-grid">
+                <div class="brand-card">Lenovo</div>
+                <div class="brand-card">ASUS</div>
+                <div class="brand-card">MSI</div>
+                <div class="brand-card">HP</div>
+                <div class="brand-card">Dell</div>
+                <div class="brand-card">Samsung</div>
+                <div class="brand-card">Logitech</div>
+                <div class="brand-card">Corsair</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-col">
+                <h3><i class="fa-solid fa-spider"></i> سبايدر النجف</h3>
+                <p>متجرك الأول للحاسبات والإلكترونيات، أفضل الأسعار وأرقى الماركات.</p>
+                <p>Spider Najaf</p>
+            </div>
+            <div class="footer-col">
+                <h3>روابط سريعة</h3>
+                <ul>
+                    <li><a href="#hero">الرئيسية</a></li>
+                    <li><a href="#categories">الأقسام</a></li>
+                    <li><a href="#products-section">المنتجات</a></li>
+                    <li><a href="#" onclick="openDeliveryModal(event)">التوصيل</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h3>تواصل معنا</h3>
+                <ul>
+                    <li><i class="fa-solid fa-phone"></i> 07800000000</li>
+                    <li><i class="fa-brands fa-whatsapp"></i> 07800000000</li>
+                    <li><i class="fa-solid fa-location-dot"></i> العراق - النجف الأشرف</li>
+                    <li><i class="fa-solid fa-clock"></i> 10:00 صباحاً - 10:00 مساءً</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 سبايدر النجف - جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+
+    <!-- Product Details Modal -->
+    <div id="product-modal" class="modal-overlay hidden" onclick="closeModals(event)">
+        <div class="modal-content product-modal-content">
+            <button class="close-btn" onclick="closeModals()">&times;</button>
+            <div class="product-details-grid" id="product-details-content">
+                <!-- المحتوى يتولد عبر JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="cart-sidebar">
+        <div class="cart-header">
+            <h3><i class="fa-solid fa-cart-shopping"></i> سلة المشتريات</h3>
+            <button class="close-btn" onclick="toggleCart()">&times;</button>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <!-- المنتجات في السلة -->
+        </div>
+        <div class="cart-footer">
+            <div class="cart-subtotal">
+                <span>المجموع:</span>
+                <span id="cart-subtotal-price">0 د.ع</span>
+            </div>
+            <button class="btn btn-primary w-100" onclick="proceedToDelivery()">إتمام الطلب (التوصيل)</button>
+        </div>
+    </div>
+    <!-- Overlay for cart -->
+    <div id="cart-overlay" class="modal-overlay hidden" onclick="toggleCart()"></div>
+
+    <!-- Delivery & Checkout Modal -->
+    <div id="delivery-modal" class="modal-overlay hidden" onclick="closeModals(event)">
+        <div class="modal-content delivery-modal-content">
+            <button class="close-btn" onclick="closeModals()">&times;</button>
+            <h2><i class="fa-solid fa-truck"></i> معلومات التوصيل وتأكيد الطلب</h2>
+            
+            <div class="checkout-grid">
+                <!-- Form -->
+                <div class="checkout-form">
+                    <div class="form-group">
+                        <label>الاسم الكامل</label>
+                        <input type="text" id="cust-name" placeholder="اسمك الثلاثي" required>
+                    </div>
+                    <div class="form-group">
+                        <label>رقم الهاتف</label>
+                        <input type="tel" id="cust-phone" placeholder="07XXXXXXXXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>المحافظة</label>
+                        <select id="cust-gov" onchange="calculateDeliveryFee()">
+                            <option value="" disabled selected>اختر المحافظة...</option>
+                            <!-- يتم ملء الخيارات عبر JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>المدينة / المنطقة</label>
+                        <input type="text" id="cust-city" placeholder="مثال: حي الأمير" required>
+                    </div>
+                    <div class="form-group">
+                        <label>العنوان التفصيلي (أقرب نقطة دالة)</label>
+                        <textarea id="cust-address" placeholder="وصف دقيق للمكان..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>ملاحظات إضافية (اختياري)</label>
+                        <textarea id="cust-notes" placeholder="أي ملاحظات حول الطلب أو التوصيل..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
+                <div class="order-summary">
+                    <h3>ملخص الطلب</h3>
+                    <div id="checkout-items-list" class="checkout-items-list">
+                        <!-- المنتجات المطلوبة -->
+                    </div>
+                    <hr>
+                    <div class="summary-row">
+                        <span>مجموع المنتجات:</span>
+                        <span id="summary-subtotal">0 د.ع</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>أجور التوصيل:</span>
+                        <span id="summary-delivery">0 د.ع</span>
+                    </div>
+                    <hr>
+                    <div class="summary-row grand-total">
+                        <span>المجموع الكلي:</span>
+                        <span id="summary-total">0 د.ع</span>
+                    </div>
+                    
+                    <button class="btn btn-whatsapp w-100 mt-20" onclick="submitOrderViaWhatsApp()">
+                        <i class="fa-brands fa-whatsapp"></i> تأكيد الطلب عبر WhatsApp
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating WhatsApp Button -->
+    <a href="#" class="floating-whatsapp" onclick="openWhatsAppContact(event)">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
+
+    <script src="script.js"></script>
+</body>
+</html>
