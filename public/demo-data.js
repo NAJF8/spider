@@ -341,6 +341,22 @@ export const DEMO_PRODUCTS = [
     }
 ];
 
+
+// Structured demo specifications transcribed from the descriptions above;
+// preview-only data, never written to the live Firebase database.
+const demoSpecs = {
+    'demo-cpu-1': { 'الأنوية': '8', 'المسارات': '16', 'التردد الأقصى': '5.0GHz', 'Socket': 'AM5', 'استهلاك الطاقة': '120W' },
+    'demo-cpu-2': { 'الأنوية': '20', 'المسارات': '28', 'التردد الأقصى': '5.6GHz', 'Socket': 'LGA1700' },
+    'demo-gpu-1': { 'ذاكرة الرسوميات': '16GB GDDR6X', 'عرض الناقل': '256-bit', 'المعمارية': 'Ada Lovelace' },
+    'demo-gpu-2': { 'ذاكرة الرسوميات': '16GB GDDR6', 'المعمارية': 'RDNA 3' },
+    'demo-mb-1': { 'Socket': 'AM5', 'نوع الذاكرة': 'DDR5', 'الشبكة اللاسلكية': 'WiFi 6' },
+    'demo-ram-1': { 'السعة': '32GB (2×16GB)', 'نوع الذاكرة': 'DDR5', 'السرعة': '6000MT/s' },
+    'demo-ssd-1': { 'السعة': '2TB', 'الواجهة': 'PCIe 4.0 NVMe 2.0' }
+};
+DEMO_PRODUCTS.forEach(product => {
+    if (demoSpecs[product.id]) product.specifications = demoSpecs[product.id];
+});
+
 export const DEMO_BUNDLES = [
     {
         id: "bundle-spider-pro",

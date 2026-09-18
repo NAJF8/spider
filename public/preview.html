@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPIDER NAJAF | Gear Up Your World</title>
+    <title>SPIDER NAJAF | معاينة التصميم</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
     <div class="demo-banner" id="demoNoticeBanner">
         <div class="demo-banner-content section-container">
-            <div class="demo-banner-text">
+            <div class="demo-banner-text"><strong>معاينة محلية للتصميم • لا ترتبط بالطلبات أو Firebase</strong>
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <span id="demoNoticeText">تنويه: المنتجات والأسعار والتجميعات المعروضة تجريبية لمعاينة تصميم المتجر وتجربة وظائفه، وليست عروض بيع حقيقية.</span>
             </div>
@@ -63,7 +63,6 @@
                 <li><a href="#categories-section" onclick="filterByCategory('cat-laptops'); return true;">اللابتوبات</a></li>
                 <li><a href="#categories-section" onclick="filterByCategory('cat-cpus'); return true;">القطع</a></li>
                 <li><a href="#categories-section" onclick="filterByCategory('cat-accessories'); return true;">الملحقات</a></li>
-                <li><a href="#compare-section">المقارنة <span id="compareNavCount">0</span></a></li>
                 <li><a href="#offers-section">العروض</a></li>
             </ul>
         </div>
@@ -193,14 +192,6 @@
             </div>
         </section>
 
-        <section id="compare-section" class="section compare-section">
-            <div class="section-container">
-                <div class="section-header"><button id="clearCompare" type="button" class="btn btn-compare-clear">مسح الاختيارات</button><h2 class="section-title">قارن المنتجات <span id="compareCount">0 / 4</span></h2></div>
-                <p class="compare-intro">اختار من 2 إلى 4 منتجات من نفس الفئة حتى تقارن السعر والمواصفات المسجلة. المعلومات الناقصة تظهر كـ «غير متوفر».</p>
-                <div id="compareContent" class="compare-content" aria-live="polite">اختار منتجين من بطاقات المنتجات للمقارنة.</div>
-            </div>
-        </section>
-
         <section class="features-bottom section">
             <div class="section-container features-bottom-flex">
                 <div class="feat-box"><i class="fa-solid fa-gift"></i><div><strong>عروض مستمرة</strong><span>خصومات خاصة</span></div></div>
@@ -286,13 +277,12 @@
     <div class="chatbot-container" id="chatbotContainer">
         <div class="chat-window hidden" id="chatWindow">
             <div class="chat-header">
-                <div class="chat-title"><i class="fa-solid fa-robot"></i> مساعد SPIDER للشراء <small>اقتراحات من منتجات المتجر، مو ذكاء اصطناعي متصل</small></div>
+                <div class="chat-title"><i class="fa-solid fa-robot"></i> المساعد الذكي</div>
                 <button class="close-chat" id="closeChatBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">هلا بيك بـ SPIDER! شنو ببالك اليوم؟ اختار من الأزرار حتى أساعدك.</div>
+                <div class="message bot-message">مرحباً! كيف أساعدك اليوم؟ هل تبحث عن لابتوب، تجميعة، أم قطعة معينة؟</div>
             </div>
-            <div id="chatQuickReplies" class="chat-quick-replies" aria-label="خيارات المساعد"></div>
             <div class="chat-input-area">
                 <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." autocomplete="off">
                 <button id="sendChatBtn"><i class="fa-solid fa-paper-plane"></i></button>
@@ -304,6 +294,6 @@
         </button>
     </div>
 
-    <script type="module" src="script.js?v=5"></script>
+    <script src="preview.js"></script>
 </body>
 </html>

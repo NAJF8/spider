@@ -608,6 +608,7 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodCategory').value = prod.categoryId || prod.category || '';
             document.getElementById('prodPrice').value = prod.price || '';
             document.getElementById('prodDesc').value = prod.description || '';
+            document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
             document.getElementById('prodImage').value = prod.image || '';
             document.getElementById('prodHidden').checked = !!prod.isHidden;
             
@@ -636,12 +637,33 @@ window.closeProductModal = function() {
 document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('prodId').value;
+    const specsText = document.getElementById('prodSpecs').value.trim();
+    const specifications = {};
+    for (const line of specsText.split(/\r?\n/).filter(Boolean)) {
+        const separator = line.indexOf(':');
+        if (separator <= 0 || separator >= line.length - 1) {
+            alert('صيغة المواصفات غير صحيحة. استخدم «اسم المواصفة: القيمة» بكل سطر.');
+            return;
+        }
+        const key = line.slice(0, separator).trim();
+        const value = line.slice(separator + 1).trim();
+        if (!key || !value || key.length > 80 || value.length > 180 || key.includes('/') || key.includes('.')) {
+            alert('تأكد من طول اسم المواصفة وقيمتها، ولا تستخدم / أو . داخل اسم المواصفة.');
+            return;
+        }
+        if (Object.keys(specifications).length >= 18 && !Object.hasOwn(specifications, key)) {
+            alert('الحد الأقصى 18 مواصفة لكل منتج.');
+            return;
+        }
+        specifications[key] = value;
+    }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
         category: document.getElementById('prodCategory').value,
         categoryId: document.getElementById('prodCategory').value,
         price: Number(document.getElementById('prodPrice').value),
         description: document.getElementById('prodDesc').value.trim(),
+        specifications,
         image: document.getElementById('prodImage').value.trim(),
         isHidden: document.getElementById('prodHidden').checked,
         updatedAt: Date.now()

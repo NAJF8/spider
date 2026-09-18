@@ -8,6 +8,7 @@ import {
     isPreviewMode, 
     setPreviewMode 
 } from "./demo-data.js";
+import { canCompare, findBudgetRecommendations, publicSpecs } from "./storefront-features.mjs";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0",
@@ -28,6 +29,7 @@ let liveProducts = [];
 let liveCategories = [];
 let hasLiveProducts = false;
 let hasLiveCategories = false;
+const compareIds = [];
 let cart = JSON.parse(localStorage.getItem('spider_cart')) || [];
 if (!Array.isArray(cart)) cart = [];
 
@@ -57,6 +59,7 @@ function init() {
     setupListeners();
     fetchData();
     updateCartUI();
+    renderComparison();
 }
 
 function formatPrice(price) {
@@ -86,6 +89,7 @@ function applyCurrentDataMode() {
         activeCategoryId ? window.filterByCategory(activeCategoryId) : renderProducts(products);
         renderBundles(bundles);
         renderOffersGrid();
+        renderComparison();
     } else {
         categories = [...liveCategories];
         products = [...liveProducts];
@@ -119,6 +123,7 @@ function applyCurrentDataMode() {
                 </div>`;
         }
         renderOffersGrid();
+        renderComparison();
 
         if (bundlesGrid) {
             bundlesGrid.innerHTML = `
@@ -250,9 +255,10 @@ function renderProducts(productsToRender) {
               <h3 class="product-title">${prod.name}</h3>
               <p class="product-subtitle">${truncateArabicText(prod.description || '', 65)}</p>
               <div class="product-price-row" dir="rtl"><span class="product-price" dir="ltr">${formatPrice(price)}</span>${prod.originalPrice > price ? `<span class="product-old-price" dir="ltr">${formatPrice(prod.originalPrice)}</span>` : ''}</div>
-              <button class="btn btn-primary add-product-button"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+              <div class="product-buttons"><button class="btn btn-primary add-product-button"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button><button type="button" class="btn btn-compare add-compare-button" aria-pressed="${compareIds.includes(prod.id)}"><i class="fa-solid fa-code-compare"></i> ${compareIds.includes(prod.id) ? 'إزالة المقارنة' : 'قارن'}</button></div>
             </div>`;
         card.querySelector('.add-product-button').addEventListener('click', () => window.addToCart(prod.id));
+        card.querySelector('.add-compare-button').addEventListener('click', () => toggleCompare(prod.id));
         productsGrid.appendChild(card);
     });
 }
@@ -333,7 +339,7 @@ function renderOffersGrid() {
                         <span class="product-price">${formatPrice(prod.price)}</span>
                         <span class="product-old-price">${formatPrice(prod.originalPrice)}</span>
                     </div>
-                    <button class="btn btn-primary" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+                    <div class="product-buttons"><button class="btn btn-primary" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button><button type="button" class="btn btn-compare" onclick="toggleCompare('${prod.id}')"><i class="fa-solid fa-code-compare"></i> قارن</button></div>
                 </div>
             </div>
         `;
@@ -460,6 +466,11 @@ function setupListeners() {
         toggleDemoBtn.addEventListener('click', () => {
             const nextMode = !isPreviewMode();
             setPreviewMode(nextMode);
+            compareIds.length = 0;
+            renderComparison();
+            cart = [];
+            saveCart();
+            updateCartUI();
             updateDemoBannerUI();
             applyCurrentDataMode();
         });
@@ -595,68 +606,214 @@ function setupListeners() {
         });
     }
 
+    initializeShoppingAssistant();
+
+}
+
+function appendSafeText(element, text) {
+    element.textContent = String(text || '');
+    return element;
+}
+
+function compareMessage(message) {
+    const content = document.getElementById('compareContent');
+    if (content) content.textContent = message;
+}
+
+window.toggleCompare = function(id) {
+    const product = products.find(item => item.id === id && !item.isHidden);
+    if (!product) return;
+    const existingIndex = compareIds.indexOf(id);
+    if (existingIndex >= 0) {
+        compareIds.splice(existingIndex, 1);
+    } else {
+        const first = products.find(item => item.id === compareIds[0]);
+        if (compareIds.length >= 4) {
+            compareMessage('الحد الأقصى للمقارنة 4 منتجات. احذف منتج أولاً.');
+            document.getElementById('compare-section')?.scrollIntoView({behavior:'smooth'});
+            return;
+        }
+        if (first && !canCompare(first, product, categories)) {
+            compareMessage('للمقارنة اختار منتجات من نفس الفئة. امسح الاختيارات الحالية حتى تقارن فئة ثانية.');
+            document.getElementById('compare-section')?.scrollIntoView({behavior:'smooth'});
+            return;
+        }
+        compareIds.push(id);
+    }
+    renderComparison();
+    renderProducts(currentFilteredProducts());
+    renderOffersGrid();
+};
+
+function currentFilteredProducts() {
+    if (activeCategoryId) return products.filter(product => getCategoryMatch(product, activeCategoryId));
+    if (activeSearchQuery) return products.filter(product => (String(product.name || '') + ' ' + String(product.description || '')).toLocaleLowerCase('ar').includes(activeSearchQuery));
+    return products;
+}
+
+function getCategoryMatch(product, selectedId) {
+    if (!selectedId) return true;
+    const selected = categories.find(cat => cat.id === selectedId);
+    const childIds = categories.filter(cat => cat.parentCategory === selectedId && !cat.isHidden).map(cat => cat.id);
+    const ids = [selectedId, ...childIds, ...(selected?.subcategoryIds || [])];
+    return ids.includes(product.categoryId || product.category);
+}
+
+function renderComparison() {
+    const content = document.getElementById('compareContent');
+    const count = document.getElementById('compareCount');
+    const navCount = document.getElementById('compareNavCount');
+    if (count) count.textContent = `${compareIds.length} / 4`;
+    if (navCount) navCount.textContent = String(compareIds.length);
+    if (!content) return;
+    const selected = compareIds.map(id => products.find(p => p.id === id && !p.isHidden)).filter(Boolean);
+    if (selected.length < 2) {
+        content.textContent = selected.length ? 'اختار منتج ثاني من نفس الفئة حتى تظهر المقارنة.' : 'اختار منتجين من بطاقات المنتجات للمقارنة.';
+        return;
+    }
+    const fields = [...new Set(selected.flatMap(p => Object.keys(publicSpecs(p))))].slice(0, 18);
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'compare-table-wrap';
+    const table = document.createElement('table');
+    table.className = 'compare-table';
+    const addRow = (label, values) => {
+        const row = document.createElement('tr');
+        const heading = document.createElement('th');
+        heading.scope = 'row';
+        heading.textContent = label;
+        row.appendChild(heading);
+        values.forEach(value => row.appendChild(appendSafeText(document.createElement('td'), value)));
+        table.appendChild(row);
+    };
+    addRow('المنتج', selected.map(p => p.name));
+    addRow('السعر', selected.map(p => formatPrice(p.price)));
+    addRow('الشركة', selected.map(p => p.brand || 'غير متوفر'));
+    addRow('التوفر', selected.map(p => p.inStock === false || p.stockQuantity === 0 ? 'غير متوفر' : 'تحقق من المتجر'));
+    fields.forEach(field => addRow(field, selected.map(p => publicSpecs(p)[field] || 'غير متوفر')));
+    if (!fields.length) addRow('المواصفات الفنية', selected.map(() => 'لم تُسجّل مواصفات منظمة لهذا المنتج بعد'));
+    tableWrap.appendChild(table);
+    content.replaceChildren(tableWrap);
+}
+
+document.getElementById('clearCompare')?.addEventListener('click', () => {
+    compareIds.length = 0;
+    renderComparison();
+    renderProducts(currentFilteredProducts());
+    renderOffersGrid();
+});
+
+function initializeShoppingAssistant() {
     const chatFab = document.getElementById('chatFab');
     const chatWindow = document.getElementById('chatWindow');
-    const closeChatBtn = document.getElementById('closeChatBtn');
-    const sendChatBtn = document.getElementById('sendChatBtn');
-    const chatInput = document.getElementById('chatInput');
-    const chatMessages = document.getElementById('chatMessages');
-
-    if (chatFab && chatWindow) {
-        chatFab.addEventListener('click', () => {
-            chatWindow.classList.remove('hidden');
+    const closeBtn = document.getElementById('closeChatBtn');
+    const sendBtn = document.getElementById('sendChatBtn');
+    const input = document.getElementById('chatInput');
+    const messages = document.getElementById('chatMessages');
+    const replies = document.getElementById('chatQuickReplies');
+    if (!chatFab || !chatWindow || !messages || !replies || !input) return;
+    let stage = 'goal';
+    const answers = { goal:'', budget:0, use:'' };
+    const questions = {
+        goal: [['🎮 تجميعة كاملة','build'], ['💻 لابتوب','laptop'], ['🛠️ أطور حاسبتي','upgrade'], ['🖥️ أدور على قطعة','part']],
+        budget: [['أقل من 500 ألف',500000],['500 ألف – مليون',1000000],['مليون – مليونين',2000000],['أكثر من مليونين','custom']],
+        use: [['ألعاب','gaming'],['دراسة وبرمجة','study'],['مونتاج وتصميم','design'],['استخدام يومي','daily']]
+    };
+    const scroll = () => { messages.scrollTop = messages.scrollHeight; };
+    const addMessage = (text, kind='bot') => {
+        const msg = document.createElement('div');
+        msg.className = 'message ' + (kind === 'user' ? 'user-message' : 'bot-message');
+        msg.textContent = text;
+        messages.appendChild(msg);
+        scroll();
+        return msg;
+    };
+    const showChoices = () => {
+        replies.replaceChildren();
+        const options = stage === 'done' ? [['ابدأ من جديد','restart'],['شوف كل المنتجات','browse']] : stage === 'budgetCustom' ? [['رجوع لاختيار الميزانية','backBudget']] : questions[stage];
+        options.forEach(([label, value]) => {
+            const button = document.createElement('button');
+            button.type='button';
+            button.className='chat-choice';
+            button.textContent=label;
+            button.addEventListener('click', () => {
+                if (value === 'backBudget') { stage='budget'; addMessage('اختار ميزانيتك أو اكتب رقمها بالدينار العراقي.'); showChoices(); return; }
+                if (value === 'restart') { stage='goal'; answers.goal=''; answers.budget=0; answers.use=''; addMessage('نبدأ من جديد! شنو تحتاج؟'); showChoices(); return; }
+                if (value === 'browse') { chatWindow.classList.add('hidden'); window.filterByCategory(''); return; }
+                addMessage(label, 'user');
+                if (stage === 'goal') {
+                    answers.goal=value;
+                    stage='budget';
+                    addMessage(value === 'upgrade' ? 'زين، شكد ميزانيتك للترقية؟ بعدها أسألك عن مواصفات جهازك حتى ما أقترح قطعة غير متوافقة.' : 'تمام! شكد ميزانيتك تقريباً بالدينار العراقي؟');
+                } else if (stage === 'budget') {
+                    if (value === 'custom') { stage='budgetCustom'; addMessage('اكتب الميزانية الفعلية بالدينار العراقي، مثلاً ٣٥٠٠٠٠٠ أو 3500000.'); showChoices(); input.focus(); return; }
+                    answers.budget=value;
+                    stage='use';
+                    addMessage('أكثر شي راح تستخدم الجهاز بشنو؟');
+                } else {
+                    answers.use=value;
+                    stage='done';
+                    offerMatches();
+                }
+                showChoices();
+            });
+            replies.appendChild(button);
         });
-    }
-
-    if (closeChatBtn && chatWindow) {
-        closeChatBtn.addEventListener('click', () => {
-            chatWindow.classList.add('hidden');
+    };
+    const offerMatches = () => {
+        const matches = findBudgetRecommendations(products, categories, answers);
+        if (answers.goal === 'upgrade') addMessage('ملاحظة: حتى نأكد توافق الترقية، لازم نعرف موديل المعالج واللوحة الأم والرامات ومجهز الطاقة بجهازك الحالي. المقترحات أدناه مو تأكيد توافق.');
+        if (!matches.length) {
+            addMessage('حالياً ما لگيت خيار مسجّل ومتوفّر ضمن هاي الميزانية بهالقسم. گدر تغيّر الميزانية أو تتصفح المنتجات.');
+            return;
+        }
+        addMessage(`لقيت ${matches.length} خيار من بيانات المتجر ضمن ميزانيتك. الأسعار والتوفر تتحدث من نفس قائمة المنتجات:`);
+        matches.forEach(p => {
+            const card = document.createElement('div');
+            card.className='chat-product';
+            const image = document.createElement('img');
+            image.src=getProductImage(p);
+            image.alt='';
+            image.onerror=()=>{ image.onerror=null; image.src=PRODUCT_IMAGE_FALLBACK; };
+            const info = document.createElement('div');
+            const name = document.createElement('strong');
+            name.textContent=p.name;
+            const price = document.createElement('span');
+            price.textContent=formatPrice(p.price);
+            const add = document.createElement('button');
+            add.type='button';
+            add.textContent='أضف للسلة';
+            add.addEventListener('click',()=>window.addToCart(p.id));
+            info.append(name,price,add);
+            card.append(image,info);
+            messages.appendChild(card);
         });
-    }
-
-    if (sendChatBtn) {
-        sendChatBtn.addEventListener('click', handleChat);
-    }
-    if (chatInput) {
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleChat();
-        });
-    }
-
-    function handleChat() {
-        const text = chatInput.value.trim();
-        if (!text) return;
-        
-        chatMessages.innerHTML += `<div class="message user-message">${text}</div>`;
-        chatInput.value = '';
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-        setTimeout(() => {
-            let response = "مرحباً بك في SPIDER NAJAF! هل تبحث عن قطعة بي سي معينة أو لابتوب أو تجميعة ألعاب كاملة؟";
-            
-            const results = products.filter(p => 
-                p.name.toLowerCase().includes(text.toLowerCase()) || 
-                (p.description && p.description.toLowerCase().includes(text.toLowerCase()))
-            );
-            
-            if (results.length > 0) {
-                response = `وجدت لك ${results.length} قطع مميزة تناسب بحثك:<br>`;
-                results.slice(0, 3).forEach(p => {
-                    response += `<br>• <strong>${p.name}</strong> بسعر ${formatPrice(p.price)}`;
-                });
-                if (results.length > 3) response += `<br>وغيرها في قسم المنتجات!`;
-            } else if (text.includes("تجميع") || text.includes("تجميعة") || text.includes("bundle") || text.includes("بي سي")) {
-                response = "لدينا تجميعات ألعاب احترافية جاهزة مثل <strong>Spider Beast Gaming Pro</strong> مع RTX 4070 Ti Super وRyzen 7800X3D! يمكنك تصفح قسم التجميعات في الصفحة الرئيسية.";
-            } else if (text.includes("لابتوب") || text.includes("laptop")) {
-                response = "نوفر أحدث لابتوبات ROG Strix و Lenovo Legion المخصصة للألعاب بأفضل الأسعار المعتمدة في العراق.";
-            } else if (text.includes("سعر") || text.includes("اسعار")) {
-                response = "جميع الأسعار معروضة بالدينار العراقي (د.ع) وتتضمن الضمان الفعلي والدعم الفني.";
-            }
-            
-            chatMessages.innerHTML += `<div class="message bot-message">${response}</div>`;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }, 800);
-    }
+        scroll();
+    };
+    chatFab.addEventListener('click', () => {chatWindow.classList.toggle('hidden'); showChoices();});
+    closeBtn?.addEventListener('click', () => chatWindow.classList.add('hidden'));
+    const handleFreeText=()=>{
+        const raw=input.value.trim();
+        if(!raw) return;
+        input.value='';
+        addMessage(raw,'user');
+        const normalized = raw.replace(/[٠-٩]/g, d => String(d.charCodeAt(0)-0x660)).replace(/[۰-۹]/g, d => String(d.charCodeAt(0)-0x6f0));
+        const budget = Number(normalized.replace(/[^0-9]/g,''));
+        if ((stage === 'budget' || stage === 'budgetCustom') && budget >= 10000) {
+            answers.budget=budget;
+            stage='use';
+            addMessage('تمام، أكثر شي تستخدم الجهاز بشنو؟');
+        } else {
+            const query=raw.toLocaleLowerCase('ar');
+            const matches=products.filter(p=>!p.isHidden && p.inStock!==false && (p.name+' '+(p.description||'')).toLocaleLowerCase('ar').includes(query)).slice(0,3);
+            if (matches.length) {
+                addMessage(matches.map(p=>`${p.name} — ${formatPrice(p.price)}`).join('\n'));
+            } else addMessage('أگدر أساعدك بخيارات المنتجات المسجلة. اختار نوع الجهاز وميزانيتك من الأزرار، أو اكتب اسم المنتج حتى أبحث عنه.');
+        }
+        showChoices();
+    };
+    sendBtn?.addEventListener('click',handleFreeText);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleFreeText();}});
+    showChoices();
 }
 
 init();

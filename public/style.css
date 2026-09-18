@@ -337,3 +337,39 @@ body{background:#fbfcfe}
 body:has(#checkoutModal.open){overflow:hidden}
 #products-section{scroll-margin-top:18px}
 @media(max-width:700px){.form-grid{grid-template-columns:1fr}.chat-window{right:0;bottom:70px;width:min(330px,calc(100vw - 24px))}.cart-sidebar{width:min(420px,100vw)}}
+
+/* Comparison and guided shopping assistant */
+.product-buttons{display:flex;gap:7px;align-items:stretch;margin-top:auto}
+.product-buttons .btn{flex:1;min-width:0;margin-top:8px!important;line-height:1.4;white-space:normal}
+.product-buttons .btn-compare{flex:0 0 42%;background:#fff;color:#d42d38;border:1px solid #f2b8be;box-shadow:none}
+.product-buttons .btn-compare:hover{background:#fff2f3}
+.compare-section{background:#f3f5f9;border-top:1px solid #eceff4}
+.compare-section .section-header{flex-direction:row;align-items:center}
+.compare-intro{color:#5e6776;margin-bottom:16px}
+.compare-content{background:#fff;border:1px solid #e7ebf1;border-radius:16px;overflow:hidden;padding:18px;min-height:70px;color:#455164}
+.btn-compare-clear{background:#fff;color:#bb2531;border:1px solid #f0b8be;padding:9px 16px;box-shadow:none}
+#compareCount{font-size:.95rem;color:#a33440}
+.compare-table-wrap{overflow-x:auto;max-width:100%}
+.compare-table{border-collapse:collapse;width:100%;min-width:520px;text-align:right}
+.compare-table th,.compare-table td{padding:12px 14px;border-bottom:1px solid #ebedf2;vertical-align:top;min-width:165px;overflow-wrap:anywhere}
+.compare-table th{min-width:120px;background:#f7f8fb;color:#202734}
+.chat-title{display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.chat-title small{font-size:.65rem;color:#d8dce4;font-weight:500}
+.chat-window{display:flex;flex-direction:column;max-height:min(620px,calc(100dvh - 120px))}
+.chat-messages{min-height:110px;flex:1;overflow:auto}
+.chat-quick-replies{display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;background:#fff;max-height:120px;overflow:auto;border-top:1px solid #f0f0f3}
+.chat-choice{background:#fff4f5;color:#9e202a;border:1px solid #f4bdc2;border-radius:18px;padding:7px 10px;font-size:.74rem;font-weight:800;cursor:pointer}
+.chat-choice:hover{background:#fce5e7}
+.chat-product{display:flex;gap:9px;padding:9px;border:1px solid #e8eaf0;background:#fff;border-radius:12px;align-items:center}
+.chat-product img{width:65px;height:65px;object-fit:contain}
+.chat-product div{display:flex;flex-direction:column;gap:3px;font-size:.76rem}
+.chat-product span{color:#bd2731;font-weight:800}
+.chat-product button{border:0;background:#e63946;color:#fff;border-radius:7px;padding:5px 8px;font-size:.72rem;cursor:pointer}
+.message{white-space:pre-line;overflow-wrap:anywhere}
+@media(max-width:700px){
+  .product-buttons{flex-direction:column}
+  .product-buttons .btn-compare{flex:auto}
+  .chat-window{max-height:calc(100dvh - 110px)}
+  .chat-quick-replies{max-height:112px}
+  .compare-content{padding:8px}
+}
