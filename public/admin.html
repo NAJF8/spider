@@ -22,6 +22,13 @@
                 <i class="fa-brands fa-google"></i> تسجيل الدخول باستخدام Google
             </button>
             <small class="login-hint">الدخول محصور لحساب سوبر مشرف المعتمد فقط.</small>
+            
+            <div class="demo-login-box" style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
+                <button id="demo-preview-btn" class="btn" style="background: rgba(230, 57, 70, 0.15); border: 1px solid var(--primary-red); color: white; width: 100%; padding: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                    <i class="fa-solid fa-eye"></i> معاينة لوحة الإدارة (وضع العرض التجريبي)
+                </button>
+                <small style="display: block; margin-top: 8px; color: #aaa; font-size: 0.78rem;">استعراض فوري لجميع أقسام لوحة الإدارة ببيانات نموذجية معزولة دون الحاجة لتسجيل الدخول.</small>
+            </div>
         </div>
     </div>
 
@@ -83,6 +90,17 @@
                     <button class="btn btn-danger" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
                 </div>
             </header>
+
+            <!-- Admin Demo Notice Banner -->
+            <div id="adminDemoBanner" class="admin-demo-banner" style="display: none; background: #1c1917; border-bottom: 2px solid #e63946; color: #fff; padding: 10px 24px; font-size: 0.88rem; align-items: center; justify-content: space-between; gap: 12px; z-index: 90;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                    <span><strong>وضع المعاينة التجريبي مفعّل:</strong> يتم عرض بيانات نموذجية للتحقق من جميع وظائف لوحة الإدارة (المنتجات، الأقسام، الطلبات، والإحصائيات) دون التأثير على قاعدة بيانات الإنتاج.</span>
+                </div>
+                <button id="adminExitDemoBtn" class="btn btn-outline" style="font-size: 0.78rem; padding: 4px 12px; color: #fff; border-color: #777; white-space: nowrap;">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> العودة لشاشة الدخول
+                </button>
+            </div>
 
             <!-- ================= VIEW 1: DASHBOARD ================= -->
             <section id="view-dashboard" class="admin-view active">

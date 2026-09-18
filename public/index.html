@@ -19,6 +19,20 @@
     <!-- Firebase SDK (Modular) will be imported in script.js -->
 </head>
 <body>
+    <!-- Demo Mode Notice Banner -->
+    <div class="demo-banner" id="demoNoticeBanner">
+        <div class="demo-banner-content">
+            <div class="demo-banner-text">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span id="demoNoticeText">تنويه: المنتجات والأسعار والتجميعات المعروضة تجريبية لمعاينة تصميم المتجر وتجربة وظائفه، وليست عروض بيع حقيقية.</span>
+            </div>
+            <button class="btn-toggle-demo" id="toggleDemoBtn" title="التبديل بين وضع المعاينة والبيانات الحية">
+                <i class="fa-solid fa-toggle-on" id="toggleDemoIcon"></i>
+                <span id="toggleDemoLabel">وضع المعاينة مفعّل</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Top Header -->
     <header class="main-header">
         <div class="header-container">
@@ -166,6 +180,22 @@
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/HyperX_logo.svg" alt="HyperX">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/bf/LG_logo_%282015%29.svg" alt="LG">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg" alt="Samsung">
+                </div>
+            </div>
+        </section>
+
+        <!-- Bundles / Builds Section -->
+        <section id="bundles-section" class="section">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title"><i class="fa-solid fa-desktop" style="color: var(--primary-red); margin-left: 8px;"></i> تجميعات SPIDER الجاهزة</h2>
+                        <p style="color: var(--gray); font-size: 0.9rem; margin-top: 4px;">مختارة ومجمعة بعناية لتوفير أعلى معدل إطارات وأداء موثوق</p>
+                    </div>
+                    <span class="view-all" style="cursor: default;"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> أداء مضمون 100%</span>
+                </div>
+                <div class="bundles-grid" id="bundlesGrid">
+                    <!-- Bundles loaded dynamically from script.js -->
                 </div>
             </div>
         </section>

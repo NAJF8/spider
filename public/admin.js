@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, push, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { DEMO_CATEGORIES, DEMO_PRODUCTS, DEMO_ORDERS } from "./demo-data.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0",
@@ -33,11 +34,19 @@ let orders = [];
 let products = [];
 let categories = [];
 let activeOrderTab = 'all';
+let isDemoMode = false;
+let currentProcessedImageBase64 = null;
+let currentProcessedImageName = null;
+let isUploadingImage = false;
 
 // ================= AUTHENTICATION =================
 onAuthStateChanged(auth, (user) => {
     if (user) {
         if (user.uid === SUPER_ADMIN_UID) {
+            isDemoMode = false;
+            const banner = document.getElementById('adminDemoBanner');
+            if (banner) banner.style.display = 'none';
+
             loginScreen.classList.add('hidden');
             adminScreen.classList.remove('hidden');
             errorMsg.classList.add('hidden');
@@ -56,8 +65,10 @@ onAuthStateChanged(auth, (user) => {
             errorMsg.classList.remove('hidden');
         }
     } else {
-        loginScreen.classList.remove('hidden');
-        adminScreen.classList.add('hidden');
+        if (!isDemoMode) {
+            loginScreen.classList.remove('hidden');
+            adminScreen.classList.add('hidden');
+        }
     }
 });
 
@@ -71,7 +82,43 @@ loginBtn.addEventListener('click', () => {
 });
 
 logoutBtn.addEventListener('click', () => {
-    signOut(auth);
+    if (isDemoMode) {
+        isDemoMode = false;
+        adminScreen.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        const banner = document.getElementById('adminDemoBanner');
+        if (banner) banner.style.display = 'none';
+    } else {
+        signOut(auth);
+    }
+});
+
+// Demo Mode Preview Handlers
+document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
+    isDemoMode = true;
+    loginScreen.classList.add('hidden');
+    adminScreen.classList.remove('hidden');
+    errorMsg.classList.add('hidden');
+    
+    const banner = document.getElementById('adminDemoBanner');
+    if (banner) banner.style.display = 'flex';
+    
+    adminName.textContent = 'محمد مسلم (معاينة تجريبية)';
+    adminRole.innerHTML = '<i class="fa-solid fa-crown"></i> سوبر مشرف <span style="font-size:0.75rem;opacity:0.85;">(وضع المعاينة)</span>';
+    
+    categories = JSON.parse(JSON.stringify(DEMO_CATEGORIES));
+    products = JSON.parse(JSON.stringify(DEMO_PRODUCTS));
+    orders = JSON.parse(JSON.stringify(DEMO_ORDERS));
+    
+    updateAllDashboardViews();
+});
+
+document.getElementById('adminExitDemoBtn')?.addEventListener('click', () => {
+    isDemoMode = false;
+    adminScreen.classList.add('hidden');
+    loginScreen.classList.remove('hidden');
+    const banner = document.getElementById('adminDemoBanner');
+    if (banner) banner.style.display = 'none';
 });
 
 // ================= NAVIGATION & VIEW SWITCHER =================
@@ -117,16 +164,17 @@ function openMobileSidebar() {
     if (overlay) overlay.classList.add('open');
 }
 
-// Attach listeners to navigation items
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', (e) => {
+// Event Delegation for Navigation clicks (handles inner icons/spans)
+document.addEventListener('click', (e) => {
+    const navItem = e.target.closest('.nav-item');
+    if (navItem) {
         e.preventDefault();
-        const viewId = item.getAttribute('data-view');
-        const title = item.getAttribute('data-title');
+        const viewId = navItem.getAttribute('data-view');
+        const title = navItem.getAttribute('data-title');
         if (viewId) {
             window.switchView(viewId, title);
         }
-    });
+    }
 });
 
 // Mobile Sidebar toggle buttons
@@ -160,73 +208,97 @@ function getCategoryName(categoryId) {
     return cat ? cat.name : 'عام';
 }
 
+// Unified function to update all UI views & metrics
+function updateAllDashboardViews() {
+    // 1. Categories metrics
+    const navCategories = document.getElementById('navCategoriesCount');
+    const statCategories = document.getElementById('statCategoriesSummary');
+    if (navCategories) navCategories.textContent = categories.length;
+    if (statCategories) statCategories.textContent = `${categories.length} أقسام`;
+
+    // 2. Products metrics
+    const statProducts = document.getElementById('statProducts');
+    const navProducts = document.getElementById('navProductsCount');
+    if (statProducts) statProducts.textContent = products.length;
+    if (navProducts) navProducts.textContent = products.length;
+
+    // 3. Orders metrics
+    let totalSales = 0;
+    let uniqueCustomers = new Set();
+    orders.forEach(order => {
+        if (order.status === 'completed' || order.status === 'مكتمل') {
+            totalSales += (order.grandTotal || 0);
+        }
+        if (order.customerPhone) uniqueCustomers.add(order.customerPhone);
+    });
+
+    const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'جديد').length;
+    const completedCount = orders.filter(o => o.status === 'completed' || o.status === 'مكتمل').length;
+    const cancelledCount = orders.filter(o => o.status === 'cancelled' || o.status === 'ملغي').length;
+
+    const elStatOrders = document.getElementById('statOrders');
+    const elOrdersBadge = document.getElementById('ordersBadge');
+    const elStatSales = document.getElementById('statSales');
+    const elStatCustomers = document.getElementById('statCustomers');
+    const elCountAll = document.getElementById('countOrdersAll');
+    const elCountPending = document.getElementById('countOrdersPending');
+    const elCountCompleted = document.getElementById('countOrdersCompleted');
+    const elCountCancelled = document.getElementById('countOrdersCancelled');
+
+    if (elStatOrders) elStatOrders.textContent = orders.length;
+    if (elOrdersBadge) elOrdersBadge.textContent = pendingCount;
+    if (elStatSales) elStatSales.textContent = formatPrice(totalSales);
+    if (elStatCustomers) elStatCustomers.textContent = uniqueCustomers.size;
+    if (elCountAll) elCountAll.textContent = orders.length;
+    if (elCountPending) elCountPending.textContent = pendingCount;
+    if (elCountCompleted) elCountCompleted.textContent = completedCount;
+    if (elCountCancelled) elCountCancelled.textContent = cancelledCount;
+
+    updateCategorySelects();
+    renderRecentOrders();
+    renderTopProducts();
+    renderProductsManagementTable();
+    renderCategoriesManagementTable();
+    renderOrdersManagementTable();
+}
+
 // ================= REALTIME FIREBASE LISTENERS =================
 function loadDashboardData() {
     // 1. Categories
     onValue(ref(db, 'categories'), (snapshot) => {
+        if (isDemoMode) return;
         categories = [];
         if (snapshot.exists()) {
             snapshot.forEach(child => {
                 categories.push({ id: child.key, ...child.val() });
             });
         }
-        document.getElementById('navCategoriesCount').textContent = categories.length;
-        document.getElementById('statCategoriesSummary').textContent = `${categories.length} أقسام`;
-        updateCategorySelects();
-        renderCategoriesManagementTable();
-        renderProductsManagementTable(); // Re-render products to match category names
+        updateAllDashboardViews();
     });
 
     // 2. Products
     onValue(ref(db, 'products'), (snapshot) => {
+        if (isDemoMode) return;
         products = [];
         if (snapshot.exists()) {
             snapshot.forEach(child => {
                 products.push({ id: child.key, ...child.val() });
             });
         }
-        document.getElementById('statProducts').textContent = products.length;
-        document.getElementById('navProductsCount').textContent = products.length;
-        renderTopProducts();
-        renderProductsManagementTable();
+        updateAllDashboardViews();
     });
 
     // 3. Orders
     onValue(ref(db, 'orders'), (snapshot) => {
+        if (isDemoMode) return;
         orders = [];
-        let totalSales = 0;
-        let uniqueCustomers = new Set();
-        
         if (snapshot.exists()) {
             snapshot.forEach(child => {
-                const order = { id: child.key, ...child.val() };
-                orders.push(order);
-                if (order.status === 'completed' || order.status === 'مكتمل') {
-                    totalSales += (order.grandTotal || 0);
-                }
-                if (order.customerPhone) uniqueCustomers.add(order.customerPhone);
+                orders.push({ id: child.key, ...child.val() });
             });
         }
-        
-        // Sort descending by date
         orders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
-        const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'جديد').length;
-        const completedCount = orders.filter(o => o.status === 'completed' || o.status === 'مكتمل').length;
-        const cancelledCount = orders.filter(o => o.status === 'cancelled' || o.status === 'ملغي').length;
-
-        document.getElementById('statOrders').textContent = orders.length;
-        document.getElementById('ordersBadge').textContent = pendingCount;
-        document.getElementById('statSales').textContent = formatPrice(totalSales);
-        document.getElementById('statCustomers').textContent = uniqueCustomers.size;
-
-        document.getElementById('countOrdersAll').textContent = orders.length;
-        document.getElementById('countOrdersPending').textContent = pendingCount;
-        document.getElementById('countOrdersCompleted').textContent = completedCount;
-        document.getElementById('countOrdersCancelled').textContent = cancelledCount;
-        
-        renderRecentOrders();
-        renderOrdersManagementTable();
+        updateAllDashboardViews();
     });
 }
 
@@ -434,6 +506,23 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         updatedAt: Date.now()
     };
     
+    if (isDemoMode) {
+        if (id) {
+            const index = products.findIndex(p => p.id === id);
+            if (index !== -1) {
+                products[index] = { ...products[index], ...prodData, id };
+            }
+            alert('تم تعديل المنتج بنجاح في الذاكرة (وضع العرض التجريبي).');
+        } else {
+            const newId = 'demo-prod-' + Date.now();
+            products.unshift({ id: newId, ...prodData, createdAt: Date.now() });
+            alert('تمت إضافة المنتج الجديد بنجاح في الذاكرة (وضع العرض التجريبي).');
+        }
+        updateAllDashboardViews();
+        closeProductModal();
+        return;
+    }
+
     try {
         if (id) {
             await update(ref(db, 'products/' + id), prodData);
@@ -451,6 +540,14 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
 });
 
 window.toggleProductVisibility = async function(id, currentHidden) {
+    if (isDemoMode) {
+        const prod = products.find(p => p.id === id);
+        if (prod) {
+            prod.isHidden = !currentHidden;
+            updateAllDashboardViews();
+        }
+        return;
+    }
     try {
         await update(ref(db, 'products/' + id), { isHidden: !currentHidden });
     } catch (err) {
@@ -460,6 +557,12 @@ window.toggleProductVisibility = async function(id, currentHidden) {
 
 window.deleteProduct = async function(id) {
     if (!confirm('هل أنت متأكد تماماً من رغبتك بحذف هذا المنتج نهائياً من المتجر وقاعدة البيانات؟')) return;
+    if (isDemoMode) {
+        products = products.filter(p => p.id !== id);
+        updateAllDashboardViews();
+        alert('تم حذف المنتج بنجاح من قائمة المعاينة.');
+        return;
+    }
     try {
         await remove(ref(db, 'products/' + id));
         alert('تم حذف المنتج بنجاح.');
@@ -554,6 +657,23 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
         updatedAt: Date.now()
     };
 
+    if (isDemoMode) {
+        if (id) {
+            const index = categories.findIndex(c => c.id === id);
+            if (index !== -1) {
+                categories[index] = { ...categories[index], ...catData, id };
+            }
+            alert('تم تعديل القسم بنجاح في الذاكرة (وضع العرض التجريبي).');
+        } else {
+            const newId = 'demo-cat-' + Date.now();
+            categories.push({ id: newId, ...catData, createdAt: Date.now() });
+            alert('تمت إضافة القسم بنجاح إلى قائمة المعاينة (وضع العرض التجريبي).');
+        }
+        updateAllDashboardViews();
+        closeCategoryModal();
+        return;
+    }
+
     try {
         if (id) {
             await update(ref(db, 'categories/' + id), catData);
@@ -570,6 +690,14 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
 });
 
 window.toggleCategoryVisibility = async function(id, currentHidden) {
+    if (isDemoMode) {
+        const cat = categories.find(c => c.id === id);
+        if (cat) {
+            cat.isHidden = !currentHidden;
+            updateAllDashboardViews();
+        }
+        return;
+    }
     try {
         await update(ref(db, 'categories/' + id), { isHidden: !currentHidden });
     } catch (err) {
@@ -584,6 +712,13 @@ window.deleteCategory = async function(id) {
         msg = `تحذير: يوجد ${relatedCount} منتج مرتبط بهذا القسم! هل أنت متأكد من حذفه؟`;
     }
     if (!confirm(msg)) return;
+
+    if (isDemoMode) {
+        categories = categories.filter(c => c.id !== id);
+        updateAllDashboardViews();
+        alert('تم حذف القسم بنجاح من قائمة المعاينة.');
+        return;
+    }
 
     try {
         await remove(ref(db, 'categories/' + id));
@@ -723,6 +858,16 @@ window.closeOrderModal = function() {
 
 window.saveOrderStatus = async function(orderId) {
     const newStatus = document.getElementById('updateOrderStatus').value;
+    if (isDemoMode) {
+        const ord = orders.find(o => o.id === orderId);
+        if (ord) {
+            ord.status = newStatus;
+            updateAllDashboardViews();
+            alert('تم تحديث حالة الطلب بنجاح في الذاكرة (وضع العرض التجريبي).');
+            closeOrderModal();
+        }
+        return;
+    }
     try {
         await update(ref(db, 'orders/' + orderId), { 
             status: newStatus,
@@ -759,9 +904,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ================= SECURE IMAGE UPLOAD & VERIFICATION =================
-let currentProcessedImageBase64 = null;
-let currentProcessedImageName = null;
-let isUploadingImage = false;
+// (currentProcessedImageBase64, currentProcessedImageName, isUploadingImage declared at top of file)
 
 document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
     const fileInput = document.getElementById('prodImageFile');

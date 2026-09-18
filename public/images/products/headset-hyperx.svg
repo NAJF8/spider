@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="bgGrad_HyperXCloudIIIWireless" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#24242c"/>
+            <stop offset="100%" stop-color="#0f0f13"/>
+        </radialGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="400" height="300" rx="16" fill="url(#bgGrad_HyperXCloudIIIWireless)"/>
+    <rect x="1" y="1" width="398" height="298" rx="15" stroke="#2c2c36" stroke-width="2"/>
+    
+    <!-- Spider Najaf Watermark -->
+    <text x="375" y="30" fill="#333340" font-family="Cairo, sans-serif" font-weight="900" font-size="12" text-anchor="end">SPIDER NAJAF</text>
+    
+    <!-- Category / Feature Tag -->
+    <rect x="20" y="16" width="90" height="24" rx="12" fill="#E63946" fill-opacity="0.15"/>
+    <text x="65" y="32" fill="#E63946" font-family="Cairo, sans-serif" font-weight="800" font-size="11" text-anchor="middle">ملحقات</text>
+
+    <!-- Component Graphic -->
+    <g filter="url(#glow)">
+        
+            <path d="M 130,160 A 70,70 0 0,1 270,160" fill="none" stroke="#444" stroke-width="12" stroke-linecap="round"/>
+            <rect x="110" y="145" width="35" height="55" rx="12" fill="#1e1e24" stroke="#E63946" stroke-width="3"/>
+            <rect x="255" y="145" width="35" height="55" rx="12" fill="#1e1e24" stroke="#E63946" stroke-width="3"/>
+            <path d="M 125,185 Q 125,215 160,215" fill="none" stroke="#E63946" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="165" cy="215" r="6" fill="#E63946"/>
+        
+    </g>
+
+    <!-- Product Text Footer -->
+    <text x="200" y="260" fill="#ffffff" font-family="Cairo, sans-serif" font-weight="800" font-size="16" text-anchor="middle">HyperX Cloud III Wireless</text>
+    <text x="200" y="280" fill="#888899" font-family="Cairo, sans-serif" font-weight="600" font-size="12" text-anchor="middle">120 Hours Battery • 53mm Drivers • 2.4GHz</text>
+</svg>

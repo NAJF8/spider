@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="bgGrad_ASUSROGStrixSCAR16" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#24242c"/>
+            <stop offset="100%" stop-color="#0f0f13"/>
+        </radialGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="400" height="300" rx="16" fill="url(#bgGrad_ASUSROGStrixSCAR16)"/>
+    <rect x="1" y="1" width="398" height="298" rx="15" stroke="#2c2c36" stroke-width="2"/>
+    
+    <!-- Spider Najaf Watermark -->
+    <text x="375" y="30" fill="#333340" font-family="Cairo, sans-serif" font-weight="900" font-size="12" text-anchor="end">SPIDER NAJAF</text>
+    
+    <!-- Category / Feature Tag -->
+    <rect x="20" y="16" width="90" height="24" rx="12" fill="#E63946" fill-opacity="0.15"/>
+    <text x="65" y="32" fill="#E63946" font-family="Cairo, sans-serif" font-weight="800" font-size="11" text-anchor="middle">لابتوبات</text>
+
+    <!-- Component Graphic -->
+    <g filter="url(#glow)">
+        
+            <rect x="110" y="80" width="180" height="115" rx="8" fill="#1a1a22" stroke="#E63946" stroke-width="3"/>
+            <rect x="122" y="92" width="156" height="90" rx="4" fill="#0d0d12"/>
+            <polygon points="80,205 320,205 305,195 95,195" fill="#2a2a35" stroke="#444" stroke-width="2"/>
+            <rect x="180" y="200" width="40" height="4" rx="2" fill="#E63946"/>
+            <path d="M 200,125 L 195,135 L 205,135 Z" fill="#E63946"/>
+            <text x="200" y="150" fill="#fff" font-family="Cairo, sans-serif" font-weight="800" font-size="13" text-anchor="middle">ROG GAMING</text>
+        
+    </g>
+
+    <!-- Product Text Footer -->
+    <text x="200" y="260" fill="#ffffff" font-family="Cairo, sans-serif" font-weight="800" font-size="16" text-anchor="middle">ASUS ROG Strix SCAR 16</text>
+    <text x="200" y="280" fill="#888899" font-family="Cairo, sans-serif" font-weight="600" font-size="12" text-anchor="middle">2.5K Nebula HDR 240Hz • 32GB RAM • 1TB SSD</text>
+</svg>
