@@ -420,20 +420,33 @@ document.getElementById('uploadImageBtn').addEventListener('click', () => {
 
 const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.YOUR-ACCOUNT.workers.dev'; // User must replace this!
 
-const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.YOUR-ACCOUNT.workers.dev';
+let isUploadingImage = false;
 
 document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
-    if (!currentProcessedImageBase64) return;
+    // Prevent duplicate upload triggers
+    if (isUploadingImage) return;
+    if (!currentProcessedImageBase64) {
+        alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
+        return;
+    }
     
+    isUploadingImage = true;
+
     const btn = document.getElementById('confirmUploadBtn');
-    const originalText = btn.textContent;
-    btn.textContent = 'جاري الرفع...';
+    const prepBtn = document.getElementById('uploadImageBtn');
+    const prodImageInput = document.getElementById('prodImage');
+    const originalText = 'رفع الصورة إلى GitHub';
+    const previousImageValue = prodImageInput ? prodImageInput.value : '';
+
+    btn.textContent = 'جاري الرفع إلى GitHub...';
     btn.disabled = true;
-    
+    if (prepBtn) prepBtn.disabled = true;
+
     try {
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         if (!idToken) throw new Error('AUTH_REQUIRED');
         
+        // Convert base64 to Blob
         const byteCharacters = atob(currentProcessedImageBase64);
         const byteArrays = [];
         for (let offset = 0; offset < byteCharacters.length; offset += 512) {
@@ -457,61 +470,84 @@ document.getElementById('confirmUploadBtn').addEventListener('click', async () =
         });
         
         const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+        }
         
-        // Polling Phase: GitHub Actions takes ~30-60 seconds to deploy
-        btn.textContent = 'تم الرفع! بانتظار توفر الصورة...';
+        // Polling Phase: Verify actual availability on Firebase Hosting
+        btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
         
         let attempts = 0;
+        const maxAttempts = 15; // 15 attempts * 4s = 60s
         let isAvailable = false;
         
-        while (attempts < 15) {
+        while (attempts < maxAttempts) {
             attempts++;
+            btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
             try {
-                // cache 'no-store' is critical to bypass browser caching the 404
-                const checkRes = await fetch(data.imageUrl, { method: 'HEAD', cache: 'no-store' });
-                if (checkRes.ok) {
+                // Add timestamp to bypass CDN / browser caching
+                const verifyUrl = `${data.imageUrl}?_t=${Date.now()}`;
+                const checkRes = await fetch(verifyUrl, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { 'Accept': 'image/webp,image/*;q=0.8' }
+                });
+                
+                const contentType = (checkRes.headers.get('content-type') || '').toLowerCase();
+                
+                // Must be HTTP 200 and explicitly an image/webp or image/*, never HTML SPA rewrite!
+                if (checkRes.ok && (contentType.includes('image/webp') || contentType.startsWith('image/')) && !contentType.includes('text/html')) {
                     isAvailable = true;
                     break;
                 }
             } catch (e) {
-                // Ignore fetch errors during polling
+                console.warn('Polling check error:', e);
             }
             await new Promise(r => setTimeout(r, 4000));
         }
         
         if (!isAvailable) {
-            alert('تم الرفع إلى GitHub بنجاح، لكن لم يتم تحديث المتجر حتى الآن. سيتم حفظ الرابط، وقد تظهر الصورة بعد دقائق.');
+            // Requirement 1 & 2: Do NOT update prodImage, keep previous image, do NOT show success!
+            if (prodImageInput) prodImageInput.value = previousImageValue;
+            btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
+            btn.style.backgroundColor = '#c62828';
+            alert('تم الرفع إلى GitHub بنجاح، ولكن انتهت مهلة الانتظار قبل اكتمال نشر الصورة على المتجر. تم الاحتفاظ بالصورة السابقة للمنتج تجنباً للروابط المكسورة.');
+            return;
         }
 
-        // Only populate the input after verifying it's on GitHub
-        document.getElementById('prodImage').value = data.path;
+        // Confirmed deployment on Firebase Hosting with image Content-Type
+        if (prodImageInput) prodImageInput.value = data.path;
         
-        btn.textContent = isAvailable ? 'تم توفر الصورة بنجاح!' : 'تم التحديث (مُعلّق بالخادم)';
+        btn.textContent = 'تم توفر الصورة بنجاح!';
         btn.style.backgroundColor = '#2e7d32';
         
         setTimeout(() => {
-            document.getElementById('imagePreviewContainer').style.display = 'none';
+            const preview = document.getElementById('imagePreviewContainer');
+            if (preview) preview.style.display = 'none';
             btn.textContent = originalText;
             btn.style.backgroundColor = '';
-            btn.disabled = false;
         }, 3000);
         
     } catch (error) {
+        // Keep previous image on any error
+        if (prodImageInput) prodImageInput.value = previousImageValue;
         console.error("Upload failed:", error);
-        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال. تأكد من إعداد Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT.' : `فشل الرفع: ${error.message}`);
+        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال بالخادم. يرجى التأكد من إعداد Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT.' : `فشل الرفع: ${error.message}`);
         btn.textContent = 'إعادة المحاولة';
         btn.style.backgroundColor = '#c62828';
+    } finally {
+        isUploadingImage = false;
         btn.disabled = false;
+        if (prepBtn) prepBtn.disabled = false;
     }
 });
 
-
-
-// Hide preview container when modal closes
+// Hide preview container and reset upload state when modal closes
 const origCloseProductModalForImg = window.closeProductModal;
 window.closeProductModal = function() {
     document.getElementById('imagePreviewContainer').style.display = 'none';
     document.getElementById('prodImageFile').value = '';
+    currentProcessedImageBase64 = null;
+    currentProcessedImageName = null;
     origCloseProductModalForImg();
 };
