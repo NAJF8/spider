@@ -29,6 +29,7 @@ let liveProducts = [];
 let liveCategories = [];
 let hasLiveProducts = false;
 let hasLiveCategories = false;
+let storeSettings = { deliveryFee: 5000, whatsapp: '9647827337942' };
 const compareIds = [];
 let cart = JSON.parse(localStorage.getItem('spider_cart')) || [];
 if (!Array.isArray(cart)) cart = [];
@@ -182,6 +183,13 @@ function fetchData() {
             productsGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-triangle-exclamation"></i><h4>خطأ في جلب المنتجات</h4><p>${error.message}</p></div>`;
         }
     });
+
+    onValue(ref(db, 'settings'), (snapshot) => {
+        if (snapshot.exists()) {
+            storeSettings = { ...storeSettings, ...snapshot.val() };
+            updateCartUI(); // Update UI in case delivery fee changes
+        }
+    });
 }
 
 function getPublicCategoryImage(cat) {
@@ -237,7 +245,7 @@ function getProductImage(product) {
 }
 function renderProducts(productsToRender) {
     productsGrid.innerHTML = '';
-    const visibleProducts = productsToRender.filter(p => !p.isHidden);
+    const visibleProducts = productsToRender.filter(p => !p.isHidden && (!p.status || p.status === 'published'));
     if (!visibleProducts.length) {
         productsGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-box-open"></i><h4>ماكو منتجات متوفرة بهذا القسم حالياً</h4><p>جرّب قسم ثاني أو اضغط عرض الكل.</p><button class="btn btn-primary" onclick="filterByCategory('')">عرض كل المنتجات</button></div>`;
         return;
@@ -320,7 +328,7 @@ function renderOffersGrid() {
     const offersGrid = document.getElementById('offersProductsGrid');
     if (!offersGrid) return;
     offersGrid.innerHTML = '';
-    const discounted = products.filter(p => p.originalPrice && p.originalPrice > p.price && !p.isHidden);
+    const discounted = products.filter(p => p.originalPrice && p.originalPrice > p.price && !p.isHidden && (!p.status || p.status === 'published'));
     if (discounted.length === 0) {
         offersGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-tag"></i><h4>لا توجد عروض حالياً</h4><p>تفقد قريباً لأقوى خصومات الأسبوع</p></div>`;
         return;
@@ -452,9 +460,13 @@ function updateCartUI() {
     
     cartTotalValue.textContent = formatPrice(total);
     const subtotalEl = document.getElementById('checkoutSubtotal');
+    const deliveryEl = document.getElementById('checkoutDeliveryFee');
     const totalEl = document.getElementById('checkoutTotal');
+    const fee = Number(storeSettings.deliveryFee) || 5000;
+    
     if (subtotalEl) subtotalEl.textContent = formatPrice(total);
-    if (totalEl) totalEl.textContent = formatPrice(total + 5000);
+    if (deliveryEl) deliveryEl.textContent = formatPrice(fee);
+    if (totalEl) totalEl.textContent = formatPrice(total + fee);
 }
 
 function setupListeners() {
@@ -554,7 +566,38 @@ function setupListeners() {
             e.preventDefault();
             if (cart.length === 0) return;
             
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Re-validate prices from live array
+            let validatedSubtotal = 0;
+            const validatedItems = [];
+            
+            for (const item of cart) {
+                let liveItem;
+                if (item.isBundle) {
+                    liveItem = bundles.find(b => b.id === item.id.replace('bundle-', '')) || DEMO_BUNDLES.find(b => b.id === item.id.replace('bundle-', ''));
+                } else {
+                    liveItem = products.find(p => p.id === item.id);
+                }
+
+                if (!liveItem || liveItem.isHidden || (liveItem.status && liveItem.status !== 'published')) {
+                    alert(`عذراً، المنتج "${item.name}" غير متوفر حالياً. سيتم إزالته من السلة.`);
+                    window.removeFromCart(item.id);
+                    return;
+                }
+                
+                const livePrice = Number(liveItem.price);
+                validatedSubtotal += (livePrice * item.quantity);
+                validatedItems.push({
+                    id: item.id,
+                    name: liveItem.name || liveItem.title,
+                    price: livePrice,
+                    quantity: item.quantity
+                });
+            }
+
+            // Fetch settings from Firebase dynamically instead of fallback config
+            const deliveryFee = Number(storeSettings.deliveryFee) || 5000;
+            const whatsappNumber = storeSettings.whatsapp || '9647827337942';
+
             const orderData = {
                 orderNumber: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
                 customerName: document.getElementById('orderName').value,
@@ -563,25 +606,38 @@ function setupListeners() {
                 city: document.getElementById('orderCity').value,
                 address: document.getElementById('orderAddress').value,
                 notes: document.getElementById('orderNotes').value,
-                items: cart.map(item => ({ 
-                    id: item.id, 
-                    name: item.name, 
-                    price: item.price, 
-                    quantity: item.quantity 
-                })),
-                subtotal: subtotal,
-                deliveryFee: 5000,
-                grandTotal: subtotal + 5000,
+                items: validatedItems,
+                subtotal: validatedSubtotal,
+                deliveryFee: deliveryFee,
+                grandTotal: validatedSubtotal + deliveryFee,
                 status: 'pending',
                 timestamp: Date.now()
             };
 
+            // Format WhatsApp Message
+            let msg = `*طلب جديد من SPIDER NAJAF*\n`;
+            msg += `رقم الطلب: ${orderData.orderNumber}\n\n`;
+            msg += `*بيانات الزبون:*\n`;
+            msg += `الاسم: ${orderData.customerName}\n`;
+            msg += `رقم الهاتف: ${orderData.customerPhone}\n`;
+            msg += `العنوان: ${orderData.governorate} - ${orderData.city} - ${orderData.address}\n`;
+            if(orderData.notes) msg += `ملاحظات: ${orderData.notes}\n`;
+            
+            msg += `\n*المنتجات:*\n`;
+            validatedItems.forEach((item, index) => {
+                msg += `${index + 1}- ${item.name} - السعر: ${formatPrice(item.price)} - الكمية: ${item.quantity}\n`;
+            });
+            
+            msg += `\n*تفاصيل الدفع:*\n`;
+            msg += `المجموع: ${formatPrice(orderData.subtotal)}\n`;
+            msg += `أجور التوصيل: ${formatPrice(orderData.deliveryFee)}\n`;
+            msg += `*الإجمالي الكلي: ${formatPrice(orderData.grandTotal)}*\n`;
+            
+            const waLink = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(msg)}`;
+
             if (isPreviewMode()) {
-                alert(`🎉 تم تأكيد طلبك التجريبي بنجاح!\n\n` +
-                      `رقم الطلب: ${orderData.orderNumber}\n` +
-                      `الاسم: ${orderData.customerName}\n` +
-                      `الإجمالي مع التوصيل: ${formatPrice(orderData.grandTotal)}\n\n` +
-                      `(تنويه: هذا طلب محاكاة في وضع المعاينة. لم يتم إرسال بيانات إلى قاعدة بيانات الإنتاج ولم يتم إنشاء طلب تجاري حقيقي).`);
+                alert(`🎉 تم تأكيد طلبك التجريبي بنجاح!\n\nرقم الطلب: ${orderData.orderNumber}\nالإجمالي: ${formatPrice(orderData.grandTotal)}\n\n(سيتم تحويلك إلى واتساب)`);
+                window.open(waLink, '_blank');
                 cart = [];
                 saveCart();
                 updateCartUI();
@@ -593,7 +649,11 @@ function setupListeners() {
             try {
                 const newOrderRef = push(ref(db, 'orders'));
                 await set(newOrderRef, orderData);
-                alert('تم إرسال طلبك بنجاح! رقم الطلب: ' + orderData.orderNumber);
+                
+                // Open WhatsApp
+                window.open(waLink, '_blank');
+                
+                alert('تم حفظ طلبك بنجاح. يرجى إرسال الرسالة عبر واتساب لتأكيد الطلب!');
                 cart = [];
                 saveCart();
                 updateCartUI();
@@ -621,7 +681,7 @@ function compareMessage(message) {
 }
 
 window.toggleCompare = function(id) {
-    const product = products.find(item => item.id === id && !item.isHidden);
+    const product = products.find(item => item.id === id && !item.isHidden && (!item.status || item.status === 'published'));
     if (!product) return;
     const existingIndex = compareIds.indexOf(id);
     if (existingIndex >= 0) {
@@ -666,9 +726,9 @@ function renderComparison() {
     if (count) count.textContent = `${compareIds.length} / 4`;
     if (navCount) navCount.textContent = String(compareIds.length);
     if (!content) return;
-    const selected = compareIds.map(id => products.find(p => p.id === id && !p.isHidden)).filter(Boolean);
+    const selected = compareIds.map(id => products.find(p => p.id === id && !p.isHidden && (!p.status || p.status === 'published'))).filter(Boolean);
     if (selected.length < 2) {
-        content.textContent = selected.length ? 'اختار منتج ثاني من نفس الفئة حتى تظهر المقارنة.' : 'اختار منتجين من بطاقات المنتجات للمقارنة.';
+        content.textContent = selected.length ? 'اختار منتج ثاني حتى تظهر المقارنة.' : 'اختر منتجين على الأقل للمقارنة.';
         return;
     }
     const fields = [...new Set(selected.flatMap(p => Object.keys(publicSpecs(p))))].slice(0, 18);
@@ -695,12 +755,239 @@ function renderComparison() {
     content.replaceChildren(tableWrap);
 }
 
+function initCompareDropdowns() {
+    const catSelect = document.getElementById('compareCategorySelect');
+    if (!catSelect) return;
+    
+    // Populate categories
+    catSelect.innerHTML = '<option value="">-- اختر القسم --</option>';
+    const visibleCategories = categories.filter(c => !c.isHidden && (!c.status || c.status === 'published'));
+    visibleCategories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = cat.name;
+        catSelect.appendChild(opt);
+    });
+
+    catSelect.addEventListener('change', () => {
+        const catId = catSelect.value;
+        const selects = [
+            document.getElementById('compareProd1'),
+            document.getElementById('compareProd2'),
+            document.getElementById('compareProd3'),
+            document.getElementById('compareProd4')
+        ];
+        
+        if (!catId) {
+            selects.forEach(sel => {
+                sel.innerHTML = '<option value="">-- اختر المنتج --</option>';
+                sel.disabled = true;
+            });
+            compareIds.length = 0;
+            renderComparison();
+            return;
+        }
+
+        const catProducts = products.filter(p => !p.isHidden && (!p.status || p.status === 'published') && (p.categoryId === catId || p.category === catId));
+        
+        selects.forEach((sel, idx) => {
+            sel.innerHTML = `<option value="">-- اختر المنتج ${idx + 1} --</option>`;
+            catProducts.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                sel.appendChild(opt);
+            });
+            sel.disabled = false;
+        });
+        
+        compareIds.length = 0;
+        document.getElementById('compareContent').textContent = 'اختر منتجين على الأقل، ثم اضغط على "قارن الآن".';
+    });
+    
+    document.getElementById('compareNowBtn')?.addEventListener('click', updateCompareFromDropdowns);
+}
+
+function updateCompareFromDropdowns() {
+    const selects = [
+        document.getElementById('compareProd1'),
+        document.getElementById('compareProd2'),
+        document.getElementById('compareProd3'),
+        document.getElementById('compareProd4')
+    ];
+    
+    compareIds.length = 0;
+    selects.forEach(sel => {
+        if (sel.value && !compareIds.includes(sel.value)) {
+            compareIds.push(sel.value);
+        }
+    });
+    
+    renderComparison();
+    renderProducts(currentFilteredProducts());
+    renderOffersGrid();
+}
+
 document.getElementById('clearCompare')?.addEventListener('click', () => {
     compareIds.length = 0;
+    const catSelect = document.getElementById('compareCategorySelect');
+    if (catSelect) catSelect.value = '';
+    const selects = [
+        document.getElementById('compareProd1'),
+        document.getElementById('compareProd2'),
+        document.getElementById('compareProd3'),
+        document.getElementById('compareProd4')
+    ];
+    selects.forEach(sel => {
+        if(sel) {
+            sel.innerHTML = '<option value="">-- اختر المنتج --</option>';
+            sel.disabled = true;
+        }
+    });
+    
     renderComparison();
     renderProducts(currentFilteredProducts());
     renderOffersGrid();
 });
+
+// Intercept fetchData rendering to initialize dropdowns
+const originalApplyCurrentDataMode = applyCurrentDataMode;
+window.applyCurrentDataMode = function() {
+    originalApplyCurrentDataMode();
+    initCompareDropdowns();
+};
+
+
+// ================= PC BUILDER =================
+const builderConfig = [
+    { id: 'cpu', label: 'المعالج (CPU)', categorySearch: 'cpu|معالج', icon: 'assets/cpu.jpg' },
+    { id: 'mb', label: 'اللوحة الأم (Motherboard)', categorySearch: 'motherboard|لوحة أم|بورد', icon: 'assets/product-motherboard.jpg' },
+    { id: 'ram', label: 'الرامات (RAM)', categorySearch: 'ram|ذاكرة', icon: 'assets/cpu.jpg' },
+    { id: 'gpu', label: 'كرت الشاشة (GPU)', categorySearch: 'gpu|كرت شاشة|رسومية', icon: 'assets/gpu.jpg' },
+    { id: 'storage', label: 'التخزين (Storage)', categorySearch: 'storage|hard|تخزين|هارد', icon: 'assets/product-storage.jpg' },
+    { id: 'psu', label: 'مجهز الطاقة (PSU)', categorySearch: 'psu|power|طاقة', icon: 'assets/product-psu.jpg' },
+    { id: 'case', label: 'الكيس (Case)', categorySearch: 'case|صندوق', icon: 'assets/gaming-pc.jpg' },
+    { id: 'cooler', label: 'التبريد (Cooling)', categorySearch: 'cool|تبريد', icon: 'assets/product-cooler.jpg' }
+];
+
+let builderSelections = {};
+
+function initPCBuilder() {
+    const container = document.getElementById('builderPartsList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    builderConfig.forEach(part => {
+        // Find matching categories
+        const searchRegex = new RegExp(part.categorySearch, 'i');
+        const matchedCategories = categories.filter(c => (!c.isHidden && (!c.status || c.status === 'published')) && (searchRegex.test(c.name) || searchRegex.test(c.id))).map(c => c.id);
+        
+        // Find published products in those categories
+        const partProducts = products.filter(p => !p.isHidden && (!p.status || p.status === 'published') && matchedCategories.includes(p.categoryId || p.category));
+        
+        const row = document.createElement('div');
+        row.className = 'builder-part-row';
+        
+        let selectHtml = `<select class="builder-part-select" data-part-id="${part.id}">
+            <option value="">-- اختر ${part.label} --</option>
+            ${partProducts.map(p => `<option value="${p.id}" data-price="${p.price}">${p.name} - ${formatPrice(p.price)}</option>`).join('')}
+        </select>`;
+        
+        if (partProducts.length === 0) {
+            selectHtml = `<select class="builder-part-select" disabled><option>لا توجد منتجات متوفرة حالياً</option></select>`;
+        }
+        
+        row.innerHTML = `
+            <img src="${part.icon}" alt="${part.label}" class="builder-part-img" onerror="this.src='images/default-product.svg'">
+            <div class="builder-part-info">
+                <strong>${part.label}</strong>
+            </div>
+            ${selectHtml}
+        `;
+        
+        container.appendChild(row);
+    });
+    
+    // Add event listeners
+    document.querySelectorAll('.builder-part-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const partId = e.target.getAttribute('data-part-id');
+            const productId = e.target.value;
+            
+            if (productId) {
+                const prod = products.find(p => p.id === productId);
+                builderSelections[partId] = prod;
+            } else {
+                delete builderSelections[partId];
+            }
+            
+            updateBuilderUI();
+        });
+    });
+    
+    // Reattach to make sure it's fresh
+    const addBtn = document.getElementById('addBuilderToCartBtn');
+    if (addBtn) {
+        const newBtn = addBtn.cloneNode(true);
+        addBtn.parentNode.replaceChild(newBtn, addBtn);
+        newBtn.addEventListener('click', () => {
+            let count = 0;
+            Object.values(builderSelections).forEach(prod => {
+                if (prod) {
+                    window.addToCart(prod.id);
+                    count++;
+                }
+            });
+            if(count > 0) {
+                alert('تم إضافة قطع التجميعة إلى السلة بنجاح!');
+                // Auto open cart
+                document.getElementById('cartSidebar').classList.add('open');
+                document.getElementById('cartOverlay').style.display = 'block';
+            }
+        });
+    }
+}
+
+function updateBuilderUI() {
+    const summaryDetails = document.getElementById('builderSummaryDetails');
+    const totalEl = document.getElementById('builderTotal');
+    const addBtn = document.getElementById('addBuilderToCartBtn');
+    
+    if (!summaryDetails || !totalEl || !addBtn) return;
+    
+    let total = 0;
+    let html = '';
+    let selectedCount = 0;
+    
+    builderConfig.forEach(part => {
+        const prod = builderSelections[part.id];
+        if (prod) {
+            total += Number(prod.price || 0);
+            html += `<div style="margin-bottom: 8px; font-size: 0.9rem;">
+                <strong>${part.label}:</strong> <br>
+                <span style="color:#555;">${prod.name}</span> <br>
+                <span style="color:var(--primary);">${formatPrice(prod.price)}</span>
+            </div>`;
+            selectedCount++;
+        }
+    });
+    
+    if (selectedCount === 0) {
+        html = '<p class="text-muted">لم تقم باختيار أي قطع بعد.</p>';
+    }
+    
+    summaryDetails.innerHTML = html;
+    totalEl.textContent = formatPrice(total);
+    addBtn.disabled = selectedCount === 0;
+}
+
+// Ensure Builder is updated when data changes
+const builderApplyCurrentDataMode = window.applyCurrentDataMode;
+window.applyCurrentDataMode = function() {
+    builderApplyCurrentDataMode();
+    initPCBuilder();
+};
 
 function initializeShoppingAssistant() {
     const chatFab = document.getElementById('chatFab');
@@ -804,7 +1091,7 @@ function initializeShoppingAssistant() {
             addMessage('تمام، أكثر شي تستخدم الجهاز بشنو؟');
         } else {
             const query=raw.toLocaleLowerCase('ar');
-            const matches=products.filter(p=>!p.isHidden && p.inStock!==false && (p.name+' '+(p.description||'')).toLocaleLowerCase('ar').includes(query)).slice(0,3);
+            const matches=products.filter(p=>!p.isHidden && (!p.status || p.status === 'published') && p.inStock!==false && (p.name+' '+(p.description||'')).toLocaleLowerCase('ar').includes(query)).slice(0,3);
             if (matches.length) {
                 addMessage(matches.map(p=>`${p.name} — ${formatPrice(p.price)}`).join('\n'));
             } else addMessage('أگدر أساعدك بخيارات المنتجات المسجلة. اختار نوع الجهاز وميزانيتك من الأزرار، أو اكتب اسم المنتج حتى أبحث عنه.');

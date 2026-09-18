@@ -195,9 +195,49 @@
 
         <section id="compare-section" class="section compare-section">
             <div class="section-container">
-                <div class="section-header"><button id="clearCompare" type="button" class="btn btn-compare-clear">مسح الاختيارات</button><h2 class="section-title">قارن المنتجات <span id="compareCount">0 / 4</span></h2></div>
-                <p class="compare-intro">اختار من 2 إلى 4 منتجات من نفس الفئة حتى تقارن السعر والمواصفات المسجلة. المعلومات الناقصة تظهر كـ «غير متوفر».</p>
-                <div id="compareContent" class="compare-content" aria-live="polite">اختار منتجين من بطاقات المنتجات للمقارنة.</div>
+                <div class="section-header">
+                    <button id="clearCompare" type="button" class="btn btn-compare-clear">مسح الاختيارات</button>
+                    <h2 class="section-title">قارن المنتجات <span id="compareCount">0 / 4</span></h2>
+                </div>
+                <p class="compare-intro">اختر القسم أولاً، ثم اختر من 2 إلى 4 منتجات للمقارنة.</p>
+                
+                <div class="compare-controls">
+                    <select id="compareCategorySelect" class="form-select compare-select">
+                        <option value="">-- اختر القسم --</option>
+                    </select>
+                    
+                    <div id="compareProductsSelects" class="compare-products-selects">
+                        <select id="compareProd1" class="form-select compare-select" disabled><option value="">-- اختر المنتج الأول --</option></select>
+                        <select id="compareProd2" class="form-select compare-select" disabled><option value="">-- اختر المنتج الثاني --</option></select>
+                        <select id="compareProd3" class="form-select compare-select" disabled><option value="">-- اختر المنتج الثالث --</option></select>
+                        <select id="compareProd4" class="form-select compare-select" disabled><option value="">-- اختر المنتج الرابع --</option></select>
+                    </div>
+                    <button id="compareNowBtn" class="btn btn-primary" style="align-self: center; margin-top: 10px;">قارن الآن</button>
+                </div>
+
+                <div id="compareContent" class="compare-content" aria-live="polite">اختر منتجين على الأقل، ثم اضغط على "قارن الآن".</div>
+            </div>
+        </section>
+
+        <section id="builder-section" class="section builder-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <h2 class="section-title"><i class="fa-solid fa-desktop"></i> ابنِ حاسبتك (PC Builder)</h2>
+                </div>
+                <p class="compare-intro">اختر قطع الحاسبة التي تناسب ميزانيتك واحتياجاتك للحصول على تجميعتك الخاصة.</p>
+                <div class="builder-container">
+                    <div class="builder-parts" id="builderPartsList">
+                        <!-- Builder Parts injected via JS -->
+                    </div>
+                    <div class="builder-summary">
+                        <h3>ملخص التجميعة</h3>
+                        <div class="summary-details" id="builderSummaryDetails">
+                            <p class="text-muted">لم تقم باختيار أي قطع بعد.</p>
+                        </div>
+                        <div class="summary-total">الإجمالي: <span id="builderTotal">0 د.ع</span></div>
+                        <button class="btn btn-primary w-100 mt-2" id="addBuilderToCartBtn" disabled><i class="fa-solid fa-cart-shopping"></i> أضف التجميعة للسلة</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -274,7 +314,7 @@
                     <div class="form-group"><label>ملاحظات إضافية (اختياري)</label><textarea id="orderNotes" placeholder="أي ملاحظات حول الطلب"></textarea></div>
                     <div class="order-summary-box">
                         <div class="summary-row"><span>المجموع:</span><span id="checkoutSubtotal">0 د.ع</span></div>
-                        <div class="summary-row"><span>أجور التوصيل التقريبية:</span><span>5,000 د.ع</span></div>
+                        <div class="summary-row"><span>أجور التوصيل التقريبية:</span><span id="checkoutDeliveryFee">5,000 د.ع</span></div>
                         <div class="summary-row total"><span>الإجمالي التقريبي:</span><span id="checkoutTotal">0 د.ع</span></div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100" id="submitOrderBtn">تأكيد الطلب</button>

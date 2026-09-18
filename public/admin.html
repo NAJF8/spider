@@ -55,6 +55,8 @@
                 <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span></a></li>
                 <li class="nav-divider"></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة العملاء"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
@@ -372,7 +374,63 @@
                 </div>
             </section>
 
-            <!-- ================= VIEW 5: PLACEHOLDER (COMING SOON) ================= -->
+            <!-- ================= VIEW 5: CATALOG REVIEW ================= -->
+            <section id="view-review" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-list-check"></i> مراجعة الكتالوگ واعتماده</h2>
+                        <p>مراجعة المنتجات المبدئية (المسودات) واعتماد الصور والأسعار قبل النشر.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="seedDraftCatalog()"><i class="fa-solid fa-cloud-arrow-up"></i> رفع الكتالوگ الأولي (مسودات)</button>
+                </div>
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الصورة</th>
+                                    <th>اسم المنتج</th>
+                                    <th>السعر المقترح</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewTableBody">
+                                <tr><td colspan="5" class="text-center">جاري تحميل المسودات...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW 6: SETTINGS ================= -->
+            <section id="view-settings" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-gear"></i> إعدادات المتجر</h2>
+                        <p>تخصيص أرقام التواصل ورسوم التوصيل والمزيد.</p>
+                    </div>
+                </div>
+                <div class="box">
+                    <form id="settingsForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>رقم واتساب المتجر <span class="req">*</span></label>
+                                <input type="text" id="settingWhatsapp" required placeholder="مثال: 9647827337942" dir="ltr">
+                                <small class="form-hint">سيتم تحويل الطلبات إلى هذا الرقم.</small>
+                            </div>
+                            <div class="form-group">
+                                <label>تكلفة التوصيل الافتراضية <span class="req">*</span></label>
+                                <input type="number" id="settingDeliveryFee" required placeholder="5000">
+                                <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ================= VIEW: PLACEHOLDER (COMING SOON) ================= -->
             <section id="view-placeholder" class="admin-view">
                 <div class="placeholder-box box">
                     <div class="placeholder-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
@@ -437,11 +495,13 @@
                         <input type="hidden" id="prodImage" placeholder="/images/products/...">
                         <small class="form-hint">يتم ضغط الصورة محلياً وتحويلها إلى WebP لسرعة المتجر، ثم رفعها عبر الخادم الخلفي الآمن.</small>
                     </div>
-                    <div class="form-group checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="prodHidden">
-                            <span>إخفاء هذا المنتج مؤقتاً من المتجر (لن يظهر للزبائن)</span>
-                        </label>
+                    <div class="form-group">
+                        <label>حالة المنتج <span class="req">*</span></label>
+                        <select id="prodStatus" required>
+                            <option value="draft">مسودة (لا يظهر للزبون)</option>
+                            <option value="published">منشور (متاح للبيع)</option>
+                            <option value="hidden">مخفي (معطل مؤقتاً)</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> حفظ المنتج</button>
                 </form>

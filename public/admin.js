@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, onValue, push, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { DEMO_CATEGORIES, DEMO_PRODUCTS, DEMO_ORDERS } from "./demo-data.js";
+import { INITIAL_CATEGORIES, INITIAL_PRODUCTS } from './catalog-seed.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0",
@@ -610,7 +611,13 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodDesc').value = prod.description || '';
             document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
             document.getElementById('prodImage').value = prod.image || '';
-            document.getElementById('prodHidden').checked = !!prod.isHidden;
+            
+            // Map legacy isHidden to status if status is not explicitly set
+            let currentStatus = prod.status;
+            if (!currentStatus) {
+                currentStatus = prod.isHidden ? 'hidden' : 'published';
+            }
+            document.getElementById('prodStatus').value = currentStatus;
             
             if (prod.image) {
                 document.getElementById('imagePreview').src = prod.image;
@@ -620,7 +627,7 @@ window.openProductModal = function(id = null) {
         }
     } else {
         document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
-        document.getElementById('prodHidden').checked = false;
+        document.getElementById('prodStatus').value = 'published';
     }
     
     document.getElementById('productModal').classList.add('open');
@@ -665,7 +672,8 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
         image: document.getElementById('prodImage').value.trim(),
-        isHidden: document.getElementById('prodHidden').checked,
+        status: document.getElementById('prodStatus').value,
+        isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
     };
     
@@ -1243,5 +1251,131 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
         isUploadingImage = false;
         btn.disabled = false;
         if (prepBtn) prepBtn.disabled = false;
+    }
+});
+
+// ================= CATALOG REVIEW (DRAFTS) =================
+
+window.seedDraftCatalog = async function() {
+    if (!confirm('سيتم إضافة الأقسام والمنتجات المبدئية כمسودات. هل أنت متأكد؟')) return;
+    try {
+        // Upload categories
+        const updates = {};
+        INITIAL_CATEGORIES.forEach(cat => {
+            updates['categories/' + cat.id] = { ...cat, isHidden: true, status: 'draft' };
+        });
+        INITIAL_PRODUCTS.forEach(prod => {
+            updates['products/' + prod.id] = { ...prod, isHidden: true, status: 'draft', createdAt: Date.now() };
+        });
+        
+        await update(ref(db, '/'), updates);
+        alert('تم رفع الكتالوگ كمسودات بنجاح!');
+    } catch(err) {
+        alert('خطأ أثناء الرفع: ' + err.message);
+    }
+}
+
+function renderReviewTable() {
+    const tbody = document.getElementById('reviewTableBody');
+    if (!tbody) return;
+    
+    // Only show products with status = 'draft'
+    const drafts = products.filter(p => p.status === 'draft');
+    
+    tbody.innerHTML = '';
+    
+    if (drafts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#888;">لا توجد مسودات بانتظار المراجعة.</td></tr>';
+        return;
+    }
+
+    drafts.forEach(prod => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><img src="${prod.image || '/images/default-product.svg'}" class="tp-img" alt="${prod.name}"></td>
+            <td><strong>${prod.name}</strong><br><small>${getCategoryName(prod.categoryId || prod.category)}</small></td>
+            <td><strong style="color:var(--primary);">${formatPrice(prod.price)}</strong></td>
+            <td><span class="status-badge status-pending">مسودة</span></td>
+            <td>
+                <div class="table-actions">
+                    <button class="table-btn btn-edit" title="مراجعة وتعديل" onclick="openProductModal('${prod.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i> مراجعة
+                    </button>
+                    <button class="table-btn btn-toggle" title="نشر فوراً" onclick="publishDraft('${prod.id}')" style="background:#10b981; color:white; border-color:#10b981;">
+                        <i class="fa-solid fa-check"></i> نشر
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.publishDraft = async function(id) {
+    if (isDemoMode) {
+        const p = products.find(p => p.id === id);
+        if (p) {
+            p.status = 'published';
+            p.isHidden = false;
+            updateAllDashboardViews();
+        }
+        return;
+    }
+    
+    try {
+        await update(ref(db, 'products/' + id), { status: 'published', isHidden: false });
+    } catch(err) {
+        alert('فشل النشر: ' + err.message);
+    }
+}
+
+// Ensure updateAllDashboardViews triggers review table rendering
+const originalUpdateAllDashboardViews = updateAllDashboardViews;
+window.updateAllDashboardViews = function() {
+    originalUpdateAllDashboardViews();
+    renderReviewTable();
+    
+    // Update review badge
+    const badge = document.getElementById('reviewBadge');
+    if (badge) {
+        const draftsCount = products.filter(p => p.status === 'draft').length;
+        badge.textContent = draftsCount;
+        badge.style.display = draftsCount > 0 ? 'inline-block' : 'none';
+    }
+};
+
+// ================= SETTINGS MANAGEMENT =================
+let storeSettings = { whatsapp: '+9647827337942', deliveryFee: 5000 };
+
+onValue(ref(db, 'settings'), (snapshot) => {
+    if (snapshot.exists()) {
+        storeSettings = { ...storeSettings, ...snapshot.val() };
+    }
+    
+    // Store in localStorage for storefront
+    localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
+    
+    // Update UI
+    const elWa = document.getElementById('settingWhatsapp');
+    const elDf = document.getElementById('settingDeliveryFee');
+    if (elWa) elWa.value = storeSettings.whatsapp || '';
+    if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
+});
+
+document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (isDemoMode) {
+        alert('لا يمكن حفظ الإعدادات في وضع المعاينة.');
+        return;
+    }
+    
+    const wa = document.getElementById('settingWhatsapp').value.trim();
+    const df = Number(document.getElementById('settingDeliveryFee').value);
+    
+    try {
+        await update(ref(db, 'settings'), { whatsapp: wa, deliveryFee: df });
+        alert('تم حفظ الإعدادات بنجاح.');
+    } catch(err) {
+        alert('فشل حفظ الإعدادات: ' + err.message);
     }
 });
