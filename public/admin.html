@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -74,20 +75,37 @@
         <main class="main-content">
             <!-- Topbar -->
             <header class="topbar">
-                <div class="topbar-right">
+                <div class="topbar-leading">
                     <button class="mobile-toggle-btn" id="sidebarToggleBtn" title="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
-                    <div class="user-info">
-                        <img src="https://via.placeholder.com/45" alt="Admin" class="avatar" id="adminAvatar">
+                    <div class="user-info compact-user-card">
+                        <img src="assets/spider-bot.png" alt="Admin" class="avatar" id="adminAvatar">
                         <div class="user-text">
                             <strong id="adminName">محمد مسلم</strong>
-                            <span class="super-admin-badge" id="adminRole"><i class="fa-solid fa-crown"></i> سوبر مشرف</span>
+                            <span class="super-admin-badge" id="adminRole"><i class="fa-solid fa-crown"></i> مدير النظام</span>
                         </div>
                     </div>
+                    <button class="topbar-icon-btn" title="الإشعارات">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="notif-dot">3</span>
+                    </button>
                 </div>
-                
-                <div class="topbar-actions">
+
+                <div class="topbar-search-shell">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="ابحث عن منتج، طلب، أو عميل ...">
+                    <span class="search-shortcut">Ctrl K</span>
+                </div>
+
+                <div class="topbar-trailing">
+                    <div class="topbar-date-chip"><i class="fa-regular fa-calendar"></i> الخميس، 18 سبتمبر 2025</div>
+                    <button class="btn btn-danger btn-export"><i class="fa-solid fa-download"></i> تصدير تقرير</button>
+                    <select class="filter-select dashboard-range-select">
+                        <option>آخر 7 أيام</option>
+                        <option>آخر 30 يوم</option>
+                        <option>هذا الشهر</option>
+                    </select>
                     <a href="index.html" target="_blank" class="btn btn-outline" title="زيارة متجر الزبائن"><i class="fa-solid fa-store"></i> عرض المتجر</a>
-                    <button class="btn btn-danger" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
+                    <button class="btn btn-outline" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
                 </div>
             </header>
 
@@ -104,96 +122,136 @@
 
             <!-- ================= VIEW 1: DASHBOARD ================= -->
             <section id="view-dashboard" class="admin-view active">
-                <div class="dashboard-header">
+                <div class="dashboard-welcome-row">
                     <div>
-                        <h1>مرحباً بك في لوحة الإدارة</h1>
-                        <p>إليك نظرة عامة على نشاط متجر SPIDER NAJAF</p>
-                    </div>
-                    <div class="dashboard-actions">
-                        <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                        <h1>مرحباً محمد <span class="wave-emoji">👋</span></h1>
+                        <p>إليك نظرة عامة على متجرك اليوم</p>
                     </div>
                 </div>
 
-                <!-- Stats Grid -->
                 <div class="stats-grid">
-                    <div class="stat-card" onclick="switchView('view-orders')">
-                        <div class="stat-icon"><i class="fa-solid fa-cart-shopping"></i></div>
-                        <div class="stat-details">
-                            <p>إجمالي الطلبات</p>
-                            <h3 id="statOrders">0</h3>
-                            <span class="trend positive"><i class="fa-solid fa-arrow-up"></i> نشاط المتجر</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon bg-blue"><i class="fa-solid fa-users"></i></div>
-                        <div class="stat-details">
-                            <p>عدد العملاء الفريدين</p>
-                            <h3 id="statCustomers">0</h3>
-                            <span class="trend positive"><i class="fa-solid fa-user-check"></i> عميل مسجل</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon bg-green"><i class="fa-solid fa-money-bill-wave"></i></div>
-                        <div class="stat-details">
-                            <p>إجمالي المبيعات المكتملة</p>
-                            <h3 id="statSales">0 د.ع</h3>
-                            <span class="trend positive"><i class="fa-solid fa-coins"></i> إيرادات فعلية</span>
-                        </div>
-                    </div>
                     <div class="stat-card" onclick="switchView('view-products')">
-                        <div class="stat-icon bg-purple"><i class="fa-solid fa-box"></i></div>
+                        <div class="stat-icon bg-soft-blue"><i class="fa-solid fa-box-open"></i></div>
                         <div class="stat-details">
-                            <p>إجمالي المنتجات</p>
+                            <p>عدد المنتجات</p>
                             <h3 id="statProducts">0</h3>
                             <span class="trend neutral" id="statCategoriesSummary">0 أقسام</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Main Grid -->
-                <div class="main-grid">
-                    <div class="recent-orders box">
-                        <div class="box-header">
-                            <h3><i class="fa-solid fa-clock-rotate-left"></i> أحدث الطلبات</h3>
-                            <a href="#" onclick="switchView('view-orders'); return false;" class="view-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="orders-table">
-                                <thead>
-                                    <tr>
-                                        <th>رقم الطلب</th>
-                                        <th>العميل</th>
-                                        <th>المنتجات</th>
-                                        <th>المجموع</th>
-                                        <th>الحالة</th>
-                                        <th>إجراء</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ordersTableBody">
-                                    <tr><td colspan="6" class="text-center">جاري التحميل...</td></tr>
-                                </tbody>
-                            </table>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-soft-green"><i class="fa-solid fa-sack-dollar"></i></div>
+                        <div class="stat-details">
+                            <p>إجمالي المبيعات</p>
+                            <h3 id="statSales">0 د.ع</h3>
+                            <span class="trend positive">+18% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
                     </div>
-
-                    <div class="top-products box">
-                        <div class="box-header">
-                            <h3><i class="fa-solid fa-fire"></i> المنتجات المميزة</h3>
-                            <a href="#" onclick="switchView('view-products'); return false;" class="view-link">إدارة المنتجات <i class="fa-solid fa-arrow-left"></i></a>
+                    <div class="stat-card">
+                        <div class="stat-icon bg-soft-cyan"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-details">
+                            <p>عدد العملاء</p>
+                            <h3 id="statCustomers">0</h3>
+                            <span class="trend positive">+8% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
-                        <div class="top-products-list" id="topProductsList">
-                            <!-- Top products populated here -->
+                    </div>
+                    <div class="stat-card" onclick="switchView('view-orders')">
+                        <div class="stat-icon bg-soft-red"><i class="fa-solid fa-cart-shopping"></i></div>
+                        <div class="stat-details">
+                            <p>إجمالي الطلبات</p>
+                            <h3 id="statOrders">0</h3>
+                            <span class="trend positive">+12% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
                     </div>
                 </div>
-                
-                <div class="quick-actions-section box">
-                    <h3><i class="fa-solid fa-bolt"></i> وصول سريع</h3>
-                    <div class="actions-grid">
-                        <button class="action-card" onclick="openProductModal()"><i class="fa-solid fa-plus-circle"></i> إضافة منتج جديد</button>
-                        <button class="action-card" onclick="switchView('view-products')"><i class="fa-solid fa-boxes-stacked"></i> إدارة المنتجات</button>
-                        <button class="action-card" onclick="switchView('view-categories')"><i class="fa-solid fa-folder-tree"></i> إدارة الأقسام</button>
-                        <button class="action-card" onclick="switchView('view-orders')"><i class="fa-solid fa-truck-ramp-box"></i> جميع الطلبات</button>
+
+                <div class="dashboard-layout-grid">
+                    <div class="dashboard-main-column">
+                        <div class="box sales-overview-box">
+                            <div class="box-header split-controls">
+                                <div class="header-controls-group">
+                                    <select class="filter-select"><option>آخر 7 أيام</option></select>
+                                    <select class="filter-select"><option>المبيعات</option></select>
+                                </div>
+                                <h3>المبيعات</h3>
+                            </div>
+                            <div class="chart-shell"><canvas id="salesChart"></canvas></div>
+                        </div>
+
+                        <div class="box recent-orders-box">
+                            <div class="box-header">
+                                <a href="#" onclick="switchView('view-orders'); return false;" class="view-link">عرض الكل</a>
+                                <h3>أحدث الطلبات</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="orders-table modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>العميل</th>
+                                            <th>المنتجات</th>
+                                            <th>المجموع</th>
+                                            <th>الحالة</th>
+                                            <th>إجراء</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ordersTableBody">
+                                        <tr><td colspan="6" class="text-center">جاري التحميل...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="box top-products-box">
+                            <div class="box-header">
+                                <a href="#" onclick="switchView('view-products'); return false;" class="view-link">عرض الكل</a>
+                                <h3>منتجات مختارة</h3>
+                            </div>
+                            <div class="top-products-list dashboard-product-strip" id="topProductsList"></div>
+                        </div>
+                    </div>
+
+                    <aside class="dashboard-side-column">
+                        <div class="dashboard-hero-card">
+                            <div class="dashboard-hero-copy">
+                                <h3>مرحباً بك في<br>لوحة التحكم</h3>
+                                <p>هنا يمكنك إدارة منتجاتك وطلباتك وكل محتوى المتجر بسهولة.</p>
+                                <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                            </div>
+                            <img src="assets/spider-bot.png" alt="Spider Bot">
+                        </div>
+
+                        <div class="quick-links-panel">
+                            <button class="quick-link-tile" onclick="switchView('view-products')"><i class="fa-solid fa-box"></i><span>إدارة المنتجات</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-categories')"><i class="fa-solid fa-border-all"></i><span>إدارة الأقسام</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-orders')"><i class="fa-solid fa-cart-shopping"></i><span>الطلبات</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'إدارة العملاء')"><i class="fa-solid fa-users"></i><span>العملاء</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'الخصومات والعروض')"><i class="fa-solid fa-tags"></i><span>الخصومات</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'إعدادات المتجر')"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></button>
+                        </div>
+
+                        <div class="box distribution-box">
+                            <div class="box-header"><h3>توزيع المنتجات حسب الأقسام</h3></div>
+                            <div class="distribution-chart-wrap">
+                                <canvas id="categoriesChart"></canvas>
+                                <div class="distribution-total"><strong id="distributionTotal">0</strong><span>منتج</span></div>
+                            </div>
+                            <div class="distribution-list" id="categoryDistributionList"></div>
+                        </div>
+                    </aside>
+                </div>
+
+                <div class="dashboard-banner-row">
+                    <div class="dashboard-banner dark-banner">
+                        <div>
+                            <strong>SPIDER</strong>
+                            <p>GEAR UP YOUR WORLD</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-banner red-banner">
+                        <div>
+                            <strong>نجاحك يبدأ من هنا</strong>
+                            <p>إدارة أسهل، مبيعات أكثر، وعملاء سعداء</p>
+                        </div>
                     </div>
                 </div>
             </section>

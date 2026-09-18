@@ -3,25 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spider Najaf - Gear Up Your World</title>
-    
-    <!-- Google Fonts -->
+    <title>SPIDER NAJAF | Gear Up Your World</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
-    
-    <!-- Firebase SDK (Modular) will be imported in script.js -->
 </head>
 <body>
-    <!-- Demo Mode Notice Banner -->
     <div class="demo-banner" id="demoNoticeBanner">
-        <div class="demo-banner-content">
+        <div class="demo-banner-content section-container">
             <div class="demo-banner-text">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <span id="demoNoticeText">تنويه: المنتجات والأسعار والتجميعات المعروضة تجريبية لمعاينة تصميم المتجر وتجربة وظائفه، وليست عروض بيع حقيقية.</span>
@@ -33,147 +24,131 @@
         </div>
     </div>
 
-    <!-- Top Header -->
     <header class="main-header">
         <div class="header-container">
-            <div class="logo">
-                <a href="index.html">
-                    <i class="fa-solid fa-spider logo-icon"></i>
-                    <div class="logo-text">
-                        <span class="logo-title">SPIDER</span>
-                        <span class="logo-subtitle">GEAR UP YOUR WORLD</span>
-                    </div>
-                </a>
+            <a class="brand" href="index.html">
+                <div class="brand-mark"><i class="fa-solid fa-spider"></i></div>
+                <div class="brand-text">
+                    <strong>SPIDER</strong>
+                    <span>GEAR UP YOUR WORLD</span>
+                </div>
+            </a>
+
+            <div class="header-search-wrap">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="ابحث عن منتج، قطعة أو علامة تجارية ...">
+                </div>
             </div>
-            
-            <div class="search-bar">
-                <i class="fa-solid fa-search search-icon"></i>
-                <input type="text" id="searchInput" placeholder="ابحث عن منتج، قطعة أو علامة تجارية...">
-            </div>
-            
+
             <div class="header-actions">
-                <a href="admin.html" class="action-btn" title="لوحة التحكم (الأدمن)">
-                    <i class="fa-regular fa-user"></i>
-                </a>
-                <a href="#" class="action-btn">
-                    <i class="fa-regular fa-heart"></i>
-                </a>
-                <a href="#" class="action-btn cart-btn" id="openCartBtn">
-                    <div class="cart-icon-wrapper">
+                <a href="admin.html" class="action-btn" title="لوحة الإدارة"><i class="fa-regular fa-user"></i></a>
+                <a href="#" class="action-btn" title="المفضلة"><i class="fa-regular fa-heart"></i></a>
+                <a href="#" class="action-btn cart-btn" id="openCartBtn" title="السلة">
+                    <span class="cart-icon-wrapper">
                         <i class="fa-solid fa-cart-shopping"></i>
                         <span class="cart-badge" id="cartBadge">0</span>
-                    </div>
+                    </span>
                 </a>
-                <button class="mobile-menu-btn" id="mobileMenuBtn">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" title="القائمة"><i class="fa-solid fa-bars"></i></button>
             </div>
         </div>
     </header>
 
-    <!-- Navigation -->
     <nav class="main-nav">
         <div class="nav-container">
-            <ul class="nav-links">
-                <li><a href="index.html" class="active">الرئيسية</a></li>
-                <li><a href="#categories-section" onclick="filterByCategory('cat-pc-parts'); return true;">مكونات الحاسوب</a></li>
+            <ul class="nav-links" id="mobileNavLinks">
+                <li><a class="active" href="index.html">الرئيسية</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-bundles'); return true;">أجهزة الكمبيوتر</a></li>
                 <li><a href="#categories-section" onclick="filterByCategory('cat-laptops'); return true;">اللابتوبات</a></li>
-                <li><a href="#bundles-section">التجميعات</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-cpus'); return true;">القطع</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-accessories'); return true;">الملحقات</a></li>
                 <li><a href="#offers-section">العروض</a></li>
-                <li><a href="#categories-section">جميع الأقسام</a></li>
             </ul>
         </div>
     </nav>
 
     <main>
-        <!-- Hero Section -->
         <section class="hero-section">
             <div class="hero-container">
                 <div class="hero-content">
-                    <p class="hero-subtitle"><i class="fa-solid fa-bolt"></i> HIGH PERFORMANCE</p>
+                    <p class="hero-kicker">HIGH PERFORMANCE</p>
                     <h1 class="hero-title">SPIDER</h1>
                     <h2 class="hero-slogan">MORE THAN A STORE</h2>
-                    <p class="hero-desc">كل ما تحتاجه في عالم أجهزة الألعاب والكمبيوتر والقطع الاحترافية الأصلية</p>
-                    <div class="hero-cta-row">
-                        <a href="#products-section" class="btn btn-primary btn-lg"><i class="fa-solid fa-cart-shopping"></i> تسوق الآن</a>
-                        <a href="#categories-section" class="btn btn-outline-light btn-lg"><i class="fa-solid fa-layer-group"></i> تصفح الأقسام</a>
+                    <p class="hero-desc">كل ما تحتاجه في عالم التقنية والألعاب من أجهزة، قطع، لابتوبات وملحقات باحترافية تليق باسم SPIDER NAJAF.</p>
+                    <div class="hero-actions">
+                        <a href="#products-section" class="btn btn-primary btn-lg">تسوّق الآن <i class="fa-solid fa-cart-shopping"></i></a>
                     </div>
-                    
                     <div class="hero-features">
                         <div class="feature-item">
                             <i class="fa-solid fa-truck-fast"></i>
-                            <div class="feature-text">
-                                <strong>توصيل سريع</strong>
-                                <span>لكل محافظات العراق</span>
-                            </div>
+                            <div><strong>توصيل سريع</strong><span>لكل محافظات العراق</span></div>
                         </div>
                         <div class="feature-item">
                             <i class="fa-solid fa-shield-halved"></i>
-                            <div class="feature-text">
-                                <strong>منتجات أصلية</strong>
-                                <span>100% مضمونة</span>
-                            </div>
+                            <div><strong>منتجات أصلية</strong><span>100% مضمونة</span></div>
                         </div>
                         <div class="feature-item">
                             <i class="fa-solid fa-headset"></i>
-                            <div class="feature-text">
-                                <strong>دعم فني</strong>
-                                <span>دائماً معك</span>
-                            </div>
+                            <div><strong>دعم فني</strong><span>دائماً معك</span></div>
                         </div>
                     </div>
                 </div>
+
                 <div class="hero-visual">
-                    <div class="setup-badge">GOOD GEAR BETTER PLAYERS</div>
-                    <div class="battle-station-graphic">
-                        <div class="rgb-tower">
-                            <div class="rgb-fan"></div>
-                            <div class="rgb-fan"></div>
-                            <div class="rgb-fan"></div>
+                    <div class="hero-scene">
+                        <div class="hero-copy-badge">GOOD<br>GEAR<br>BETTER<br>PLAYERS</div>
+                        <div class="hero-monitor">
+                            <div class="hero-monitor-screen">
+                                <i class="fa-solid fa-spider"></i>
+                            </div>
+                            <div class="hero-monitor-stand"></div>
                         </div>
-                        <div class="monitor-glow">
-                            <div class="spider-emblem"><i class="fa-solid fa-spider"></i></div>
+                        <div class="hero-tower">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div class="hero-keyboard"></div>
+                        <div class="hero-mouse"></div>
+                        <div class="hero-chair">
+                            <span class="chair-logo"><i class="fa-solid fa-spider"></i></span>
+                            <span class="chair-text">SPIDER</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Categories Section -->
-        <section id="categories-section" class="section">
+        <section id="categories-section" class="section categories-section">
             <div class="section-container">
                 <div class="categories-grid" id="categoriesGrid">
-                    <!-- Categories will be loaded here from Firebase -->
                     <div class="loading-spinner">جاري تحميل الأقسام...</div>
                 </div>
             </div>
         </section>
 
-        <!-- Featured Products -->
-        <section id="products-section" class="section">
+        <section id="products-section" class="section products-section">
             <div class="section-container">
                 <div class="section-header">
+                    <a href="#products-section" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
                     <h2 class="section-title">المنتجات المميزة</h2>
-                    <a href="#products-section" class="view-all">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
                 </div>
                 <div class="products-grid" id="productsGrid">
-                    <!-- Products will be loaded here from Firebase -->
                     <div class="loading-spinner">جاري تحميل المنتجات...</div>
                 </div>
             </div>
         </section>
 
-        <!-- Brands Section -->
-        <section class="section bg-light">
+        <section class="section brands-section">
             <div class="section-container">
                 <div class="section-header">
+                    <a href="#products-section" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
                     <h2 class="section-title">أشهر العلامات التجارية</h2>
-                    <a href="#products-section" class="view-all">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
                 </div>
                 <div class="brands-flex">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/ASUS_Logo.svg" alt="ASUS">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/b/b1/MSI_Logo.svg" alt="MSI">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/a/a2/Gigabyte_Technology_logo_2008.svg" alt="Gigabyte">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/ASRock_logo.svg" alt="ASRock">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/5/5f/AMD_Logo.svg" alt="AMD">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c9/Intel-logo.svg" alt="Intel">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg" alt="NVIDIA">
@@ -184,111 +159,76 @@
             </div>
         </section>
 
-        <!-- Bundles / Builds Section -->
-        <section id="bundles-section" class="section">
+        <section id="bundles-section" class="section bundles-section">
             <div class="section-container">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title"><i class="fa-solid fa-desktop" style="color: var(--primary-red); margin-left: 8px;"></i> تجميعات SPIDER الجاهزة</h2>
-                        <p style="color: var(--gray); font-size: 0.9rem; margin-top: 4px;">مختارة ومجمعة بعناية لتوفير أعلى معدل إطارات وأداء موثوق</p>
-                    </div>
-                    <span class="view-all" style="cursor: default;"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> أداء مضمون 100%</span>
-                </div>
-                <div class="bundles-grid" id="bundlesGrid">
-                    <!-- Bundles loaded dynamically from script.js -->
-                </div>
-            </div>
-        </section>
-
-        <!-- Offers / Deals Section -->
-        <section id="offers-section" class="section" style="background: linear-gradient(135deg, #0d0d0d 0%, #1a0d0f 100%); padding: 70px 0;">
-            <div class="section-container">
-                <div class="section-header">
-                    <div>
-                        <h2 class="section-title" style="color: white;"><i class="fa-solid fa-fire" style="color: var(--primary-red); margin-left: 8px;"></i> العروض والخصومات</h2>
-                        <p style="color: #999; font-size: 0.9rem; margin-top: 4px;">أقوى صفقات الأسبوع على أحدث المنتجات</p>
-                    </div>
-                    <a href="#products-section" class="view-all" style="color: var(--primary-red);">كل المنتجات <i class="fa-solid fa-arrow-left"></i></a>
-                </div>
-                <!-- Promo Banners Grid -->
-                <div class="promo-grid" style="margin-top: 30px;">
-                    <div class="promo-card dark">
-                        <div class="promo-content">
-                            <p style="color: var(--primary-red); font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 8px;">عرض محدود</p>
-                            <h3>POWER<br>YOUR PASSION</h3>
-                            <p>أحدث كروت الشاشة RTX 4070 Ti<br>بأفضل الأسعار في العراق</p>
-                            <a href="#products-section" onclick="filterByCategory('cat-gpus'); return true;" class="btn btn-outline-light" style="margin-top: 16px;"><i class="fa-solid fa-cart-shopping"></i> تسوق كروت الشاشة</a>
+                <div class="promo-showcase-grid">
+                    <article class="promo-card large promo-card-gpu">
+                        <div class="promo-card-text">
+                            <p class="promo-kicker">POWER</p>
+                            <h3>YOUR PASSION</h3>
+                            <p>أحدث كروت الشاشة</p>
+                            <a href="#products-section" onclick="filterByCategory('cat-gpus'); return true;" class="btn btn-dark-outline">تسوّق كروت الشاشة <i class="fa-solid fa-arrow-left"></i></a>
                         </div>
-                    </div>
-                    <div class="promo-column">
-                        <div class="promo-card small dark">
-                            <div class="promo-content">
+                        <img src="images/products/gpu-rtx-4070ti.svg" alt="GPU Showcase">
+                    </article>
+
+                    <div class="promo-stack">
+                        <article class="promo-card small promo-card-laptop">
+                            <div class="promo-card-text">
                                 <h3>اللابتوبات</h3>
-                                <p>أداء بدون حدود <a href="#products-section" onclick="filterByCategory('cat-laptops'); return true;" style="color: var(--primary-red);">تسوق الآن <i class="fa-solid fa-arrow-left"></i></a></p>
+                                <p>أداء بدون حدود</p>
+                                <a href="#products-section" onclick="filterByCategory('cat-laptops'); return true;">تسوّق الآن <i class="fa-solid fa-arrow-left"></i></a>
                             </div>
-                        </div>
-                        <div class="promo-card small dark">
-                            <div class="promo-content">
+                            <img src="images/products/laptop-rog-strix.svg" alt="Laptop Showcase">
+                        </article>
+                        <article class="promo-card small promo-card-setup">
+                            <div class="promo-card-text">
                                 <h3>تجهيزات الألعاب</h3>
-                                <p>اصنع تجربتك الخاصة <a href="#products-section" onclick="filterByCategory('cat-accessories'); return true;" style="color: var(--primary-red);">تسوق الآن <i class="fa-solid fa-arrow-left"></i></a></p>
+                                <p>اصنع تجربتك الخاصة</p>
+                                <a href="#products-section" onclick="filterByCategory('cat-accessories'); return true;">تسوّق الآن <i class="fa-solid fa-arrow-left"></i></a>
                             </div>
-                        </div>
+                        </article>
                     </div>
                 </div>
-                <!-- Featured Offers Products - highlighted products with discounts -->
-                <div style="margin-top: 36px;">
-                    <h3 style="color: white; font-size: 1.2rem; font-weight: 800; margin-bottom: 20px;"><i class="fa-solid fa-tag" style="color: var(--primary-red); margin-left: 8px;"></i> منتجات بسعر مخفض</h3>
-                    <div class="products-grid" id="offersProductsGrid" style="min-height: auto;">
-                        <!-- Populated by script.js with products that have originalPrice > price -->
-                    </div>
+
+                <div class="bundles-title-row">
+                    <span class="section-overline">تجميعات جاهزة وعروض مختارة</span>
+                    <h2 class="section-title">عروض وتجميعات SPIDER</h2>
                 </div>
+                <div class="bundles-grid" id="bundlesGrid"></div>
             </div>
         </section>
 
-        <!-- Features Bottom -->
+        <section id="offers-section" class="section offers-section">
+            <div class="section-container">
+                <div class="section-header">
+                    <a href="#products-section" class="view-all-link">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+                    <h2 class="section-title">منتجات بسعر مخفض</h2>
+                </div>
+                <div class="products-grid" id="offersProductsGrid"></div>
+            </div>
+        </section>
 
-        <section class="features-bottom">
+        <section class="features-bottom section">
             <div class="section-container features-bottom-flex">
-                <div class="feat-box">
-                    <i class="fa-solid fa-gift"></i>
-                    <div>
-                        <strong>عروض مستمرة</strong>
-                        <span>خصومات خاصة</span>
-                    </div>
-                </div>
-                <div class="feat-box">
-                    <i class="fa-solid fa-shield-check"></i>
-                    <div>
-                        <strong>دفع آمن</strong>
-                        <span>جميع وسائل الدفع</span>
-                    </div>
-                </div>
-                <div class="feat-box">
-                    <i class="fa-solid fa-rotate-left"></i>
-                    <div>
-                        <strong>إرجاع سهل</strong>
-                        <span>خلال 7 أيام</span>
-                    </div>
-                </div>
-                <div class="feat-box">
-                    <i class="fa-solid fa-headset"></i>
-                    <div>
-                        <strong>مساعدة العملاء</strong>
-                        <span>نحن دائما هنا</span>
-                    </div>
-                </div>
+                <div class="feat-box"><i class="fa-solid fa-gift"></i><div><strong>عروض مستمرة</strong><span>خصومات خاصة</span></div></div>
+                <div class="feat-box"><i class="fa-solid fa-shield-halved"></i><div><strong>دفع آمن</strong><span>جميع وسائل الدفع</span></div></div>
+                <div class="feat-box"><i class="fa-solid fa-rotate-left"></i><div><strong>إرجاع سهل</strong><span>خلال 7 أيام</span></div></div>
+                <div class="feat-box"><i class="fa-solid fa-headset"></i><div><strong>مساعدة العملاء</strong><span>نحن دائماً هنا</span></div></div>
             </div>
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="main-footer">
         <div class="section-container footer-content">
-            <div class="footer-col brand-col">
-                <a href="index.html" class="footer-logo">
-                    <i class="fa-solid fa-spider"></i> SPIDER
+            <div class="footer-brand-block">
+                <a href="index.html" class="brand footer-brand">
+                    <div class="brand-mark"><i class="fa-solid fa-spider"></i></div>
+                    <div class="brand-text">
+                        <strong>SPIDER</strong>
+                        <span>GEAR UP YOUR WORLD</span>
+                    </div>
                 </a>
-                <p>GEAR UP YOUR WORLD</p>
                 <div class="social-icons">
                     <a href="#"><i class="fa-brands fa-instagram"></i></a>
                     <a href="#"><i class="fa-brands fa-tiktok"></i></a>
@@ -305,31 +245,23 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 Spider Najaf جميع الحقوق محفوظة.</p>
+            <p>© 2024 Spider Najaf جميع الحقوق محفوظة.</p>
         </div>
     </footer>
 
-    <!-- Cart Sidebar -->
     <div class="cart-overlay" id="cartOverlay"></div>
     <div class="cart-sidebar" id="cartSidebar">
         <div class="cart-header">
             <h3><i class="fa-solid fa-cart-shopping"></i> سلة المشتريات</h3>
             <button class="close-btn" id="closeCartBtn"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="cart-items" id="cartItemsList">
-            <!-- Cart items will be injected here -->
-            <div class="empty-cart">السلة فارغة</div>
-        </div>
+        <div class="cart-items" id="cartItemsList"><div class="empty-cart">السلة فارغة</div></div>
         <div class="cart-footer">
-            <div class="cart-total">
-                <span>المجموع الكلي:</span>
-                <span id="cartTotalValue">0 د.ع</span>
-            </div>
+            <div class="cart-total"><span>المجموع الكلي:</span><span id="cartTotalValue">0 د.ع</span></div>
             <button class="btn btn-primary w-100" id="checkoutBtn" disabled>إتمام الطلب</button>
         </div>
     </div>
 
-    <!-- Checkout Modal -->
     <div class="modal-overlay" id="checkoutModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -338,89 +270,47 @@
             </div>
             <div class="modal-body">
                 <form id="checkoutForm">
-                    <div class="form-group">
-                        <label>الاسم الكامل</label>
-                        <input type="text" id="orderName" required placeholder="أدخل اسمك الكامل">
+                    <div class="form-grid">
+                        <div class="form-group"><label>الاسم الكامل</label><input type="text" id="orderName" required placeholder="أدخل اسمك الكامل"></div>
+                        <div class="form-group"><label>رقم الهاتف</label><input type="tel" id="orderPhone" required placeholder="07XXXXXXXXX"></div>
                     </div>
-                    <div class="form-group">
-                        <label>رقم الهاتف</label>
-                        <input type="tel" id="orderPhone" required placeholder="07XXXXXXXXX">
+                    <div class="form-grid">
+                        <div class="form-group"><label>المحافظة</label><select id="orderGov" required><option value="" disabled selected>اختر المحافظة...</option><option value="النجف">النجف</option><option value="بغداد">بغداد</option><option value="كربلاء">كربلاء</option><option value="بابل">بابل</option><option value="البصرة">البصرة</option><option value="اربيل">أربيل</option><option value="اخرى">أخرى</option></select></div>
+                        <div class="form-group"><label>المدينة / المنطقة</label><input type="text" id="orderCity" required placeholder="المدينة أو المنطقة"></div>
                     </div>
-                    <div class="form-group">
-                        <label>المحافظة</label>
-                        <select id="orderGov" required>
-                            <option value="" disabled selected>اختر المحافظة...</option>
-                            <option value="النجف">النجف</option>
-                            <option value="بغداد">بغداد</option>
-                            <option value="كربلاء">كربلاء</option>
-                            <option value="بابل">بابل</option>
-                            <option value="البصرة">البصرة</option>
-                            <option value="اربيل">أربيل</option>
-                            <option value="اخرى">أخرى</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>المدينة / المنطقة</label>
-                        <input type="text" id="orderCity" required placeholder="المدينة أو المنطقة">
-                    </div>
-                    <div class="form-group">
-                        <label>العنوان التفصيلي</label>
-                        <textarea id="orderAddress" placeholder="رقم الدار، الشارع، أقرب نقطة دالة..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>ملاحظات إضافية (اختياري)</label>
-                        <textarea id="orderNotes" placeholder="أي ملاحظات حول الطلب"></textarea>
-                    </div>
-                    
+                    <div class="form-group"><label>العنوان التفصيلي</label><textarea id="orderAddress" placeholder="رقم الدار، الشارع، أقرب نقطة دالة..."></textarea></div>
+                    <div class="form-group"><label>ملاحظات إضافية (اختياري)</label><textarea id="orderNotes" placeholder="أي ملاحظات حول الطلب"></textarea></div>
                     <div class="order-summary-box">
-                        <div class="summary-row">
-                            <span>المجموع:</span>
-                            <span id="checkoutSubtotal">0 د.ع</span>
-                        </div>
-                        <div class="summary-row">
-                            <span>التوصيل:</span>
-                            <span>يتم حسابه لاحقاً</span>
-                        </div>
-                        <hr>
-                        <div class="summary-row total">
-                            <span>الإجمالي التقريبي:</span>
-                            <span id="checkoutTotal">0 د.ع</span>
-                        </div>
+                        <div class="summary-row"><span>المجموع:</span><span id="checkoutSubtotal">0 د.ع</span></div>
+                        <div class="summary-row"><span>أجور التوصيل التقريبية:</span><span>5,000 د.ع</span></div>
+                        <div class="summary-row total"><span>الإجمالي التقريبي:</span><span id="checkoutTotal">0 د.ع</span></div>
                     </div>
-                    
                     <button type="submit" class="btn btn-primary w-100" id="submitOrderBtn">تأكيد الطلب</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Chatbot Area -->
     <div class="chatbot-container" id="chatbotContainer">
-        <!-- Chat Window -->
         <div class="chat-window hidden" id="chatWindow">
             <div class="chat-header">
-                <div class="chat-title">
-                    <i class="fa-solid fa-robot"></i> المساعد الذكي
-                </div>
+                <div class="chat-title"><i class="fa-solid fa-robot"></i> المساعد الذكي</div>
                 <button class="close-chat" id="closeChatBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">
-                    مرحباً! كيف أساعدك اليوم؟ هل تبحث عن لابتوب، تجميعة، أم قطعة معينة؟
-                </div>
+                <div class="message bot-message">مرحباً! كيف أساعدك اليوم؟ هل تبحث عن لابتوب، تجميعة، أم قطعة معينة؟</div>
             </div>
             <div class="chat-input-area">
                 <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." autocomplete="off">
                 <button id="sendChatBtn"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
-        <!-- Floating Button -->
         <button class="chat-fab" id="chatFab">
-            <img src="robot_avatar.jpg" alt="Chatbot" onerror="this.src='https://cdn-icons-png.flaticon.com/512/4712/4712010.png'">
+            <img src="assets/spider-bot.png" alt="Chatbot">
             <div class="chat-tooltip">مرحباً! كيف أساعدك اليوم؟</div>
         </button>
     </div>
 
-    <script type="module" src="script.js?v=2"></script>
+    <script type="module" src="script.js?v=3"></script>
 </body>
 </html>

@@ -38,6 +38,8 @@ let isDemoMode = false;
 let currentProcessedImageBase64 = null;
 let currentProcessedImageName = null;
 let isUploadingImage = false;
+let salesChart = null;
+let categoriesChart = null;
 
 // ================= AUTHENTICATION =================
 onAuthStateChanged(auth, (user) => {
@@ -257,6 +259,8 @@ function updateAllDashboardViews() {
     updateCategorySelects();
     renderRecentOrders();
     renderTopProducts();
+    renderDashboardCharts();
+    renderCategoryDistribution();
     renderProductsManagementTable();
     renderCategoriesManagementTable();
     renderOrdersManagementTable();
@@ -363,13 +367,13 @@ function renderTopProducts() {
     const list = document.getElementById('topProductsList');
     if (!list) return;
     list.innerHTML = '';
-    
+
     if (products.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:25px;color:#888;">لا توجد منتجات مسجلة</div>';
+        list.innerHTML = '<div style="text-align:center;padding:25px;color:#888;grid-column:1/-1;">لا توجد منتجات مسجلة</div>';
         return;
     }
-    
-    const top = products.slice(0, 4);
+
+    const top = products.slice(0, 5);
     top.forEach(prod => {
         const html = `
             <div class="top-product-item">
@@ -385,6 +389,143 @@ function renderTopProducts() {
     });
 }
 
+function renderDashboardCharts() {
+    if (typeof Chart === 'undefined') return;
+
+    const salesCanvas = document.getElementById('salesChart');
+    if (salesCanvas) {
+        const salesData = buildSalesSeries();
+        if (salesChart) salesChart.destroy();
+        salesChart = new Chart(salesCanvas, {
+            type: 'line',
+            data: {
+                labels: salesData.labels,
+                datasets: [{
+                    label: 'المبيعات',
+                    data: salesData.values,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.12)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#6b7280' } },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#eef1f6' },
+                        ticks: {
+                            color: '#6b7280',
+                            callback: (value) => formatCompactCurrency(value)
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const catCanvas = document.getElementById('categoriesChart');
+    if (catCanvas) {
+        const distribution = getCategoryBreakdown();
+        if (categoriesChart) categoriesChart.destroy();
+        categoriesChart = new Chart(catCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: distribution.map(item => item.name),
+                datasets: [{
+                    data: distribution.map(item => item.count),
+                    backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#94a3b8'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+}
+
+function buildSalesSeries() {
+    const labels = [];
+    const values = [];
+    const days = 7;
+    for (let i = days - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - i);
+        const next = new Date(date);
+        next.setDate(date.getDate() + 1);
+        labels.push(date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+        const total = orders.reduce((sum, order) => {
+            const ts = order.timestamp || 0;
+            if (ts >= date.getTime() && ts < next.getTime() && (order.status === 'completed' || order.status === 'مكتمل' || order.status === 'pending' || order.status === 'جديد')) {
+                return sum + Number(order.grandTotal || 0);
+            }
+            return sum;
+        }, 0);
+        values.push(total);
+    }
+    return { labels, values };
+}
+
+function getCategoryBreakdown() {
+    const counts = new Map();
+    products.forEach(prod => {
+        const key = prod.categoryId || prod.category || 'other';
+        counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const breakdown = Array.from(counts.entries()).map(([id, count]) => ({ id, count, name: getCategoryName(id) }));
+    breakdown.sort((a, b) => b.count - a.count);
+    return breakdown.slice(0, 6);
+}
+
+function renderCategoryDistribution() {
+    const list = document.getElementById('categoryDistributionList');
+    const totalEl = document.getElementById('distributionTotal');
+    if (totalEl) totalEl.textContent = products.length;
+    if (!list) return;
+
+    const distribution = getCategoryBreakdown();
+    const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#94a3b8'];
+    list.innerHTML = '';
+    if (distribution.length === 0) {
+        list.innerHTML = '<div style="text-align:center;color:#888;padding:15px 0;">لا توجد بيانات أقسام كافية</div>';
+        return;
+    }
+
+    distribution.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'distribution-row';
+        row.innerHTML = `
+            <span class="distribution-dot" style="background:${colors[index % colors.length]}"></span>
+            <span>${item.name}</span>
+            <strong>${item.count}</strong>
+        `;
+        list.appendChild(row);
+    });
+}
+
+function formatCompactCurrency(value) {
+    if (!value) return '0';
+    if (value >= 1000000) return (value / 1000000).toFixed(1).replace('.0', '') + 'M';
+    if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
+    return value;
+}
+
+// ================= PRODUCTS MANAGEMENT =================
 // ================= PRODUCTS MANAGEMENT =================
 function renderProductsManagementTable() {
     const tbody = document.getElementById('productsFullTableBody');

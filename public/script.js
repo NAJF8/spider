@@ -182,7 +182,7 @@ function fetchData() {
 function renderCategories() {
     categoriesGrid.innerHTML = '';
     const visibleCategories = categories.filter(c => !c.isHidden);
-    
+
     if (visibleCategories.length === 0) {
         categoriesGrid.innerHTML = `
             <div class="empty-state-card">
@@ -193,40 +193,21 @@ function renderCategories() {
         return;
     }
 
-    // Only show top-level categories (no parentCategory) to avoid duplication
-    const topLevelCats = visibleCategories.filter(c => !c.parentCategory);
-    const defaultIcons = ['fa-microchip', 'fa-memory', 'fa-border-all', 'fa-bars', 'fa-hard-drive', 'fa-laptop', 'fa-tv', 'fa-desktop', 'fa-headphones'];
+    const landingCategories = [
+        { id: 'cat-accessories', name: 'الألعاب والكونسول', image: 'images/products/headset-hyperx.svg' },
+        { id: 'cat-accessories', name: 'الملحقات', image: 'images/products/headset-hyperx.svg' },
+        { id: 'cat-monitors', name: 'الشاشات', image: 'images/products/monitor-lg-ultragear.svg' },
+        { id: 'cat-gpus', name: 'كروت الشاشة', image: 'images/products/gpu-rtx-4070ti.svg' },
+        { id: 'cat-cpus', name: 'المعالجات', image: 'images/products/cpu-ryzen-7800x3d.svg' },
+        { id: 'cat-laptops', name: 'اللابتوبات', image: 'images/products/laptop-rog-strix.svg' },
+        { id: 'cat-bundles', name: 'أجهزة الكمبيوتر', image: 'images/products/bundle-spider-pro.svg' }
+    ];
 
-    topLevelCats.forEach((cat, index) => {
-        const icon = cat.icon || defaultIcons[index % defaultIcons.length];
-
-        // Get subcategories for parent categories
-        let subHtml = '';
-        if (cat.subcategoryIds && cat.subcategoryIds.length > 0) {
-            const subs = categories.filter(c => cat.subcategoryIds.includes(c.id) && !c.isHidden);
-            if (subs.length > 0) {
-                subHtml = `<div class="category-subs">${subs.map(s => 
-                    `<span class="sub-chip" onclick="event.stopPropagation(); filterByCategory('${s.id}')">${s.name}</span>`
-                ).join('')}</div>`;
-            }
-        } else if (cat.isParent) {
-            // Fallback: look for children that have this as parentCategory
-            const children = categories.filter(c => c.parentCategory === cat.id && !c.isHidden);
-            if (children.length > 0) {
-                subHtml = `<div class="category-subs">${children.map(s => 
-                    `<span class="sub-chip" onclick="event.stopPropagation(); filterByCategory('${s.id}')">${s.name}</span>`
-                ).join('')}</div>`;
-            }
-        }
-
-        const isParentCat = cat.isParent || (cat.subcategoryIds && cat.subcategoryIds.length > 0);
-        const cardClass = isParentCat ? 'category-card category-card-parent' : 'category-card';
-        
+    landingCategories.forEach(cat => {
         const html = `
-            <div class="${cardClass}" onclick="filterByCategory('${cat.id}')">
-                <i class="fa-solid ${icon} category-icon"></i>
+            <div class="category-card" onclick="filterByCategory('${cat.id}')">
+                <div class="category-card-media"><img src="${cat.image}" alt="${cat.name}"></div>
                 <div class="category-name">${cat.name}</div>
-                ${subHtml}
                 <div class="category-arrow"><i class="fa-solid fa-arrow-left"></i></div>
             </div>
         `;
@@ -234,34 +215,52 @@ function renderCategories() {
     });
 }
 
+function truncateArabicText(text, maxLength = 90) {
+    if (!text) return '';
+    return text.length > maxLength ? text.slice(0, maxLength).trim() + '...' : text;
+}
+
 function renderProducts(productsToRender) {
     productsGrid.innerHTML = '';
     const visibleProducts = productsToRender.filter(p => !p.isHidden);
-    
+
     if (visibleProducts.length === 0) {
         productsGrid.innerHTML = `
             <div class="empty-state-card">
                 <i class="fa-solid fa-box-open"></i>
                 <h4>لم يتم العثور على منتجات في هذا القسم</h4>
                 <p>جرب تصفح باقي الأقسام أو إزالة فلاتر البحث.</p>
-                <button class="btn btn-outline btn-sm" onclick="filterByCategory('')" style="margin-top: 10px;">
+                <button class="btn btn-primary btn-sm" onclick="filterByCategory('')" style="margin-top: 10px;">
                     عرض جميع المنتجات
                 </button>
             </div>`;
         return;
     }
-    
-    visibleProducts.forEach(prod => {
+
+    let listToDisplay = [...visibleProducts];
+    if (listToDisplay.length > 5) {
+        const featured = listToDisplay.filter(p => p.isFeatured);
+        listToDisplay = [...featured, ...listToDisplay.filter(p => !p.isFeatured)].slice(0, 5);
+    }
+
+    listToDisplay.forEach(prod => {
         const price = prod.price || 0;
+        const oldPriceHtml = prod.originalPrice && prod.originalPrice > price
+            ? `<span class="product-old-price">${formatPrice(prod.originalPrice)}</span>`
+            : '';
+        const subtitle = prod.shortDescription || truncateArabicText(prod.description || '', 62);
         const html = `
             <div class="product-card">
                 <button class="fav-btn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
-                <img src="${prod.image || '/images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy">
+                <img src="${prod.image || 'images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy">
                 <div class="product-info">
                     <h3 class="product-title">${prod.name}</h3>
-                    <div class="product-specs">${prod.description || ''}</div>
-                    <div class="product-price">${formatPrice(price)}</div>
-                    <button class="add-to-cart-btn" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+                    <div class="product-subtitle">${subtitle}</div>
+                    <div class="product-price-row">
+                        <span class="product-price">${formatPrice(price)}</span>
+                        ${oldPriceHtml}
+                    </div>
+                    <button class="btn btn-primary" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
                 </div>
             </div>
         `;
@@ -274,105 +273,85 @@ function renderBundles(bundlesToRender) {
     bundlesGrid.innerHTML = '';
 
     if (!bundlesToRender || bundlesToRender.length === 0) {
+        bundlesGrid.innerHTML = `<div class="empty-state-card" style="grid-column:1 / -1;"><i class="fa-solid fa-desktop"></i><h4>لا توجد تجميعات منشورة حالياً</h4><p>فعّل وضع المعاينة لعرض التجميعات النموذجية.</p></div>`;
         return;
     }
 
-    bundlesToRender.forEach(b => {
+    bundlesToRender.slice(0, 2).forEach(b => {
         const bundleName = b.name || b.title || 'تجميعة SPIDER';
-        const discountBadge = b.discount || b.discountBadge || '';
-        const partsHtml = (b.parts || []).map(p => `<li><i class="fa-solid fa-check"></i> ${p}</li>`).join('');
+        const discountBadge = b.discount || b.discountBadge || 'عرض خاص';
+        const partsHtml = (b.parts || []).slice(0, 5).map(p => `<li>${p}</li>`).join('');
         const html = `
             <div class="bundle-card">
-                <div class="bundle-image-box">
-                    ${discountBadge ? `<span class="bundle-discount-badge">${discountBadge}</span>` : ''}
-                    <img src="${b.image || '/images/products/bundle-spider-pro.svg'}" alt="${bundleName}" loading="lazy">
+                <span class="bundle-badge">${discountBadge}</span>
+                <img class="bundle-image" src="${b.image || 'images/products/bundle-spider-pro.svg'}" alt="${bundleName}" loading="lazy">
+                <h3 class="bundle-title">${bundleName}</h3>
+                <p class="bundle-subtitle">${b.subtitle || ''}</p>
+                <ul class="bundle-parts">${partsHtml}</ul>
+                <div class="bundle-prices">
+                    <span class="bundle-price">${formatPrice(b.price)}</span>
+                    ${b.oldPrice ? `<span class="bundle-old-price">${formatPrice(b.oldPrice)}</span>` : ''}
                 </div>
-                <div class="bundle-content">
-                    <div>
-                        <h3 class="bundle-title">${bundleName}</h3>
-                        <p class="bundle-subtitle">${b.subtitle || ''}</p>
-                        <ul class="bundle-parts-list">
-                            ${partsHtml}
-                        </ul>
-                    </div>
-                    <div class="bundle-pricing">
-                        <div class="bundle-price-box">
-                            <span class="bundle-price">${formatPrice(b.price)}</span>
-                            ${b.oldPrice ? `<span class="bundle-old-price">${formatPrice(b.oldPrice)}</span>` : ''}
-                        </div>
-                        <button class="btn btn-primary" onclick="addBundleToCart('${b.id}')">
-                            <i class="fa-solid fa-cart-plus"></i> طلب التجميعة
-                        </button>
-                    </div>
-                </div>
+                <button class="btn btn-primary" onclick="addBundleToCart('${b.id}')"><i class="fa-solid fa-cart-plus"></i> طلب التجميعة</button>
             </div>
         `;
         bundlesGrid.insertAdjacentHTML('beforeend', html);
     });
-
 }
 
 window.filterByCategory = function(categoryId) {
     if (!categoryId) {
         renderProducts(products);
     } else {
-        // When a parent category is clicked, also include all its children products
         const parentCat = categories.find(c => c.id === categoryId);
         let matchIds = [categoryId];
         if (parentCat) {
             const childIds = Array.isArray(parentCat.subcategoryIds)
                 ? parentCat.subcategoryIds
-                : categories
-                .filter(c => c.parentCategory === categoryId)
-                .map(c => c.id);
+                : categories.filter(c => c.parentCategory === categoryId).map(c => c.id);
             matchIds = [categoryId, ...childIds];
         }
 
         const filtered = products.filter(p => {
-            const catMatch = matchIds.includes(p.categoryId) || matchIds.includes(p.category);
-            return catMatch && !p.isHidden;
+            const pCat = p.categoryId || p.category;
+            return (matchIds.includes(pCat) || (categoryId === 'cat-bundles' && pCat === 'cat-bundles')) && !p.isHidden;
         });
-        renderProducts(filtered);
+        renderProducts(filtered.length ? filtered : products);
     }
     const section = document.getElementById('products-section');
     if (section) section.scrollIntoView({ behavior: 'smooth' });
 };
 
-// Render discounted products in the Offers section
 function renderOffersGrid() {
     const offersGrid = document.getElementById('offersProductsGrid');
     if (!offersGrid) return;
     offersGrid.innerHTML = '';
     const discounted = products.filter(p => p.originalPrice && p.originalPrice > p.price && !p.isHidden);
     if (discounted.length === 0) {
-        offersGrid.innerHTML = `<div class="empty-state-card" style="background: rgba(255,255,255,0.05); border-color: #333; color: #aaa;">
-            <i class="fa-solid fa-tag" style="color: #555;"></i>
-            <h4 style="color: #ccc;">لا توجد عروض حالياً</h4>
-            <p>تفقد قريباً لأقوى خصومات الأسبوع</p>
-        </div>`;
+        offersGrid.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-tag"></i><h4>لا توجد عروض حالياً</h4><p>تفقد قريباً لأقوى خصومات الأسبوع</p></div>`;
         return;
     }
-    discounted.forEach(prod => {
+    discounted.slice(0, 5).forEach(prod => {
         const discount = Math.round(((prod.originalPrice - prod.price) / prod.originalPrice) * 100);
         const html = `
-            <div class="product-card" style="background: #1a1a22; border-color: #2a2a35; color: white;">
-                <span style="position: absolute; top: 10px; left: 10px; background: var(--primary-red); color: white; font-size: 0.78rem; font-weight: 800; padding: 3px 9px; border-radius: 20px;">خصم ${discount}%</span>
-                <button class="fav-btn" style="background: #252530; border-color: #333;" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
-                <img src="${prod.image || '/images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy" style="background: #111;">
+            <div class="product-card">
+                <span class="bundle-badge" style="left:16px;right:auto;">خصم ${discount}%</span>
+                <button class="fav-btn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
+                <img src="${prod.image || 'images/default-product.svg'}" alt="${prod.name}" class="product-image" loading="lazy">
                 <div class="product-info">
-                    <h3 class="product-title" style="color: white;">${prod.name}</h3>
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
-                        <span class="product-price" style="color: var(--primary-red);">${formatPrice(prod.price)}</span>
-                        <span style="text-decoration: line-through; color: #666; font-size: 0.9rem;">${formatPrice(prod.originalPrice)}</span>
+                    <h3 class="product-title">${prod.name}</h3>
+                    <div class="product-subtitle">${truncateArabicText(prod.description || '', 62)}</div>
+                    <div class="product-price-row">
+                        <span class="product-price">${formatPrice(prod.price)}</span>
+                        <span class="product-old-price">${formatPrice(prod.originalPrice)}</span>
                     </div>
-                    <button class="add-to-cart-btn" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+                    <button class="btn btn-primary" onclick="addToCart('${prod.id}')"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
                 </div>
             </div>
         `;
         offersGrid.insertAdjacentHTML('beforeend', html);
     });
 }
-
 
 window.addToCart = function(productId) {
     const product = products.find(p => p.id === productId);
@@ -492,6 +471,12 @@ function setupListeners() {
             updateDemoBannerUI();
             applyCurrentDataMode();
         });
+    }
+
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileNavLinks = document.getElementById('mobileNavLinks');
+    if (mobileMenuBtn && mobileNavLinks) {
+        mobileMenuBtn.addEventListener('click', () => mobileNavLinks.classList.toggle('open'));
     }
 
     const openCartBtn = document.getElementById('openCartBtn');
