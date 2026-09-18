@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | سبايدر النجف</title>
+    <!-- خطوط جوجل (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="admin.css">
+    
+    <!-- مكتبات Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="login-screen" class="screen">
+        <div class="login-box">
+            <h2><i class="fa-solid fa-spider"></i> سبايدر النجف - الإدارة</h2>
+            <div id="login-error" class="error-msg"></div>
+            <button id="login-google-btn" class="btn" style="background-color: #4285F4; color: white; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fa-brands fa-google"></i> تسجيل الدخول باستخدام Google
+            </button>
+            <p style="font-size: 13px; color: #666; margin-top: 15px;">تسجيل الدخول مسموح فقط لحساب الأدمن المعتمد.</p>
+        </div>
+    </div>
+
+    <!-- شاشة لوحة التحكم -->
+    <div id="admin-screen" class="screen hidden">
+        <!-- الشريط الجانبي -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>لوحة التحكم</h3>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-target="dashboard-tab"><i class="fa-solid fa-chart-line"></i> الإحصائيات</li>
+                <li data-target="products-tab"><i class="fa-solid fa-box"></i> المنتجات</li>
+                <li data-target="orders-tab"><i class="fa-solid fa-truck-fast"></i> الطلبات</li>
+                <li id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل الخروج</li>
+            </ul>
+        </aside>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="main-content">
+            
+            <!-- تبويب الإحصائيات -->
+            <section id="dashboard-tab" class="tab-content active">
+                <h2>نظرة عامة</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>إجمالي المنتجات</h3>
+                        <p id="total-products">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>إجمالي الطلبات</h3>
+                        <p id="total-orders">0</p>
+                    </div>
+                </div>
+                <div style="margin-top: 40px; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #ddd;">
+                    <h3>استيراد البيانات التجريبية</h3>
+                    <p>في حال كانت قاعدة البيانات فارغة، يمكنك رفع الأقسام والمنتجات الافتراضية.</p>
+                    <button id="import-data-btn" class="btn btn-outline" style="margin-top: 10px;">استيراد البيانات الأساسية</button>
+                </div>
+            </section>
+
+            <!-- تبويب المنتجات -->
+            <section id="products-tab" class="tab-content hidden">
+                <div class="header-flex">
+                    <h2>إدارة المنتجات</h2>
+                    <button id="add-product-btn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> إضافة منتج</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>الصورة</th>
+                                <th>الاسم</th>
+                                <th>القسم</th>
+                                <th>السعر</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-tbody">
+                            <!-- المنتجات -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- تبويب الطلبات -->
+            <section id="orders-tab" class="tab-content hidden">
+                <h2>إدارة الطلبات</h2>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>رقم الطلب</th>
+                                <th>الاسم</th>
+                                <th>المحافظة</th>
+                                <th>المجموع</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th>التفاصيل</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody">
+                            <!-- الطلبات -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- نافذة منبثقة لإضافة/تعديل منتج -->
+    <div id="product-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">إضافة منتج جديد</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>اسم المنتج</label>
+                    <input type="text" id="p-name">
+                </div>
+                <div class="form-group">
+                    <label>القسم</label>
+                    <select id="p-category">
+                        <!-- الأقسام -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>الماركة</label>
+                    <input type="text" id="p-brand">
+                </div>
+                <div class="form-group">
+                    <label>السعر (د.ع)</label>
+                    <input type="number" id="p-price">
+                </div>
+                <div class="form-group">
+                    <label>السعر القديم (د.ع) (اختياري)</label>
+                    <input type="number" id="p-oldprice">
+                </div>
+                <div class="form-group">
+                    <label>رابط الصورة</label>
+                    <input type="text" id="p-image">
+                </div>
+                <div class="form-group">
+                    <label>التوفر</label>
+                    <select id="p-stock">
+                        <option value="متوفر">متوفر</option>
+                        <option value="نفذت الكمية">نفذت الكمية</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label>الوصف</label>
+                <textarea id="p-desc" rows="3"></textarea>
+            </div>
+            
+            <!-- زر الحفظ والإلغاء -->
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button id="save-product-btn" class="btn btn-primary">حفظ</button>
+                <button id="close-modal-btn" class="btn btn-outline">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة منبثقة لتفاصيل الطلب -->
+    <div id="order-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>تفاصيل الطلب</h2>
+            <div id="order-details-content"></div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label>تحديث الحالة:</label>
+                <select id="order-status-select">
+                    <option value="جديد">جديد</option>
+                    <option value="قيد التجهيز">قيد التجهيز</option>
+                    <option value="تم التوصيل">تم التوصيل</option>
+                    <option value="ملغي">ملغي</option>
+                </select>
+            </div>
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button id="update-order-btn" class="btn btn-primary">تحديث الحالة</button>
+                <button id="close-order-modal-btn" class="btn btn-outline">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script> <!-- لجلب firebaseConfig و default data -->
+    <script src="admin.js"></script>
+</body>
+</html>

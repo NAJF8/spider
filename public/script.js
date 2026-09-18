@@ -25,8 +25,12 @@ const deliveryPrices = {
     "ديالى": 10000
 };
 
-// الأقسام المتاحة
-const categoriesList = [
+// --- الأقسام والمنتجات ---
+let categoriesList = [];
+let products = [];
+
+// قاعدة بيانات المنتجات التجريبية محفوظة كمرجع لو احتجت رفعها للأدمن
+const defaultCategories = [
     { name: "Laptops", title: "لابتوبات", icon: "fa-laptop" },
     { name: "Desktop PCs", title: "حاسبات مكتبية", icon: "fa-desktop" },
     { name: "Gaming", title: "ألعاب (Gaming)", icon: "fa-gamepad" },
@@ -39,8 +43,7 @@ const categoriesList = [
     { name: "Electronics", title: "إلكترونيات", icon: "fa-bolt" }
 ];
 
-// قاعدة بيانات المنتجات التجريبية (Array of objects)
-const products = [
+const defaultProducts = [
     { id: 1, name: "Laptop Lenovo LOQ 15", category: "Laptops", brand: "Lenovo", price: 1250000, oldPrice: 1350000, image: "https://placehold.co/400x300/2a2a2a/fff?text=Lenovo+LOQ", description: "لابتوب ألعاب بأداء عالي الجودة وتصميم عصري.", specifications: { "المعالج (CPU)": "Intel Core i7 13th Gen", "الرام (RAM)": "16GB DDR5", "التخزين": "512GB SSD NVMe", "كارت الشاشة (GPU)": "RTX 4050 6GB", "الضمان": "سنة واحدة" }, stock: "متوفر" },
     { id: 2, name: "ASUS ROG Strix G16", category: "Laptops", brand: "ASUS", price: 2100000, oldPrice: null, image: "https://placehold.co/400x300/2a2a2a/fff?text=ASUS+ROG", description: "لابتوب ألعاب احترافي موجه للقيمرز والمصممين.", specifications: { "المعالج": "Intel Core i9 13th Gen", "الرام": "32GB", "التخزين": "1TB SSD", "كارت الشاشة": "RTX 4070 8GB" }, stock: "متوفر" },
     { id: 3, name: "MSI GeForce RTX 4060 Ti", category: "PC Components", brand: "MSI", price: 650000, oldPrice: 700000, image: "https://placehold.co/400x300/2a2a2a/fff?text=RTX+4060+Ti", description: "كارت شاشة لتشغيل أقوى الألعاب بدقة عالية.", specifications: { "الذاكرة": "8GB GDDR6", "الواجهة": "PCIe 4.0" }, stock: "متوفر" },
@@ -63,6 +66,7 @@ let cart = []; // مصفوفة السلة
 
 // تنسيق السعر (إضافة فواصل وإضافة العملة)
 function formatPrice(price) {
+    if(price == null) return "";
     return price.toLocaleString('en-US') + " د.ع";
 }
 
@@ -72,33 +76,71 @@ function calculateDiscount(price, oldPrice) {
     return Math.round(((oldPrice - price) / oldPrice) * 100);
 }
 
+// --- إعدادات Firebase ---
+const firebaseConfig = {
+    apiKey: "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0",
+    authDomain: "spider-aaa19.firebaseapp.com",
+    databaseURL: "https://spider-aaa19-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "spider-aaa19",
+    storageBucket: "spider-aaa19.firebasestorage.app",
+    messagingSenderId: "963155566410",
+    appId: "1:963155566410:web:aa4b9ea73e90c9535e6bb3",
+    measurementId: "G-G9KRZBSKW5"
+};
+
 // --- التهيئة (Initialization) ---
 document.addEventListener("DOMContentLoaded", () => {
-    renderCategories();
-    renderProducts(products, 'main-products-grid');
-    
-    // عرض المنتجات المخفضة في قسم العروض
-    const offerProducts = products.filter(p => p.oldPrice !== null).slice(0, 4);
-    renderProducts(offerProducts, 'offers-grid');
+    // تهيئة Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
+    // جلب الأقسام
+    db.ref('categories').on('value', (snapshot) => {
+        const data = snapshot.val();
+        categoriesList = data ? Object.values(data) : [];
+        renderCategories();
+    });
+
+    // جلب المنتجات
+    db.ref('products').on('value', (snapshot) => {
+        const data = snapshot.val();
+        products = [];
+        if (data) {
+            // تحويل Object إلى Array
+            for (let key in data) {
+                products.push({ id: key, ...data[key] });
+            }
+        }
+        
+        // عرض جميع المنتجات
+        renderProducts(products, 'main-products-grid');
+        
+        // عرض المنتجات المخفضة في قسم العروض
+        const offerProducts = products.filter(p => p.oldPrice && p.oldPrice > p.price).slice(0, 4);
+        renderProducts(offerProducts, 'offers-grid');
+    });
 
     populateGovernorates();
     
     // إعداد البحث
     const searchInput = document.getElementById("search-input");
-    searchInput.addEventListener("input", (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = products.filter(p => 
-            p.name.toLowerCase().includes(query) || 
-            p.category.toLowerCase().includes(query) ||
-            p.brand.toLowerCase().includes(query)
-        );
-        renderProducts(filtered, 'main-products-grid');
-        
-        // تمرير لـ قسم المنتجات اذا كان يبحث
-        if(query.length > 1) {
-            document.getElementById("products-section").scrollIntoView({behavior: "smooth"});
-        }
-    });
+    if(searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = products.filter(p => 
+                (p.name && p.name.toLowerCase().includes(query)) || 
+                (p.category && p.category.toLowerCase().includes(query)) ||
+                (p.brand && p.brand.toLowerCase().includes(query))
+            );
+            renderProducts(filtered, 'main-products-grid');
+            
+            if(query.length > 1) {
+                document.getElementById("products-section").scrollIntoView({behavior: "smooth"});
+            }
+        });
+    }
 });
 
 // --- العرض والواجهة (Rendering) ---
@@ -403,52 +445,69 @@ function submitOrderViaWhatsApp() {
     const deliveryFee = deliveryPrices[gov] || 0;
     const grandTotal = subtotal + deliveryFee;
 
-    // بناء نص الرسالة
-    let msg = `*طلب جديد من متجر سبايدر النجف 🕷️*
-`;
-    msg += `-------------------------
-`;
-    msg += `*رقم الطلب:* #${orderNumber}
-`;
-    msg += `*اسم الزبون:* ${name}
-`;
-    msg += `*رقم الهاتف:* ${phone}
-`;
-    msg += `*المحافظة:* ${gov}
-`;
-    msg += `*المنطقة/المدينة:* ${city}
-`;
-    if(address) msg += `*العنوان:* ${address}
-`;
-    if(notes) msg += `*ملاحظات:* ${notes}
-`;
-    msg += `-------------------------
-`;
-    msg += `*المنتجات المطلوبة:*
-`;
-    
-    cart.forEach(item => {
-        msg += `- ${item.name} × ${item.quantity} (${formatPrice(item.price * item.quantity)})
-`;
-    });
-    
-    msg += `-------------------------
-`;
-    msg += `*مجموع المنتجات:* ${formatPrice(subtotal)}
-`;
-    msg += `*أجور التوصيل:* ${formatPrice(deliveryFee)}
-`;
-    msg += `*المجموع النهائي:* ${formatPrice(grandTotal)}
-`;
-    msg += `-------------------------
-`;
-    msg += `شكراً لاختياركم سبايدر النجف!`;
+    // تجهيز كائن الطلب لحفظه في Firebase
+    const cleanItems = cart.map(item => ({
+        id: String(item.id),
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+    }));
 
-    // ترميز النص وفتح واتساب
-    const encodedMsg = encodeURIComponent(msg);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMsg}`;
-    
-    window.open(whatsappUrl, '_blank');
+    const orderData = {
+        orderNumber: orderNumber,
+        customerName: name,
+        customerPhone: phone,
+        governorate: gov,
+        city: city,
+        address: address,
+        notes: notes,
+        items: cleanItems,
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        grandTotal: grandTotal,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        status: 'جديد'
+    };
+
+    // حفظ الطلب في Firebase
+    firebase.database().ref('orders').push(orderData).then(() => {
+        // بعد الحفظ بنجاح، بناء نص الرسالة للواتساب
+        let msg = `*طلب جديد من متجر سبايدر النجف 🕷️*\n`;
+        msg += `-------------------------\n`;
+        msg += `*رقم الطلب:* #${orderNumber}\n`;
+        msg += `*اسم الزبون:* ${name}\n`;
+        msg += `*رقم الهاتف:* ${phone}\n`;
+        msg += `*المحافظة:* ${gov}\n`;
+        msg += `*المنطقة/المدينة:* ${city}\n`;
+        if(address) msg += `*العنوان:* ${address}\n`;
+        if(notes) msg += `*ملاحظات:* ${notes}\n`;
+        msg += `-------------------------\n`;
+        msg += `*المنتجات المطلوبة:*\n`;
+        
+        cart.forEach(item => {
+            msg += `- ${item.name} × ${item.quantity} (${formatPrice(item.price * item.quantity)})\n`;
+        });
+        
+        msg += `-------------------------\n`;
+        msg += `*مجموع المنتجات:* ${formatPrice(subtotal)}\n`;
+        msg += `*أجور التوصيل:* ${formatPrice(deliveryFee)}\n`;
+        msg += `*المجموع النهائي:* ${formatPrice(grandTotal)}\n`;
+        msg += `-------------------------\n`;
+        msg += `شكراً لاختياركم سبايدر النجف!`;
+
+        // إفراغ السلة
+        cart = [];
+        updateCartUI();
+        document.getElementById('delivery-modal').classList.add('hidden');
+
+        // ترميز النص وفتح واتساب
+        const encodedMsg = encodeURIComponent(msg);
+        const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMsg}`;
+        window.open(whatsappUrl, '_blank');
+    }).catch((error) => {
+        console.error("Error saving order: ", error);
+        alert("حدث خطأ أثناء حفظ الطلب، يرجى المحاولة مرة أخرى.");
+    });
 }
 
 function openWhatsAppContact(e) {
