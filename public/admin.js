@@ -418,24 +418,74 @@ document.getElementById('uploadImageBtn').addEventListener('click', () => {
     reader.readAsDataURL(file);
 });
 
+const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.YOUR-ACCOUNT.workers.dev'; // User must replace this!
+
 document.getElementById('confirmUploadBtn').addEventListener('click', async () => {
     if (!currentProcessedImageBase64) return;
     
-    // Simulate Backend Requirement
-    const backendExists = false; // We do not have a secure Cloud Function running
+    const btn = document.getElementById('confirmUploadBtn');
+    const originalText = btn.textContent;
+    btn.textContent = 'جاري الرفع...';
+    btn.disabled = true;
     
-    if (!backendExists) {
-        alert('ملاحظة هامة:\n\nلرفع الصورة مباشرة إلى GitHub بشكل آمن، يتطلب المشروع خادماً خلفياً (Backend) مثل Cloud Functions.\n\nبما أن خطة Firebase الحالية مجانية (Spark) ولا تدعم الوظائف السحابية أو الاتصالات الخارجية، لا يمكن استكمال الرفع برمجياً من المتصفح بدون كشف الـ GitHub Token للعلن (وهو خطر أمني كبير).\n\nالرجاء إما ترقية المشروع إلى Blaze لإنشاء Cloud Function، أو رفع الصورة يدوياً عبر موقع GitHub إلى مجلد public/images/products.');
+    try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+        if (!idToken) throw new Error('AUTH_REQUIRED');
         
-        // We will assign a fallback local path for testing purposes
-        const fakePath = `/images/products/${currentProcessedImageName}`;
-        document.getElementById('prodImage').value = fakePath;
-        document.getElementById('imagePreviewContainer').style.display = 'none';
-        alert(`تم اعتماد مسار الصورة كالتالي:\n${fakePath}\n\nيرجى رفع الملف الفعلي بنفس الاسم إلى مستودع GitHub الخاص بك ليتم عرضه بنجاح.`);
-        return;
+        // Convert base64 to Blob
+        const byteCharacters = atob(currentProcessedImageBase64);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+        }
+        const blob = new Blob(byteArrays, { type: 'image/webp' });
+        
+        const formData = new FormData();
+        formData.append('image', blob, currentProcessedImageName);
+        formData.append('filename', currentProcessedImageName);
+        
+        const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${idToken}`
+            },
+            body: formData
+        });
+        
+        const data = await response.json().catch(() => ({}));
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+        }
+        
+        // Only on absolute success we populate the input!
+        document.getElementById('prodImage').value = data.path;
+        
+        btn.textContent = 'تم الرفع بنجاح!';
+        btn.style.backgroundColor = '#2e7d32';
+        
+        setTimeout(() => {
+            document.getElementById('imagePreviewContainer').style.display = 'none';
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '';
+            btn.disabled = false;
+        }, 2000);
+        
+    } catch (error) {
+        console.error("Upload failed:", error);
+        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال بالخادم. يرجى التأكد من تشغيل Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT في admin.js.' : `فشل الرفع: ${error.message}`);
+        btn.textContent = 'إعادة المحاولة';
+        btn.style.backgroundColor = '#c62828';
+        btn.disabled = false;
     }
-    
 });
+
 
 // Hide preview container when modal closes
 const origCloseProductModalForImg = window.closeProductModal;
