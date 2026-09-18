@@ -27,7 +27,7 @@
         "timestamp": { ".validate": "newData.isNumber()" },
         
         "status": { 
-          ".validate": "newData.isString() && ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (!data.exists() && newData.val() === 'جديد'))" 
+          ".validate": "newData.isString() && ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (!data.exists() && newData.val() === 'pending'))" 
         },
         
         "items": {
