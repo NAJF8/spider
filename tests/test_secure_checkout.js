@@ -53,7 +53,8 @@ class MockResponse {
 global.Response = MockResponse;
 
 const MOCK_ENV = {
-    FIREBASE_PROJECT_ID: 'spider-aaa19'
+    FIREBASE_PROJECT_ID: 'spider-aaa19',
+    FIREBASE_DATABASE_SECRET: 'test-database-secret'
 };
 
 async function runTests() {

@@ -25,8 +25,16 @@ console.log('✓ نجح الاختبار: المتجر يعتمد كلياً ع�
 
 // 3. Verify Secure Checkout Verification
 console.log('\n[Test 3] اختبار أمان ووظيفة السلة مؤقتاً:');
-assert(scriptJs.includes('عذراً، وظيفة إرسال الطلبات معطلة مؤقتاً'), 'يجب أن يكون الطلب معطلاً لحين وجود تحقق آمن من جهة الخادم');
-console.log('✓ نجح الاختبار: السلة معطلة استجابة للمخاوف الأمنية وعدم كفاية قواعد Firebase.');
+assert(scriptJs.includes("fetch(`${BACKEND_URL}/api/store/checkout"), 'واجهة الطلب يجب أن تستعمل مسار الخادم الآمن');
+assert(scriptJs.includes('ORDER_BACKEND_NOT_CONFIGURED'), 'يجب عرض عائق إعداد الخادم بوضوح دون تفريغ السلة');
+assert(scriptJs.includes('window.addToCart = addToCart'), 'يجب كشف معالج الإضافة للبطاقات التي تستخدم onclick');
+assert(scriptJs.includes("const CART_STORAGE_KEY = 'spider.cart.v1'"), 'يجب حفظ السلة محلياً بعد تحديث الصفحة');
+assert(scriptJs.includes('window.filterProductsByCategory = filterProductsByCategory'), 'يجب أن تعمل روابط الأقسام مع ES module');
+assert(scriptJs.includes('products.filter(product =>'), 'يجب أن يجيب الشات من المنتجات المنشورة فعلياً');
+const indexHtml = fs.readFileSync('public/index.html', 'utf8');
+assert(indexHtml.includes('name="customerName"'), 'يجب ربط اسم العميل بحمولة الطلب');
+assert(indexHtml.includes('name="customerPhone"'), 'يجب ربط هاتف العميل بحمولة الطلب');
+console.log('✓ نجح الاختبار: السلة تعمل محلياً، وإتمام الطلب يمر عبر الخادم مع إبقاء السلة عند فشل الحفظ.');
 
 console.log('\n=============================================================');
 console.log(' جميع اختبارات المزامنة وحماية الطلبات والمسودات نجحت بنسبة 100%! ');

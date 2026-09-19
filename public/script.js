@@ -16,6 +16,8 @@ const db = getDatabase(app);
 let products = [];
 let categories = [];
 let cart = [];
+let cartRestored = false;
+const CART_STORAGE_KEY = 'spider.cart.v1';
 let whatsappNumber = "+9647827337942";
 let deliveryFee = 5000;
 
@@ -77,6 +79,7 @@ onValue(ref(db, 'products'), (snapshot) => {
     renderProducts();
     populateCompareSelects();
     renderPCBuilder();
+    restoreCartFromStorage();
 });
 
 onValue(ref(db, 'settings'), (snapshot) => {
@@ -211,6 +214,7 @@ function filterProductsByCategory(categoryId) {
     document.getElementById('productsSection').scrollIntoView({behavior:'smooth'});
     renderProducts();
 }
+window.filterProductsByCategory = filterProductsByCategory;
 
 document.getElementById('viewAllCatBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -271,8 +275,39 @@ function addToCart(productId) {
     cartOverlay.classList.add('open');
     cartSidebar.classList.add('open');
 }
+window.addToCart = addToCart;
+
+function persistCart() {
+    try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart.map(item => ({
+            id: item.id,
+            qty: Number(item.qty)
+        }))));
+    } catch (error) {
+        console.warn('Cart persistence unavailable:', error);
+    }
+}
+
+function restoreCartFromStorage() {
+    if (cartRestored || products.length === 0) return;
+    cartRestored = true;
+    try {
+        const saved = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+        if (!Array.isArray(saved)) return;
+        cart = saved.map(item => {
+            const product = products.find(prod => prod.id === item?.id);
+            const qty = Number(item?.qty);
+            return product && Number.isInteger(qty) && qty > 0 && qty <= 100 ? { ...product, qty } : null;
+        }).filter(Boolean);
+        updateCartUI();
+    } catch (error) {
+        localStorage.removeItem(CART_STORAGE_KEY);
+        cart = [];
+    }
+}
 
 function updateCartUI() {
+    persistCart();
     cartBadge.textContent = cart.reduce((acc, item) => acc + item.qty, 0);
     cartItemsList.innerHTML = '';
     let total = 0;
@@ -323,6 +358,7 @@ checkoutBtn.addEventListener('click', () => {
     
     let subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     document.getElementById('checkoutSubtotal').textContent = formatPrice(subtotal);
+    document.getElementById('checkoutDeliveryFee').textContent = formatPrice(deliveryFee);
     document.getElementById('checkoutTotal').textContent = formatPrice(subtotal + deliveryFee);
     
     checkoutModal.classList.add('open');
@@ -334,9 +370,88 @@ document.getElementById('closeCheckoutBtn').addEventListener('click', () => {
 
 const BACKEND_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://127.0.0.1:8787' : 'https://spider-backend.coffee101.workers.dev';
 
+function getCheckoutPayload(form) {
+    const formData = new FormData(form);
+    const safeItems = cart
+        .map(item => ({ id: String(item.id), qty: Number(item.qty) }))
+        .filter(item => item.id && Number.isInteger(item.qty) && item.qty > 0 && item.qty <= 100);
+
+    if (safeItems.length !== cart.length) {
+        throw new Error('CART_INVALID');
+    }
+
+    return {
+        items: safeItems,
+        customer: {
+            name: String(formData.get('customerName') || '').trim(),
+            phone: String(formData.get('customerPhone') || '').trim(),
+            gov: String(formData.get('governorate') || '').trim(),
+            city: String(formData.get('city') || '').trim(),
+            address: String(formData.get('address') || '').trim(),
+            notes: String(formData.get('notes') || '').trim()
+        }
+    };
+}
+
 document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    alert('عذراً، وظيفة إرسال الطلبات معطلة مؤقتاً لحين ربط الخادم الآمن بحساب الخدمة (Service Account) وتجنب كشف الأسرار في القواعد.');
+    const submitButton = e.currentTarget.querySelector('button[type="submit"]');
+    const originalLabel = submitButton?.textContent || '';
+
+    try {
+        const payload = getCheckoutPayload(e.currentTarget);
+        if (!payload.customer.name || !payload.customer.phone) {
+            alert('يرجى إدخال الاسم ورقم الهاتف.');
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = 'جارٍ التحقق والحفظ...';
+        }
+
+        const response = await fetch(`${BACKEND_URL}/api/store/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'CHECKOUT_FAILED');
+        }
+
+        const lines = result.items.map(item => `- ${item.name} × ${item.quantity}: ${formatPrice(item.price * item.quantity)}`).join('\n');
+        const message = [
+            `طلب سبايدر رقم ${result.orderNumber}`,
+            lines,
+            `المجموع: ${formatPrice(result.subtotal)}`,
+            `التوصيل: ${formatPrice(result.deliveryFee)}`,
+            `الإجمالي: ${formatPrice(result.grandTotal)}`,
+            `الاسم: ${payload.customer.name}`,
+            `الهاتف: ${payload.customer.phone}`,
+            `العنوان: ${payload.customer.gov} - ${payload.customer.city} - ${payload.customer.address}`
+        ].join('\n');
+
+        cart = [];
+        updateCartUI();
+        checkoutModal.classList.remove('open');
+        window.open(`https://wa.me/${whatsappNumber.replace('+', '')}?text=${encodeURIComponent(message)}`, '_blank');
+        alert(`تم حفظ الطلب رقم ${result.orderNumber}. سيُفتح واتساب لإرساله.`);
+    } catch (error) {
+        const code = error?.message || 'CHECKOUT_FAILED';
+        const message = code === 'ORDER_BACKEND_NOT_CONFIGURED'
+            ? 'إتمام الطلب متوقف مؤقتاً: يحتاج الخادم إلى ضبط سر Firebase قبل حفظ الطلبات.'
+            : code === 'CART_INVALID'
+                ? 'تعذر التحقق من محتوى السلة. أعد المحاولة من المنتجات المنشورة.'
+                : 'تعذر حفظ الطلب. بقيت السلة كما هي، ويمكنك المحاولة مرة أخرى.';
+        alert(message);
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+        }
+    }
 });
 
 
@@ -373,6 +488,7 @@ document.getElementById('closeProductDetailsBtn').addEventListener('click', clos
 function closeProductDetailsModal() {
     productDetailsModal.classList.remove('open');
 }
+window.closeProductDetailsModal = closeProductDetailsModal;
 
 
 // ================= COMPARISON =================
@@ -414,7 +530,11 @@ compareProd2Select.addEventListener('change', updateCompareView);
 
 function updateCompareView() {
     const p1Id = compareProd1Select.value;
-    const p2Id = compareProd2Select.value;
+    let p2Id = compareProd2Select.value;
+    if (p1Id && p1Id === p2Id) {
+        compareProd2Select.value = '';
+        p2Id = '';
+    }
     
     const p1 = products.find(p => p.id === p1Id);
     const p2 = products.find(p => p.id === p2Id);
@@ -570,6 +690,12 @@ addBuilderToCartBtn.addEventListener('click', () => {
 document.getElementById('openChatbotBtn').addEventListener('click', () => {
     chatbotContainer.style.display = 'flex';
 });
+document.getElementById('openChatbotBtn').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        chatbotContainer.style.display = 'flex';
+    }
+});
 
 document.getElementById('closeChatBtn').addEventListener('click', () => {
     chatbotContainer.style.display = 'none';
@@ -600,10 +726,18 @@ function handleChatSubmit() {
     
     // Simple mock response logic
     setTimeout(() => {
-        if (txt.includes('لابتوب')) {
-            appendMessage('عدنا لابتوبات ممتازة من ASUS و Lenovo. تحب تشوف قسم اللابتوبات؟');
+        const query = txt.toLowerCase();
+        const matches = products.filter(product => [product.name, product.brand, product.description]
+            .filter(Boolean)
+            .some(value => value.toLowerCase().includes(query) || (query.includes('لابتوب') && value.includes('لابتوب'))))
+            .slice(0, 3);
+        if (matches.length > 0) {
+            appendMessage(`هذه منتجات منشورة تناسب سؤالك: ${matches.map(product => `${product.name} (${formatPrice(product.price)})`).join('، ')}.`);
+        } else if (txt.includes('لابتوب')) {
+            const laptops = products.filter(product => product.name.includes('لابتوب')).slice(0, 3);
+            appendMessage(laptops.length ? `عدنا: ${laptops.map(product => `${product.name} (${formatPrice(product.price)})`).join('، ')}.` : 'لا توجد حالياً منتجات لابتوب منشورة بهذا القسم.');
         } else if (txt.includes('سعر') || txt.includes('بشكد')) {
-            appendMessage('الأسعار مكتوبة تحت كل منتج، وتكدر تقارن بيناتهم بسهولة.');
+            appendMessage('الأسعار الموثقة مكتوبة تحت كل منتج منشور، وتكدر تقارن بين منتجين من قسم المقارنة.');
         } else {
             appendMessage('أهلاً بيك! للأسف ما فهمت قصدك بالضبط. تكدر تطلب أي منتج من السلة وتكمل عبر الواتساب.');
         }

@@ -233,13 +233,18 @@
      background: linear-gradient(270deg, var(--white) 0%, var(--white) 50%, transparent 100%);
      z-index: 1;
  }
- @media (max-width: 768px) {
+@media (max-width: 768px) {
      .hero-banner {
-        background: url('assets/hero-setup.jpg') no-repeat left center / 50%, var(--primary);
+        min-height: 190px;
+        background: url('assets/hero-setup.jpg') no-repeat left center / 44% auto, var(--primary);
      }
      .hero-banner::before {
-         background: linear-gradient(270deg, var(--white) 0%, var(--white) 65%, transparent 100%);
+         background: linear-gradient(270deg, var(--white) 0%, var(--white) 57%, rgba(255,255,255,0.15) 100%);
      }
+     .hero-text-content { width: 64%; padding: 18px 14px 18px 16px; }
+     .hero-text-content h1 { font-size: clamp(1.25rem, 5vw, 1.65rem); }
+     .hero-text-content p { font-size: 0.76rem; }
+     .btn-shop-now { font-size: 0.78rem; padding: 7px 12px; }
  }
  .hero-text-content {
      position: relative;
@@ -1275,6 +1280,42 @@
      width: 42px;
      border-radius: var(--radius-md);
  }
+
+ /* Floating assistant: compact on every viewport, full conversation only after click. */
+ .chatbot-banner {
+     position: fixed;
+     right: 18px;
+     bottom: 18px;
+     z-index: 280;
+     width: 68px;
+     height: 68px;
+     padding: 7px;
+     border: 3px solid var(--white);
+     border-radius: 50%;
+     background: var(--primary);
+     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     cursor: pointer;
+ }
+ .chatbot-banner .chatbot-avatar {
+     position: static;
+     width: 100%;
+     height: 100%;
+     object-fit: contain;
+ }
+ .chatbot-banner .chatbot-info,
+ .chatbot-banner .chatbot-prompts { display: none; }
+ .chatbot-banner:focus-visible { outline: 3px solid #111827; outline-offset: 3px; }
+
+ @media (max-width: 380px) {
+     .hero-banner { min-height: 176px; }
+     .hero-text-content { width: 68%; padding-right: 10px; }
+     .hero-text-content h1 { font-size: 1.16rem; }
+     .hero-text-content p { font-size: 0.68rem; }
+     .hero-floating-tags { font-size: 0.62rem; }
+ }
  
  /* Desktop Overrides */
  @media (min-width: 768px) {
@@ -1338,7 +1379,7 @@
          flex-direction: row;
      }
      .chatbot-banner {
-         flex: 2;
+         flex: initial;
      }
      .whatsapp-banner {
          flex: 1;

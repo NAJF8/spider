@@ -144,10 +144,27 @@ export default {
           return errorResponse('CUSTOMER_INFO_MISSING', 400);
         }
 
+        const normalizedItems = items.map(item => ({
+          id: String(item?.id || ''),
+          qty: Number(item?.qty)
+        }));
+        if (normalizedItems.some(item => !item.id || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100)) {
+          return errorResponse('INVALID_ITEM_QUANTITY', 400);
+        }
+        if (new Set(normalizedItems.map(item => item.id)).size !== normalizedItems.length) {
+          return errorResponse('DUPLICATE_ITEM', 400);
+        }
+
+        const databaseSecret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
+        if (!databaseSecret) {
+          return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
+        }
+        const databaseQuery = `?auth=${encodeURIComponent(databaseSecret)}`;
+
         // Fetch live products and settings
         const [productsRes, settingsRes] = await Promise.all([
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json`)
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json${databaseQuery}`),
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json${databaseQuery}`)
         ]);
 
         if (!productsRes.ok || !settingsRes.ok) {
@@ -161,7 +178,7 @@ export default {
         let subtotal = 0;
         const verifiedItems = [];
 
-        for (const item of items) {
+        for (const item of normalizedItems) {
           const liveProd = productsObj[item.id];
           if (!liveProd || liveProd.isHidden || liveProd.status !== 'published') {
             return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
@@ -202,7 +219,7 @@ export default {
           workerSignature: 'spider-secure-checkout-2026'
         };
 
-        const saveRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/orders/${newOrderId}.json`, {
+        const saveRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/orders/${newOrderId}.json${databaseQuery}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderPayload)

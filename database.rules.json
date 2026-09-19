@@ -45,6 +45,7 @@
         "deliveryFee": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
         "grandTotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
         "timestamp": { ".validate": "newData.isNumber()" },
+        "workerSignature": { ".validate": "newData.isString() && newData.val() === 'spider-secure-checkout-2026'" },
         
         "status": { 
           ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'cancelled')" 

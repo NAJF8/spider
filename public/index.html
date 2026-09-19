@@ -166,7 +166,7 @@
 
         <!-- Chatbot & WhatsApp Connect -->
         <section class="section help-section">
-            <div class="chatbot-banner" id="openChatbotBtn">
+            <div class="chatbot-banner" id="openChatbotBtn" role="button" tabindex="0" aria-label="فتح مساعد سبايدر">
                 <img src="assets/spider-bot.png" alt="Spider Assistant" class="chatbot-avatar">
                 <div class="chatbot-info">
                     <h3>شلون أكدر أساعدك؟</h3>
@@ -263,13 +263,13 @@
             <div class="modal-body">
                 <form id="checkoutForm">
                     <div class="form-group">
-                        <input type="text" id="orderName" required placeholder="الاسم الكامل">
+                        <input type="text" id="orderName" name="customerName" required placeholder="الاسم الكامل">
                     </div>
                     <div class="form-group">
-                        <input type="tel" id="orderPhone" required placeholder="رقم الهاتف (07XXXXXXXXX)">
+                        <input type="tel" id="orderPhone" name="customerPhone" required placeholder="رقم الهاتف (07XXXXXXXXX)">
                     </div>
                     <div class="form-group">
-                        <select id="orderGov" required>
+                        <select id="orderGov" name="governorate" required>
                             <option value="" disabled selected>اختر المحافظة...</option>
                             <option value="النجف">النجف</option>
                             <option value="بغداد">بغداد</option>
@@ -281,13 +281,13 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <input type="text" id="orderCity" required placeholder="المدينة / المنطقة">
+                        <input type="text" id="orderCity" name="city" required placeholder="المدينة / المنطقة">
                     </div>
                     <div class="form-group">
-                        <textarea id="orderAddress" required placeholder="العنوان التفصيلي (رقم الدار، الشارع...)"></textarea>
+                        <textarea id="orderAddress" name="address" required placeholder="العنوان التفصيلي (رقم الدار، الشارع...)"></textarea>
                     </div>
                     <div class="form-group">
-                        <textarea id="orderNotes" placeholder="ملاحظات إضافية (اختياري)"></textarea>
+                        <textarea id="orderNotes" name="notes" placeholder="ملاحظات إضافية (اختياري)"></textarea>
                     </div>
                     <div class="order-summary-box">
                         <div class="summary-row"><span>المجموع:</span><span id="checkoutSubtotal">0 د.ع</span></div>
