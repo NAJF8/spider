@@ -469,12 +469,36 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>القسم الفرعي</label>
+                        <input type="text" id="prodSubcategory" placeholder="مثال: المعالجات">
+                    </div>
+                    <div class="form-group">
+                        <label>الماركة (Brand)</label>
+                        <input type="text" id="prodBrand" placeholder="مثال: ASUS">
+                    </div>
+                    <div class="form-group">
+                        <label>الموديل</label>
+                        <input type="text" id="prodModel" placeholder="مثال: TUF Gaming F15">
+                    </div>
+                    <div class="form-group">
                         <label>السعر بالدينار العراقي (د.ع) <span class="req">*</span></label>
                         <input type="number" id="prodPrice" required placeholder="مثال: 1250000">
                     </div>
                     <div class="form-group">
-                        <label>الوصف / المواصفات</label>
-                        <textarea id="prodDesc" placeholder="المعالج، كرت الشاشة، الرام، سعة التخزين..."></textarea>
+                        <label>السعر السابق (في حال وجود عرض)</label>
+                        <input type="number" id="prodOriginalPrice" placeholder="مثال: 1400000">
+                    </div>
+                    <div class="form-group">
+                        <label>المخزون المتوفر</label>
+                        <input type="number" id="prodStock" placeholder="الكمية المتوفرة" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>الضمان</label>
+                        <input type="text" id="prodWarranty" placeholder="مثال: سنة كاملة">
+                    </div>
+                    <div class="form-group">
+                        <label>الوصف</label>
+                        <textarea id="prodDesc" placeholder="نبذة عن المنتج..."></textarea>
                     </div>
                     <div class="form-group">
                         <label for="prodSpecs">مواصفات المقارنة (اختياري)</label>
@@ -524,18 +548,17 @@
                         <input type="text" id="catName" required placeholder="مثال: كروت الشاشة">
                     </div>
                     <div class="form-group">
-                        <label>أيقونة القسم (FontAwesome) <span class="req">*</span></label>
-                        <select id="catIcon" required>
-                            <option value="fa-desktop">كمبيوتر مكتبي (fa-desktop)</option>
-                            <option value="fa-laptop">لابتوبات (fa-laptop)</option>
-                            <option value="fa-microchip">معالجات (fa-microchip)</option>
-                            <option value="fa-memory">كروت شاشة / ذاكرة (fa-memory)</option>
-                            <option value="fa-tv">شاشات (fa-tv)</option>
-                            <option value="fa-headphones">سماعات وملحقات (fa-headphones)</option>
-                            <option value="fa-gamepad">ألعاب وكونسول (fa-gamepad)</option>
-                            <option value="fa-hard-drive">وحدات تخزين (fa-hard-drive)</option>
-                            <option value="fa-keyboard">كيبوردات وماوس (fa-keyboard)</option>
-                        </select>
+                        <label>صورة القسم <span class="req">*</span></label>
+                        <div class="image-upload-row">
+                            <input type="file" id="catImageFile" accept="image/png, image/jpeg, image/webp">
+                            <button type="button" id="uploadCatImageBtn" class="btn btn-dark">معاينة وضغط</button>
+                        </div>
+                        <div id="catImagePreviewContainer" class="image-preview-box" style="display:none;">
+                            <img id="catImagePreview" src="" alt="Preview">
+                            <div id="catImageDetails" class="image-details-text"></div>
+                            <button type="button" id="confirmCatUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
+                        </div>
+                        <input type="hidden" id="catImage" placeholder="/images/products/..." required>
                     </div>
                     <div class="form-group">
                         <label>وصف القسم (اختياري)</label>

@@ -13,7 +13,7 @@
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
     "settings": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
     "users": {

@@ -607,7 +607,13 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodId').value = prod.id;
             document.getElementById('prodName').value = prod.name || '';
             document.getElementById('prodCategory').value = prod.categoryId || prod.category || '';
+            document.getElementById('prodSubcategory').value = prod.subcategory || '';
+            document.getElementById('prodBrand').value = prod.brand || '';
+            document.getElementById('prodModel').value = prod.model || '';
             document.getElementById('prodPrice').value = prod.price || '';
+            document.getElementById('prodOriginalPrice').value = prod.originalPrice || '';
+            document.getElementById('prodStock').value = prod.stock || '';
+            document.getElementById('prodWarranty').value = prod.warranty || '';
             document.getElementById('prodDesc').value = prod.description || '';
             document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
             document.getElementById('prodImage').value = prod.image || '';
@@ -668,7 +674,13 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         name: document.getElementById('prodName').value.trim(),
         category: document.getElementById('prodCategory').value,
         categoryId: document.getElementById('prodCategory').value,
+        subcategory: document.getElementById('prodSubcategory').value.trim(),
+        brand: document.getElementById('prodBrand').value.trim(),
+        model: document.getElementById('prodModel').value.trim(),
         price: Number(document.getElementById('prodPrice').value),
+        originalPrice: document.getElementById('prodOriginalPrice').value ? Number(document.getElementById('prodOriginalPrice').value) : null,
+        stock: document.getElementById('prodStock').value ? Number(document.getElementById('prodStock').value) : null,
+        warranty: document.getElementById('prodWarranty').value.trim(),
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
         image: document.getElementById('prodImage').value.trim(),
@@ -756,11 +768,11 @@ function renderCategoriesManagementTable() {
     categories.forEach(cat => {
         const prodCount = products.filter(p => p.categoryId === cat.id || p.category === cat.id).length;
         const isHidden = !!cat.isHidden;
-        const iconClass = cat.icon || 'fa-folder';
+        const imageUrl = cat.image || '/images/default-product.svg';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><i class="fa-solid ${iconClass}" style="font-size:1.6rem;color:var(--primary);"></i></td>
+            <td><img src="${imageUrl}" class="tp-img" alt="${cat.name}" style="border-radius:4px;"></td>
             <td><strong>${cat.name}</strong><br><small style="color:#777;">${cat.description || 'لا يوجد وصف'}</small></td>
             <td><code>${cat.id}</code></td>
             <td><strong style="color:var(--dark);">${prodCount} منتج</strong></td>
@@ -801,12 +813,13 @@ window.openCategoryModal = function(id = null) {
         if (cat) {
             document.getElementById('catId').value = cat.id;
             document.getElementById('catName').value = cat.name || '';
-            document.getElementById('catIcon').value = cat.icon || 'fa-desktop';
+            document.getElementById('catImage').value = cat.image || '';
             document.getElementById('catDesc').value = cat.description || '';
             document.getElementById('catHidden').checked = !!cat.isHidden;
         }
     } else {
         document.getElementById('categoryModalTitle').textContent = 'إضافة قسم جديد';
+        document.getElementById('catImage').value = '';
         document.getElementById('catHidden').checked = false;
     }
 
@@ -822,7 +835,7 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
     const id = document.getElementById('catId').value;
     const catData = {
         name: document.getElementById('catName').value.trim(),
-        icon: document.getElementById('catIcon').value,
+        image: document.getElementById('catImage').value,
         description: document.getElementById('catDesc').value.trim(),
         isHidden: document.getElementById('catHidden').checked,
         updatedAt: Date.now()
@@ -1144,6 +1157,75 @@ document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
     reader.readAsDataURL(file);
 });
 
+// Category Image Upload Logic
+document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
+    const fileInput = document.getElementById('catImageFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('الرجاء اختيار صورة أولاً.');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    if (!file.type.match(/image\/(png|jpeg|webp)/)) {
+        alert('صيغة غير مدعومة. الرجاء اختيار صورة بصيغة PNG أو JPEG أو WebP.');
+        return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+        alert('حجم الصورة كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 500;
+            const MAX_HEIGHT = 500;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                }
+            } else {
+                if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const webpDataUrl = canvas.toDataURL('image/webp', 0.85);
+            currentProcessedImageBase64 = webpDataUrl.split(',')[1];
+            
+            const cleanName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+            const uniqueId = Date.now().toString(36);
+            // using product prefix because CF worker expects it for some checks
+            currentProcessedImageName = `product-cat-${cleanName}-${uniqueId}.webp`;
+            
+            document.getElementById('catImagePreview').src = webpDataUrl;
+            
+            const estimatedBytes = Math.round((currentProcessedImageBase64.length * 3) / 4);
+            const kbSize = (estimatedBytes / 1024).toFixed(1);
+            
+            document.getElementById('catImageDetails').textContent = `الأبعاد: ${Math.round(width)}×${Math.round(height)} بكسل | الحجم المحسّن: ${kbSize} KB | الصيغة: WebP`;
+            document.getElementById('catImagePreviewContainer').style.display = 'block';
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
 document.getElementById('confirmUploadBtn')?.addEventListener('click', async () => {
     if (isUploadingImage) return;
     if (!currentProcessedImageBase64) {
@@ -1254,22 +1336,161 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
     }
 });
 
+// Category Image Upload API call
+document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async () => {
+    if (isUploadingImage) return;
+    if (!currentProcessedImageBase64) {
+        alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
+        return;
+    }
+    
+    isUploadingImage = true;
+
+    const btn = document.getElementById('confirmCatUploadBtn');
+    const prepBtn = document.getElementById('uploadCatImageBtn');
+    const catImageInput = document.getElementById('catImage');
+    const originalText = 'رفع الصورة إلى GitHub';
+    const previousImageValue = catImageInput ? catImageInput.value : '';
+
+    btn.textContent = 'جاري الرفع إلى GitHub...';
+    btn.disabled = true;
+    if (prepBtn) prepBtn.disabled = true;
+
+    try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+        if (!idToken) throw new Error('AUTH_REQUIRED');
+        
+        const byteCharacters = atob(currentProcessedImageBase64);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            byteArrays.push(new Uint8Array(byteNumbers));
+        }
+        const blob = new Blob(byteArrays, { type: 'image/webp' });
+        
+        const formData = new FormData();
+        formData.append('image', blob, currentProcessedImageName);
+        formData.append('filename', currentProcessedImageName);
+        
+        const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${idToken}` },
+            body: formData
+        });
+        
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+        }
+        
+        btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
+        
+        let attempts = 0;
+        const maxAttempts = 15;
+        let isAvailable = false;
+        
+        while (attempts < maxAttempts) {
+            attempts++;
+            btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
+            try {
+                const verifyUrl = `${data.imageUrl}?_t=${Date.now()}`;
+                const checkRes = await fetch(verifyUrl, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { 'Accept': 'image/webp,image/*;q=0.8' }
+                });
+                
+                const contentType = (checkRes.headers.get('content-type') || '').toLowerCase();
+                if (checkRes.ok && (contentType.includes('image/webp') || contentType.startsWith('image/')) && !contentType.includes('text/html')) {
+                    isAvailable = true;
+                    break;
+                }
+            } catch (e) {
+                console.warn('Polling check error:', e);
+            }
+            await new Promise(r => setTimeout(r, 4000));
+        }
+        
+        if (!isAvailable) {
+            if (catImageInput) catImageInput.value = previousImageValue;
+            btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
+            btn.style.backgroundColor = '#c62828';
+            alert('تم الرفع إلى GitHub بنجاح، ولكن انتهت مهلة الانتظار. سيتم استخدام الصورة السابقة مؤقتاً.');
+            return;
+        }
+
+        if (catImageInput) catImageInput.value = data.path;
+        btn.textContent = 'تم توفر الصورة بنجاح!';
+        btn.style.backgroundColor = '#2e7d32';
+        
+        setTimeout(() => {
+            const preview = document.getElementById('catImagePreviewContainer');
+            if (preview) preview.style.display = 'none';
+        }, 1500);
+        
+    } catch (err) {
+        if (catImageInput) catImageInput.value = previousImageValue;
+        btn.textContent = 'فشل الرفع!';
+        btn.style.backgroundColor = '#c62828';
+        console.error("Upload Error:", err);
+        alert('حدث خطأ أثناء الرفع: ' + err.message);
+    } finally {
+        isUploadingImage = false;
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '';
+            btn.disabled = false;
+            if (prepBtn) prepBtn.disabled = false;
+            currentProcessedImageBase64 = null;
+        }, 3000);
+    }
+});
+
 // ================= CATALOG REVIEW (DRAFTS) =================
 
 window.seedDraftCatalog = async function() {
-    if (!confirm('سيتم إضافة الأقسام والمنتجات المبدئية כمسودات. هل أنت متأكد؟')) return;
-    try {
-        // Upload categories
-        const updates = {};
-        INITIAL_CATEGORIES.forEach(cat => {
+    let newCatsCount = 0;
+    let newProdsCount = 0;
+    let existingCount = 0;
+    
+    const updates = {};
+    
+    // Check existing categories
+    INITIAL_CATEGORIES.forEach(cat => {
+        const exists = categories.find(c => c.id === cat.id);
+        if (!exists) {
             updates['categories/' + cat.id] = { ...cat, isHidden: true, status: 'draft' };
-        });
-        INITIAL_PRODUCTS.forEach(prod => {
+            newCatsCount++;
+        } else {
+            existingCount++;
+        }
+    });
+    
+    // Check existing products
+    INITIAL_PRODUCTS.forEach(prod => {
+        const exists = products.find(p => p.id === prod.id);
+        if (!exists) {
             updates['products/' + prod.id] = { ...prod, isHidden: true, status: 'draft', createdAt: Date.now() };
-        });
-        
+            newProdsCount++;
+        } else {
+            existingCount++;
+        }
+    });
+
+    if (newCatsCount === 0 && newProdsCount === 0) {
+        alert('جميع السجلات موجودة مسبقاً. لم يتم العثور على سجلات جديدة لرفعها.');
+        return;
+    }
+
+    if (!confirm(`معاينة قبل الرفع:\n- أقسام جديدة (مسودات): ${newCatsCount}\n- منتجات جديدة (مسودات): ${newProdsCount}\n- سجلات موجودة مسبقاً (تم تجاهلها): ${existingCount}\n\nهل أنت متأكد من الرفع؟ لا تقلق، لن يتم استبدال أي بيانات حالية.`)) return;
+
+    try {
         await update(ref(db, '/'), updates);
-        alert('تم رفع الكتالوگ كمسودات بنجاح!');
+        alert('تم إضافة الكتالوگ كمسودات بنجاح!');
     } catch(err) {
         alert('خطأ أثناء الرفع: ' + err.message);
     }
