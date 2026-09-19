@@ -131,6 +131,108 @@ export default {
       }
     }
 
+    if (url.pathname === '/api/store/checkout' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        const { items, customer } = body;
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+          return errorResponse('CART_EMPTY', 400);
+        }
+        if (!customer || !customer.name || !customer.phone) {
+          return errorResponse('CUSTOMER_INFO_MISSING', 400);
+        }
+
+        // Fetch live products and settings
+        const [productsRes, settingsRes] = await Promise.all([
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json`),
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json`)
+        ]);
+
+        if (!productsRes.ok || !settingsRes.ok) {
+          return errorResponse('DATABASE_ERROR', 500);
+        }
+
+        const productsObj = await productsRes.json() || {};
+        const settingsObj = await settingsRes.json() || {};
+        const deliveryFee = Number(settingsObj.deliveryFee) || 0;
+
+        let subtotal = 0;
+        const verifiedItems = [];
+
+        for (const item of items) {
+          const liveProd = productsObj[item.id];
+          if (!liveProd || liveProd.isHidden || liveProd.status !== 'published') {
+            return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
+          }
+          
+          if (liveProd.stock !== undefined && liveProd.stock !== null && Number(liveProd.stock) < item.qty) {
+            return errorResponse(`OUT_OF_STOCK_${item.id}`, 400);
+          }
+
+          const livePrice = Number(liveProd.price) || 0;
+          subtotal += (livePrice * item.qty);
+          verifiedItems.push({
+            id: item.id,
+            name: liveProd.name,
+            price: livePrice,
+            quantity: item.qty
+          });
+        }
+
+        const grandTotal = subtotal + deliveryFee;
+        const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
+        const newOrderId = crypto.randomUUID();
+
+        const orderPayload = {
+          orderNumber,
+          customerName: String(customer.name),
+          customerPhone: String(customer.phone),
+          governorate: String(customer.gov || ''),
+          city: String(customer.city || ''),
+          address: String(customer.address || ''),
+          notes: String(customer.notes || ''),
+          subtotal,
+          deliveryFee,
+          grandTotal,
+          timestamp: Date.now(),
+          status: 'pending',
+          items: verifiedItems,
+          workerSignature: 'spider-secure-checkout-2026'
+        };
+
+        const saveRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/orders/${newOrderId}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload)
+        });
+
+        if (!saveRes.ok) {
+          const errText = await saveRes.text();
+          console.error("Firebase Save Error:", errText);
+          return errorResponse('ORDER_SAVE_FAILED', 500);
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          orderNumber,
+          subtotal,
+          deliveryFee,
+          grandTotal,
+          items: verifiedItems
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+
+      } catch (err) {
+        console.error("Checkout Error:", err.message);
+        return errorResponse('CHECKOUT_ERROR', 500);
+      }
+    }
+
     return new Response('Not Found', { status: 404 });
   }
 };

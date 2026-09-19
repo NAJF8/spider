@@ -31,7 +31,7 @@
     "orders": {
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       "$orderId": {
-        ".write": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || !data.exists()",
+        ".write": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (!data.exists() && newData.child('workerSignature').val() === 'spider-secure-checkout-2026')",
         ".validate": "newData.hasChildren(['orderNumber', 'customerName', 'customerPhone', 'governorate', 'city', 'subtotal', 'grandTotal', 'timestamp'])",
         
         "orderNumber": { ".validate": "newData.isString() && newData.val().length < 50" },
@@ -45,6 +45,7 @@
         "deliveryFee": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
         "grandTotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
         "timestamp": { ".validate": "newData.isNumber()" },
+        "workerSignature": { ".validate": "newData.isString()" },
         
         "status": { 
           ".validate": "newData.isString() && ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (!data.exists() && newData.val() === 'pending'))" 

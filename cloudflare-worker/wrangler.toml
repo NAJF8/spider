@@ -5,4 +5,5 @@ compatibility_date = "2024-03-20"
 [vars]
 FIREBASE_API_KEY = "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0"
 ADMIN_UID = "e8uTdYi5TQOsrztxPnlD7X4GKAx1"
+FIREBASE_PROJECT_ID = "spider-aaa19"
 # GITHUB_TOKEN must be set via secrets: wrangler secret put GITHUB_TOKEN
