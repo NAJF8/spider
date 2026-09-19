@@ -151,8 +151,7 @@ function renderCategories() {
         'صندوق': 'fa-box'
     };
 
-    const topLevel = categories.filter(cat => !cat.parentCategory);
-    const visibleCategories = showAllCategories ? categories : topLevel.slice(0, 10);
+    const visibleCategories = showAllCategories ? categories : [];
     visibleCategories.forEach(cat => {
         let fallbackIcon = 'fa-folder';
         for (const [key, icon] of Object.entries(categoryFallbacks)) {
@@ -166,10 +165,6 @@ function renderCategories() {
             ? `<img src="${cat.image}" alt="${cat.name}">` 
             : `<i class="fa-solid ${fallbackIcon}" style="font-size:2rem;color:var(--primary);"></i>`;
             
-        const sidebarMediaHtml = cat.image
-            ? `<img src="${cat.image}" alt="${cat.name}" style="width:24px; height:24px; object-fit:cover; border-radius:4px; margin-left:8px;">`
-            : `<i class="fa-solid ${fallbackIcon}" style="width:24px; text-align:center; margin-left:8px; color:var(--primary);"></i>`;
-
         // Grid
         const card = document.createElement('div');
         card.className = 'category-card';
@@ -182,7 +177,19 @@ function renderCategories() {
         card.onclick = () => filterProductsByCategory(cat.id);
         categoriesGrid.appendChild(card);
 
-        // Sidebar
+    });
+    // Keep every published category reachable from the sidebar even while the grid is collapsed.
+    categories.forEach(cat => {
+        let fallbackIcon = 'fa-folder';
+        for (const [key, icon] of Object.entries(categoryFallbacks)) {
+            if (cat.name.includes(key)) {
+                fallbackIcon = icon;
+                break;
+            }
+        }
+        const sidebarMediaHtml = cat.image
+            ? `<img src="${cat.image}" alt="${cat.name}" style="width:24px; height:24px; object-fit:cover; border-radius:4px; margin-left:8px;">`
+            : `<i class="fa-solid ${fallbackIcon}" style="width:24px; text-align:center; margin-left:8px; color:var(--primary);"></i>`;
         const li = document.createElement('li');
         li.innerHTML = `
             <a href="#productsSection" onclick="filterProductsByCategory('${cat.id}'); document.getElementById('closeSidebarBtn').click();">
@@ -194,8 +201,11 @@ function renderCategories() {
     const toggle = document.getElementById('viewAllCatBtn');
     if (toggle) {
         toggle.setAttribute('aria-expanded', String(showAllCategories));
-        toggle.textContent = showAllCategories ? '−' : '⋯';
-        toggle.title = showAllCategories ? 'عرض مختصر' : 'عرض جميع الأقسام';
+        toggle.setAttribute('aria-label', showAllCategories ? 'إخفاء الأقسام' : 'عرض الأقسام');
+        toggle.title = showAllCategories ? 'إخفاء الأقسام' : 'عرض الأقسام';
+        toggle.querySelector('.categories-toggle-label').textContent = showAllCategories ? 'انقر لإخفاء الأقسام' : 'انقر لعرض الأقسام';
+        toggle.querySelector('i').className = `fa-solid ${showAllCategories ? 'fa-chevron-up' : 'fa-chevron-down'}`;
+        categoriesGrid.classList.toggle('is-collapsed', !showAllCategories);
     }
 }
 
@@ -250,6 +260,10 @@ function renderProducts() {
 }
 
 function filterProductsByCategory(categoryId) {
+    if (!showAllCategories) {
+        showAllCategories = true;
+        renderCategories();
+    }
     currentCategoryFilter = categoryId;
     currentBrandFilter = null;
     currentSearchFilter = '';
