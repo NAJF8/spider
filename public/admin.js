@@ -759,6 +759,9 @@ function renderCategoriesManagementTable() {
     const tbody = document.getElementById('categoriesFullTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    
+    // Sort categories by order
+    categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     if (categories.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">لا توجد أقسام مسجلة. انقر على "إضافة قسم جديد" للبدء</td></tr>';
@@ -838,6 +841,7 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
         image: document.getElementById('catImage').value,
         description: document.getElementById('catDesc').value.trim(),
         isHidden: document.getElementById('catHidden').checked,
+        order: document.getElementById('catOrder') ? Number(document.getElementById('catOrder').value) || 0 : 0,
         updatedAt: Date.now()
     };
 

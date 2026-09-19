@@ -93,6 +93,9 @@ function renderCategories() {
     categoriesGrid.innerHTML = '';
     sidebarNav.innerHTML = '';
     
+    // Sort categories by order
+    categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+    
     if (categories.length === 0) {
         categoriesGrid.innerHTML = '<div class="loading-state">لا توجد أقسام متاحة حالياً.</div>';
         return;

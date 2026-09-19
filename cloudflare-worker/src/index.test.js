@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
       return new Response(null, {
