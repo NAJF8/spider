@@ -173,7 +173,10 @@ export default {
 
         const productsObj = await productsRes.json() || {};
         const settingsObj = await settingsRes.json() || {};
-        const deliveryFee = Number(settingsObj.deliveryFee) || 0;
+        const deliveryFee = Number(settingsObj.deliveryFee);
+        if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+          return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
+        }
 
         let subtotal = 0;
         const verifiedItems = [];

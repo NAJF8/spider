@@ -442,6 +442,8 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
         const code = error?.message || 'CHECKOUT_FAILED';
         const message = code === 'ORDER_BACKEND_NOT_CONFIGURED'
             ? 'إتمام الطلب متوقف مؤقتاً: يحتاج الخادم إلى ضبط سر Firebase قبل حفظ الطلبات.'
+            : code === 'DELIVERY_FEE_NOT_CONFIGURED'
+                ? 'إتمام الطلب متوقف مؤقتاً: يحتاج المتجر إلى اعتماد رسم التوصيل من الأدمن.'
             : code === 'CART_INVALID'
                 ? 'تعذر التحقق من محتوى السلة. أعد المحاولة من المنتجات المنشورة.'
                 : 'تعذر حفظ الطلب. بقيت السلة كما هي، ويمكنك المحاولة مرة أخرى.';
