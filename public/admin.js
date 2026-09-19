@@ -1570,7 +1570,7 @@ window.updateAllDashboardViews = function() {
 };
 
 // ================= SETTINGS MANAGEMENT =================
-let storeSettings = { whatsapp: '+9647827337942', deliveryFee: 5000 };
+let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true };
 
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
@@ -1581,9 +1581,23 @@ onValue(ref(db, 'settings'), (snapshot) => {
     localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
     
     // Update UI
+    const fields = {
+        settingStoreNameAr: storeSettings.storeNameAr || '',
+        settingStoreNameEn: storeSettings.storeNameEn || '',
+        settingWhatsapp: storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '',
+        settingPhone: storeSettings.phoneNumber || storeSettings.storePhone || '',
+        settingInstagramUrl: storeSettings.instagramUrl || '',
+        settingFacebookUrl: storeSettings.facebookUrl || '',
+        settingGoogleMapsUrl: storeSettings.googleMapsUrl || '',
+        settingStoreAddress: storeSettings.storeAddress || '',
+        settingWelcomeMessage: storeSettings.welcomeMessage || ''
+    };
+    Object.entries(fields).forEach(([id, value]) => { const el = document.getElementById(id); if (el) el.value = value; });
+    const chatbotEnabled = document.getElementById('settingChatbotEnabled');
+    if (chatbotEnabled) chatbotEnabled.checked = storeSettings.chatbotEnabled !== false;
     const elWa = document.getElementById('settingWhatsapp');
     const elDf = document.getElementById('settingDeliveryFee');
-    if (elWa) elWa.value = storeSettings.whatsapp || '';
+    if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
 });
 
@@ -1594,11 +1608,23 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
         return;
     }
     
-    const wa = document.getElementById('settingWhatsapp').value.trim();
+    const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
     
     try {
-        await update(ref(db, 'settings'), { whatsapp: wa, deliveryFee: df });
+        await update(ref(db, 'settings'), {
+            storeNameAr: document.getElementById('settingStoreNameAr').value.trim(),
+            storeNameEn: document.getElementById('settingStoreNameEn').value.trim(),
+            whatsappNumber: wa,
+            phoneNumber: document.getElementById('settingPhone').value.trim(),
+            instagramUrl: document.getElementById('settingInstagramUrl').value.trim(),
+            facebookUrl: document.getElementById('settingFacebookUrl').value.trim(),
+            googleMapsUrl: document.getElementById('settingGoogleMapsUrl').value.trim(),
+            storeAddress: document.getElementById('settingStoreAddress').value.trim(),
+            welcomeMessage: document.getElementById('settingWelcomeMessage').value.trim(),
+            chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
+            deliveryFee: df
+        });
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {
         alert('فشل حفظ الإعدادات: ' + err.message);

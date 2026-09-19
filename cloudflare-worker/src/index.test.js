@@ -219,7 +219,6 @@ module.exports = {
           timestamp: Date.now(),
           status: 'pending',
           items: verifiedItems,
-          workerSignature: 'spider-secure-checkout-2026'
         };
 
         const saveRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/orders/${newOrderId}.json${databaseQuery}`, {

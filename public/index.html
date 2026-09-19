@@ -32,6 +32,7 @@
                     </button>
                     <button class="icon-btn" id="favBtn" aria-label="المفضلة"><i class="fa-regular fa-heart"></i></button>
                     <a href="admin.html" class="icon-btn" aria-label="حسابي"><i class="fa-regular fa-user"></i></a>
+                    <a href="#" class="icon-btn hidden" id="storeLocationBtn" aria-label="موقعنا" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i></a>
                 </div>
                 <a href="index.html" class="brand-logo-container">
                     <img src="assets/spider-logo.png" alt="سبايدر للإلكترونيات" class="brand-logo">
@@ -92,7 +93,7 @@
         <section class="section categories-section">
             <div class="section-header">
                 <h2 class="section-title">تصفح الأقسام</h2>
-                <a href="#productsSection" class="view-all" id="viewAllCatBtn">عرض الكل <i class="fa-solid fa-chevron-left"></i></a>
+                <button type="button" class="view-all categories-toggle" id="viewAllCatBtn" aria-expanded="false" aria-controls="categoriesGrid" aria-label="عرض جميع الأقسام">⋯</button>
             </div>
             <div class="categories-grid" id="categoriesGrid">
                 <!-- Categories injected here -->
@@ -109,6 +110,24 @@
             <div class="products-grid" id="productsGrid">
                 <!-- Products injected here -->
                 <div class="loading-state">جاري تحميل المنتجات...</div>
+            </div>
+        </section>
+
+        <!-- Brands Section -->
+        <section class="section brands-section">
+            <div class="section-header">
+                <h2 class="section-title">العلامات التجارية</h2>
+                <a href="#productsSection" class="view-all" id="viewAllBrandsBtn">عرض الكل <i class="fa-solid fa-chevron-left"></i></a>
+            </div>
+            <div class="brands-grid" id="brandsGrid">
+                <button type="button" class="brand-item" data-brand="ASUS">ASUS</button>
+                <button type="button" class="brand-item" data-brand="Lenovo">Lenovo</button>
+                <button type="button" class="brand-item" data-brand="HP">HP</button>
+                <button type="button" class="brand-item" data-brand="Dell">DELL</button>
+                <button type="button" class="brand-item" data-brand="MSI">MSI</button>
+                <button type="button" class="brand-item" data-brand="Samsung">SAMSUNG</button>
+                <button type="button" class="brand-item" data-brand="AMD">AMD</button>
+                <button type="button" class="brand-item" data-brand="Intel">INTEL</button>
             </div>
         </section>
 
@@ -143,24 +162,6 @@
 
             <div class="compare-results hidden" id="compareResults">
                 <!-- Grid injected here -->
-            </div>
-        </section>
-
-        <!-- Brands Section -->
-        <section class="section brands-section">
-            <div class="section-header">
-                <h2 class="section-title">العلامات التجارية</h2>
-                <a href="#productsSection" class="view-all" id="viewAllBrandsBtn">عرض الكل <i class="fa-solid fa-chevron-left"></i></a>
-            </div>
-            <div class="brands-grid" id="brandsGrid">
-                <div class="brand-item" data-brand="ASUS">ASUS</div>
-                <div class="brand-item" data-brand="Lenovo">Lenovo</div>
-                <div class="brand-item" data-brand="HP">hp</div>
-                <div class="brand-item" data-brand="Dell">DELL</div>
-                <div class="brand-item" data-brand="MSI">msi</div>
-                <div class="brand-item" data-brand="Samsung">SAMSUNG</div>
-                <div class="brand-item" data-brand="AMD">AMD</div>
-                <div class="brand-item" data-brand="Intel">intel</div>
             </div>
         </section>
 
@@ -220,8 +221,9 @@
                     </div>
                 </div>
                 <div class="footer-social">
-                    <a href="https://www.facebook.com" target="_blank" class="social-btn fb"><i class="fa-brands fa-facebook-f"></i> تابعنا على فيسبوك</a>
-                    <a href="https://www.instagram.com" target="_blank" class="social-btn ig"><i class="fa-brands fa-instagram"></i> تابعنا على إنستغرام</a>
+                    <a href="#" target="_blank" rel="noopener" class="social-btn fb hidden" id="facebookLink"><i class="fa-brands fa-facebook-f"></i> تابعنا على فيسبوك</a>
+                    <a href="#" target="_blank" rel="noopener" class="social-btn ig hidden" id="instagramLink"><i class="fa-brands fa-instagram"></i> تابعنا على إنستغرام</a>
+                    <a href="#" target="_blank" rel="noopener" class="social-btn hidden" id="footerLocationLink"><i class="fa-solid fa-location-dot"></i> موقعنا</a>
                 </div>
             </div>
             <div class="footer-slogan">
@@ -330,6 +332,9 @@
             </div>
         </div>
     </div>
+    <button type="button" class="chatbot-fab" id="chatbotFab" aria-label="فتح مساعد سبايدر">
+        <img src="assets/spider-bot.png" alt="مساعد سبايدر">
+    </button>
 
     <script type="module" src="script.js?v=6"></script>
 </body>

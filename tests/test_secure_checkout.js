@@ -31,7 +31,7 @@ global.fetch = async (url, options) => {
     }
     if (url.includes('orders/') && options && options.method === 'PUT') {
         const payload = JSON.parse(options.body);
-        if (payload.workerSignature !== 'spider-secure-checkout-2026') {
+        if (payload.workerSignature) {
             return { ok: false, text: async () => 'Permission denied' };
         }
         // simulate successful save
@@ -127,8 +127,9 @@ async function runTests() {
     // Test 5: Firebase Write Protection
     console.log('\n[Test 5] توثيق أمان Firebase (ممنوع التوقيع المكشوف):');
     const ruleStr = fs.readFileSync('database.rules.json', 'utf8');
-    // assert(ruleStr.includes("newData.child('workerSignature').val() === 'spider-secure-checkout-2026'"));
-    console.log('✓ نجح الاختبار: تم التحقق من حماية مسار الطلبات عبر قواعد Firebase دون الاعتماد على توقيع مكشوف ثابت.');
+    assert(!ruleStr.includes('workerSignature'), 'يجب ألا تعتمد القواعد على توقيع ثابت مكشوف');
+    assert(!workerCode.includes('workerSignature'), 'يجب ألا يرسل Worker توقيعاً ثابتاً مكشوفاً');
+    console.log('✓ نجح الاختبار: تم التحقق من حماية مسار الطلبات دون الاعتماد على توقيع مكشوف ثابت.');
 
     console.log('\n=========================================');
     console.log(' جميع اختبارات أمان الخادم نجحت بنسبة 100%! ');

@@ -20,6 +20,8 @@ let cartRestored = false;
 const CART_STORAGE_KEY = 'spider.cart.v1';
 let whatsappNumber = "+9647827337942";
 let deliveryFee = 5000;
+let storeSettings = {};
+let showAllCategories = false;
 
 // DOM Elements
 const categoriesGrid = document.getElementById('categoriesGrid');
@@ -84,11 +86,45 @@ onValue(ref(db, 'products'), (snapshot) => {
 
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
-        const data = snapshot.val();
-        if (data.storePhone) whatsappNumber = data.storePhone;
-        if (data.deliveryFee !== undefined) deliveryFee = Number(data.deliveryFee);
+        storeSettings = snapshot.val() || {};
+        whatsappNumber = normalizeWhatsApp(storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || whatsappNumber);
+        if (storeSettings.deliveryFee !== undefined) deliveryFee = Number(storeSettings.deliveryFee);
+        applyStoreSettings(storeSettings);
     }
 });
+
+function normalizeWhatsApp(value) {
+    return String(value || '').replace(/[^0-9]/g, '').replace(/^00/, '');
+}
+
+function safeExternalUrl(value) {
+    try {
+        const url = new URL(String(value || '').trim());
+        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch { return ''; }
+}
+
+function applyStoreSettings(settings) {
+    const links = [
+        ['instagramLink', settings.instagramUrl],
+        ['facebookLink', settings.facebookUrl],
+        ['footerLocationLink', settings.googleMapsUrl],
+        ['storeLocationBtn', settings.googleMapsUrl]
+    ];
+    links.forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        const url = safeExternalUrl(value);
+        if (!el) return;
+        if (url) { el.href = url; el.classList.remove('hidden'); }
+        else { el.href = '#'; el.classList.add('hidden'); }
+    });
+    document.querySelectorAll('.store-name').forEach(el => { el.textContent = settings.storeNameAr || 'سبايدر للإلكترونيات'; });
+    const chatbotEnabled = settings.chatbotEnabled !== false;
+    const fab = document.getElementById('chatbotFab');
+    const banner = document.getElementById('openChatbotBtn');
+    if (fab) fab.classList.toggle('hidden', !chatbotEnabled);
+    if (banner) banner.classList.toggle('hidden', !chatbotEnabled);
+}
 
 // Render Categories
 function renderCategories() {
@@ -115,7 +151,9 @@ function renderCategories() {
         'صندوق': 'fa-box'
     };
 
-    categories.forEach(cat => {
+    const topLevel = categories.filter(cat => !cat.parentCategory);
+    const visibleCategories = showAllCategories ? categories : topLevel.slice(0, 10);
+    visibleCategories.forEach(cat => {
         let fallbackIcon = 'fa-folder';
         for (const [key, icon] of Object.entries(categoryFallbacks)) {
             if (cat.name.includes(key)) {
@@ -153,6 +191,12 @@ function renderCategories() {
         `;
         sidebarNav.appendChild(li);
     });
+    const toggle = document.getElementById('viewAllCatBtn');
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', String(showAllCategories));
+        toggle.textContent = showAllCategories ? '−' : '⋯';
+        toggle.title = showAllCategories ? 'عرض مختصر' : 'عرض جميع الأقسام';
+    }
 }
 
 // Render Products
@@ -216,9 +260,9 @@ function filterProductsByCategory(categoryId) {
 }
 window.filterProductsByCategory = filterProductsByCategory;
 
-document.getElementById('viewAllCatBtn')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    clearAllFilters();
+document.getElementById('viewAllCatBtn')?.addEventListener('click', () => {
+    showAllCategories = !showAllCategories;
+    renderCategories();
 });
 document.getElementById('viewAllProdBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -689,13 +733,15 @@ addBuilderToCartBtn.addEventListener('click', () => {
 
 
 // ================= CHATBOT =================
-document.getElementById('openChatbotBtn').addEventListener('click', () => {
+function openChatbot() {
     chatbotContainer.style.display = 'flex';
-});
-document.getElementById('openChatbotBtn').addEventListener('keydown', (event) => {
+}
+document.getElementById('openChatbotBtn')?.addEventListener('click', openChatbot);
+document.getElementById('chatbotFab')?.addEventListener('click', openChatbot);
+document.getElementById('openChatbotBtn')?.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        chatbotContainer.style.display = 'flex';
+        openChatbot();
     }
 });
 
@@ -773,6 +819,7 @@ cartOverlay.addEventListener('click', () => {
     cartSidebar.classList.remove('open');
 });
 
-document.getElementById('whatsappOrderBtn').addEventListener('click', () => {
-    window.open(`https://wa.me/${whatsappNumber.replace('+', '')}`, '_blank');
+document.getElementById('whatsappOrderBtn')?.addEventListener('click', () => {
+    const wa = normalizeWhatsApp(whatsappNumber);
+    if (wa) window.open(`https://wa.me/${wa}`, '_blank', 'noopener');
 });
