@@ -333,78 +333,7 @@ const BACKEND_URL = (window.location.hostname === 'localhost' || window.location
 
 document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'جاري المعالجة...';
-
-    try {
-        const name = document.getElementById('orderName').value.trim();
-        const phone = document.getElementById('orderPhone').value.trim();
-        const gov = document.getElementById('orderGov').value;
-        const city = document.getElementById('orderCity').value.trim();
-        const address = document.getElementById('orderAddress').value.trim();
-        const notes = document.getElementById('orderNotes').value.trim();
-        
-        const payload = {
-            customer: { name, phone, gov, city, address, notes },
-            items: cart.map(item => ({ id: item.id, qty: item.qty }))
-        };
-
-        const res = await fetch(`${BACKEND_URL}/api/store/checkout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data.success) {
-            let errorMsg = 'حدث خطأ أثناء حفظ الطلب.';
-            if (data.error === 'CART_EMPTY') errorMsg = 'السلة فارغة.';
-            else if (data.error === 'CUSTOMER_INFO_MISSING') errorMsg = 'الرجاء إكمال بيانات العميل.';
-            else if (data.error && data.error.startsWith('PRODUCT_UNAVAILABLE_')) errorMsg = 'أحد المنتجات في السلة غير متوفر حالياً.';
-            else if (data.error && data.error.startsWith('OUT_OF_STOCK_')) errorMsg = 'الكمية المطلوبة لأحد المنتجات غير متوفرة في المخزون.';
-            throw new Error(errorMsg);
-        }
-
-        // Generate WA message based on SERVER verified response
-        let msg = `*طلب جديد #${data.orderNumber}*%0A`;
-        msg += `-----------------------%0A`;
-        msg += `👤 *الاسم:* ${name}%0A`;
-        msg += `📱 *الهاتف:* ${phone}%0A`;
-        msg += `📍 *المحافظة:* ${gov}%0A`;
-        msg += `🏘 *المدينة:* ${city}%0A`;
-        msg += `🏠 *العنوان:* ${address}%0A`;
-        if (notes) msg += `📝 *ملاحظات:* ${notes}%0A`;
-        msg += `-----------------------%0A`;
-        msg += `🛒 *المنتجات:*%0A`;
-        
-        data.items.forEach(item => {
-            msg += `- ${item.name} (x${item.quantity}) = ${item.price * item.quantity} د.ع%0A`;
-        });
-        
-        msg += `-----------------------%0A`;
-        msg += `💰 *المجموع:* ${data.subtotal} د.ع%0A`;
-        msg += `🚚 *التوصيل:* ${data.deliveryFee} د.ع%0A`;
-        msg += `🔥 *الإجمالي:* ${data.grandTotal} د.ع%0A`;
-        
-        const waUrl = `https://wa.me/${whatsappNumber.replace('+', '')}?text=${msg}`;
-        window.open(waUrl, '_blank');
-        
-        // Clear cart ONLY after successful save
-        cart = [];
-        updateCartUI();
-        checkoutModal.classList.remove('open');
-        alert(`تم تسجيل طلبك بنجاح برقم #${data.orderNumber}. يرجى إرسال الرسالة في واتساب لتأكيد الطلب.`);
-        
-    } catch (err) {
-        console.error('Order save error:', err);
-        alert(err.message || 'حدث خطأ أثناء حفظ الطلب. يرجى المحاولة مرة أخرى.');
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'تأكيد وإرسال عبر واتساب';
-    }
+    alert('عذراً، وظيفة إرسال الطلبات معطلة مؤقتاً لحين ربط الخادم الآمن بحساب الخدمة (Service Account) وتجنب كشف الأسرار في القواعد.');
 });
 
 
