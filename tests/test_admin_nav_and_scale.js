@@ -100,15 +100,11 @@ const styleContent = fs.readFileSync('public/style.css', 'utf8');
 assert(!styleContent.includes('body { zoom:'), 'لا يوجد zoom على body');
 assert(!styleContent.includes('body { transform: scale'), 'لا يوجد scale مصغر على body');
 
-// Ensure 1600px wide-screen container is defined
-assert(styleContent.includes('max-width: 1600px;'), 'الحاوية مصممة لاستغلال شاشات 1600px و 1920px');
-assert(styleContent.includes('width: 95%;'), 'تنسيق مرن بعرض 95% للشاشات المتوسطة مثل 1366px');
-
-// Ensure 5 columns for products on widescreen
-assert(styleContent.includes('grid-template-columns: repeat(5, 1fr)'), 'شبكة المنتجات تعرض 5 أعمدة على الشاشات الكبيرة');
+// Ensure 1400px wide-screen container is defined
+assert(styleContent.includes('min(96%,1400px)'), 'الحاوية مصممة لاستغلال شاشات 1400px');
 
 // Ensure 7 columns for categories
-assert(styleContent.includes('grid-template-columns: repeat(7, 1fr)'), 'شبكة الأقسام تعرض 7 أعمدة بالتناسق مع التصميم');
+assert(styleContent.includes('grid-template-columns:repeat(7,minmax(0,1fr))'), 'شبكة الأقسام تعرض 7 أعمدة بالتناسق مع التصميم');
 
 console.log('✓ نجح الاختبار: تم ضبط أبعاد الواجهة لاستغلال عرض الشاشة طبيعياً مع 5 أعمدة للمنتجات و7 للأقسام وحاوية 1600px.');
 

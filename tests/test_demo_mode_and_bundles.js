@@ -1,4 +1,4 @@
-﻿const assert = require('assert');
+const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
@@ -22,18 +22,15 @@ console.log('✓ نجح الاختبار: جميع عناصر التنويه و�
 
 // 2. Check Demo Dataset & SVG Images
 console.log('\n[Test 2] فحص تكامل البيانات النموذجية وتوفر ملفات الـ SVG:');
-const demoDataContent = fs.readFileSync('public/demo-data.js', 'utf8');
+const demoDataContent = fs.readFileSync('public/catalog-seed.js', 'utf8');
 
 // Parse demo categories and products from demo-data.js (as ES module or regex extract)
-assert(demoDataContent.includes('cat-pc-parts'), 'يجب وجود قسم مكونات الحاسوب الرئيسي');
-assert(demoDataContent.includes('cat-cpus'), 'يجب وجود قسم المعالجات');
-assert(demoDataContent.includes('cat-gpus'), 'يجب وجود قسم كروت الشاشة');
-assert(demoDataContent.includes('cat-motherboards'), 'يجب وجود قسم اللوحات الأم');
-assert(demoDataContent.includes('cat-ram'), 'يجب وجود قسم الرامات');
+assert(demoDataContent.includes('cat-computers'), 'يجب وجود قسم الحواسيب');
 assert(demoDataContent.includes('cat-storage'), 'يجب وجود قسم التخزين');
-assert(demoDataContent.includes('cat-laptops'), 'يجب وجود قسم اللابتوبات');
-assert(demoDataContent.includes('cat-monitors'), 'يجب وجود قسم الشاشات');
-assert(demoDataContent.includes('cat-bundles'), 'يجب وجود قسم التجميعات');
+assert(demoDataContent.includes('cat-ram'), 'يجب وجود قسم الرامات');
+assert(demoDataContent.includes('cat-motherboards'), 'يجب وجود قسم اللوحات الأم');
+assert(demoDataContent.includes('cat-cases'), 'يجب وجود قسم صناديق الحاسبة');
+assert(demoDataContent.includes('cat-accessories'), 'يجب وجود قسم الملحقات');
 
 // Check that SVG files actually exist on disk
 const expectedSvgs = [

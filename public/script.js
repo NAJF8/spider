@@ -213,8 +213,7 @@ function renderCategories() {
         categoriesGrid.innerHTML = '<div class="empty-state-card">لا توجد أقسام ظاهرة حالياً</div>';
         return;
     }
-    // The seven-card visual layout is a presentation choice, never a substitute for Firebase categories.
-    const rank = ['cat-bundles','cat-laptops','cat-cpus','cat-gpus','cat-monitors','cat-accessories'];
+    const rank = ['cat-computers','cat-storage','cat-ram','cat-monitors','cat-printers','cat-network','cat-pc-parts','cat-accessories','cat-power','cat-security'];
     const ordered = [...topLevel].sort((a,b) => (rank.indexOf(a.id) < 0 ? 99 : rank.indexOf(a.id)) - (rank.indexOf(b.id) < 0 ? 99 : rank.indexOf(b.id)));
     ordered.forEach(cat => {
         const card = document.createElement('button');
@@ -258,18 +257,64 @@ function renderProducts(productsToRender) {
         const card = document.createElement('article');
         card.className = 'product-card';
         card.innerHTML = `
-            <div class="product-photo"><img src="${getProductImage(prod)}" alt="${prod.name}" loading="lazy" onerror="this.onerror=null;this.src='${PRODUCT_IMAGE_FALLBACK}'"></div>
+            <div class="product-photo" style="cursor:pointer;" onclick="openProductDetails('${prod.id}')"><img src="${getProductImage(prod)}" alt="${prod.name}" loading="lazy" onerror="this.onerror=null;this.src='${PRODUCT_IMAGE_FALLBACK}'"></div>
             <div class="product-info">
-              <h3 class="product-title">${prod.name}</h3>
+              <h3 class="product-title" style="cursor:pointer;" onclick="openProductDetails('${prod.id}')">${prod.name}</h3>
               <p class="product-subtitle">${truncateArabicText(prod.description || '', 65)}</p>
               <div class="product-price-row" dir="rtl"><span class="product-price" dir="ltr">${formatPrice(price)}</span>${prod.originalPrice > price ? `<span class="product-old-price" dir="ltr">${formatPrice(prod.originalPrice)}</span>` : ''}</div>
               <div class="product-buttons"><button class="btn btn-primary add-product-button"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button><button type="button" class="btn btn-compare add-compare-button" aria-pressed="${compareIds.includes(prod.id)}"><i class="fa-solid fa-code-compare"></i> ${compareIds.includes(prod.id) ? 'إزالة المقارنة' : 'قارن'}</button></div>
             </div>`;
-        card.querySelector('.add-product-button').addEventListener('click', () => window.addToCart(prod.id));
-        card.querySelector('.add-compare-button').addEventListener('click', () => toggleCompare(prod.id));
+        card.querySelector('.add-product-button').addEventListener('click', (e) => { e.stopPropagation(); window.addToCart(prod.id); });
+        card.querySelector('.add-compare-button').addEventListener('click', (e) => { e.stopPropagation(); toggleCompare(prod.id); });
         productsGrid.appendChild(card);
     });
 }
+
+window.openProductDetails = function(productId) {
+    const prod = products.find(p => p.id === productId);
+    if (!prod) return;
+    
+    const modal = document.getElementById('productDetailsModal');
+    const title = document.getElementById('modalProductTitle');
+    const body = document.getElementById('productDetailsBody');
+    
+    if (!modal || !body) return;
+    
+    title.textContent = prod.name;
+    
+    const specs = publicSpecs(prod);
+    const specsHtml = Object.keys(specs).length > 0 
+        ? Object.entries(specs).map(([k, v]) => `<div style="margin-bottom: 5px;"><strong>${k}:</strong> ${v}</div>`).join('')
+        : 'لا توجد مواصفات فنية إضافية.';
+        
+    const priceHtml = `<div class="product-price-row" dir="rtl" style="margin-bottom: 15px;">
+        <span class="product-modal-price" dir="ltr" style="font-size: 1.6rem; color: var(--primary); font-weight: bold;">${formatPrice(prod.price)}</span>
+        ${prod.originalPrice > prod.price ? `<span class="product-old-price" dir="ltr" style="font-size:1.2rem; text-decoration: line-through; color: #888; margin-right: 10px;">${formatPrice(prod.originalPrice)}</span>` : ''}
+    </div>`;
+
+    body.innerHTML = `
+        <img src="${getProductImage(prod)}" alt="${prod.name}" onerror="this.src='images/default-product.svg'">
+        <div class="product-modal-info">
+            <h3 style="font-size: 1.4rem; margin-bottom: 5px;">${prod.name}</h3>
+            ${prod.brand ? `<div style="color:var(--muted); margin-bottom: 10px;">الماركة: <strong>${prod.brand}</strong></div>` : ''}
+            ${priceHtml}
+            <p style="margin-bottom: 15px; color: #444; line-height: 1.5;">${prod.description || 'لا يوجد وصف متاح.'}</p>
+            <div class="product-modal-specs">
+                ${specsHtml}
+            </div>
+            <div class="product-modal-actions">
+                <button class="btn btn-primary" onclick="addToCart('${prod.id}'); document.getElementById('productDetailsModal').classList.remove('open');"><i class="fa-solid fa-cart-shopping"></i> أضف إلى السلة</button>
+                <button class="btn btn-compare" onclick="toggleCompare('${prod.id}'); document.getElementById('productDetailsModal').classList.remove('open');"><i class="fa-solid fa-code-compare"></i> قارن</button>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('open');
+};
+
+document.getElementById('closeProductDetailsBtn')?.addEventListener('click', () => {
+    document.getElementById('productDetailsModal').classList.remove('open');
+});
 
 function renderBundles(bundlesToRender) {
     if (!bundlesGrid) return;
@@ -489,10 +534,51 @@ function setupListeners() {
     }
 
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileNavLinks = document.getElementById('mobileNavLinks');
-    if (mobileMenuBtn && mobileNavLinks) {
-        mobileMenuBtn.addEventListener('click', () => mobileNavLinks.classList.toggle('open'));
+    const mobileNavSidebar = document.getElementById('mobileNavSidebar');
+    const mobileNavOverlay = document.getElementById('mobileNavOverlay');
+    const closeMobileNavBtn = document.getElementById('closeMobileNavBtn');
+
+    if (mobileMenuBtn && mobileNavSidebar) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileNavSidebar.classList.add('open');
+            mobileNavOverlay.classList.add('open');
+        });
     }
+    
+    if (closeMobileNavBtn) {
+        closeMobileNavBtn.addEventListener('click', () => {
+            mobileNavSidebar.classList.remove('open');
+            mobileNavOverlay.classList.remove('open');
+        });
+    }
+    
+    if (mobileNavOverlay) {
+        mobileNavOverlay.addEventListener('click', () => {
+            mobileNavSidebar.classList.remove('open');
+            mobileNavOverlay.classList.remove('open');
+        });
+    }
+
+    // Submenu logic
+    document.querySelectorAll('.submenu-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const parent = toggle.parentElement;
+            parent.classList.toggle('open');
+            const icon = toggle.querySelector('.fa-chevron-down');
+            if (icon) {
+                icon.style.transform = parent.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0)';
+            }
+        });
+    });
+
+    // Close sidebar on link click
+    document.querySelectorAll('#mobileNavLinks a:not(.submenu-toggle)').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileNavSidebar.classList.remove('open');
+            mobileNavOverlay.classList.remove('open');
+        });
+    });
 
     const openCartBtn = document.getElementById('openCartBtn');
     const closeCartBtn = document.getElementById('closeCartBtn');
@@ -688,8 +774,8 @@ window.toggleCompare = function(id) {
         compareIds.splice(existingIndex, 1);
     } else {
         const first = products.find(item => item.id === compareIds[0]);
-        if (compareIds.length >= 4) {
-            compareMessage('الحد الأقصى للمقارنة 4 منتجات. احذف منتج أولاً.');
+        if (compareIds.length >= 2) {
+            compareMessage('الحد الأقصى للمقارنة منتجين. احذف منتج أولاً.');
             document.getElementById('compare-section')?.scrollIntoView({behavior:'smooth'});
             return;
         }
@@ -723,12 +809,12 @@ function renderComparison() {
     const content = document.getElementById('compareContent');
     const count = document.getElementById('compareCount');
     const navCount = document.getElementById('compareNavCount');
-    if (count) count.textContent = `${compareIds.length} / 4`;
+    if (count) count.textContent = `${compareIds.length} / 2`;
     if (navCount) navCount.textContent = String(compareIds.length);
     if (!content) return;
     const selected = compareIds.map(id => products.find(p => p.id === id && !p.isHidden && (!p.status || p.status === 'published'))).filter(Boolean);
     if (selected.length < 2) {
-        content.textContent = selected.length ? 'اختار منتج ثاني حتى تظهر المقارنة.' : 'اختر منتجين على الأقل للمقارنة.';
+        content.textContent = selected.length ? 'اختار منتج ثاني حتى تظهر المقارنة.' : 'اختر منتجين للمقارنة.';
         return;
     }
     const fields = [...new Set(selected.flatMap(p => Object.keys(publicSpecs(p))))].slice(0, 18);
@@ -773,15 +859,15 @@ function initCompareDropdowns() {
         const catId = catSelect.value;
         const selects = [
             document.getElementById('compareProd1'),
-            document.getElementById('compareProd2'),
-            document.getElementById('compareProd3'),
-            document.getElementById('compareProd4')
+            document.getElementById('compareProd2')
         ];
         
         if (!catId) {
             selects.forEach(sel => {
-                sel.innerHTML = '<option value="">-- اختر المنتج --</option>';
-                sel.disabled = true;
+                if(sel) {
+                    sel.innerHTML = '<option value="">-- اختر المنتج --</option>';
+                    sel.disabled = true;
+                }
             });
             compareIds.length = 0;
             renderComparison();
@@ -791,6 +877,7 @@ function initCompareDropdowns() {
         const catProducts = products.filter(p => !p.isHidden && (!p.status || p.status === 'published') && (p.categoryId === catId || p.category === catId));
         
         selects.forEach((sel, idx) => {
+            if(!sel) return;
             sel.innerHTML = `<option value="">-- اختر المنتج ${idx + 1} --</option>`;
             catProducts.forEach(p => {
                 const opt = document.createElement('option');

@@ -26,45 +26,66 @@
 
     <header class="main-header">
         <div class="header-container">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" title="القائمة"><i class="fa-solid fa-bars"></i></button>
             <a class="brand" href="index.html">
-                <div class="brand-mark"><i class="fa-solid fa-spider"></i></div>
+                <img src="assets/spider-logo.png" alt="Spider Logo" class="spider-logo-img">
                 <div class="brand-text">
-                    <strong>SPIDER</strong>
-                    <span>GEAR UP YOUR WORLD</span>
+                    <strong>سبايدر للإلكترونيات</strong>
                 </div>
             </a>
 
             <div class="header-search-wrap">
                 <div class="search-bar">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" id="searchInput" placeholder="ابحث عن منتج، قطعة أو علامة تجارية ...">
+                    <input type="text" id="searchInput" placeholder="ابحث عن منتجات...">
                 </div>
             </div>
 
             <div class="header-actions">
                 <a href="admin.html" class="action-btn" title="لوحة الإدارة"><i class="fa-regular fa-user"></i></a>
-                <a href="#products-section" class="action-btn" title="تصفح المنتجات"><i class="fa-regular fa-heart"></i></a>
+                <a href="#products-section" class="action-btn" title="المفضلة"><i class="fa-regular fa-heart"></i></a>
                 <a href="#" class="action-btn cart-btn" id="openCartBtn" title="السلة">
                     <span class="cart-icon-wrapper">
                         <i class="fa-solid fa-cart-shopping"></i>
                         <span class="cart-badge" id="cartBadge">0</span>
                     </span>
                 </a>
-                <button class="mobile-menu-btn" id="mobileMenuBtn" title="القائمة"><i class="fa-solid fa-bars"></i></button>
             </div>
         </div>
     </header>
 
-    <nav class="main-nav">
-        <div class="nav-container">
+    <div class="sidebar-overlay" id="mobileNavOverlay"></div>
+    <nav class="main-nav mobile-sidebar" id="mobileNavSidebar">
+        <div class="sidebar-header">
+            <a class="brand" href="index.html">
+                <img src="assets/spider-logo.png" alt="SPIDER" class="spider-logo-img">
+            </a>
+            <button class="close-sidebar" id="closeMobileNavBtn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="sidebar-content">
+            <h3 class="sidebar-title">تصفح الأقسام</h3>
             <ul class="nav-links" id="mobileNavLinks">
-                <li><a class="active" href="index.html">الرئيسية</a></li>
-                <li><a href="#categories-section" onclick="filterByCategory('cat-bundles'); return true;">أجهزة الكمبيوتر</a></li>
-                <li><a href="#categories-section" onclick="filterByCategory('cat-laptops'); return true;">اللابتوبات</a></li>
-                <li><a href="#categories-section" onclick="filterByCategory('cat-cpus'); return true;">القطع</a></li>
-                <li><a href="#categories-section" onclick="filterByCategory('cat-accessories'); return true;">الملحقات</a></li>
-                <li><a href="#compare-section">المقارنة <span id="compareNavCount">0</span></a></li>
-                <li><a href="#offers-section">العروض</a></li>
+                <li><a class="active" href="index.html"><i class="fa-solid fa-house"></i> الرئيسية</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-computers'); return true;"><i class="fa-solid fa-desktop"></i> أجهزة الكمبيوتر</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-storage'); return true;"><i class="fa-solid fa-hard-drive"></i> الهارد والتخزين</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-ram'); return true;"><i class="fa-solid fa-memory"></i> الرامات</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-monitors'); return true;"><i class="fa-solid fa-tv"></i> الشاشات وأجهزة العرض</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-printers'); return true;"><i class="fa-solid fa-print"></i> الطابعات والماسحات الضوئية</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-network'); return true;"><i class="fa-solid fa-network-wired"></i> الشبكات</a></li>
+                <li class="has-submenu">
+                    <a href="#" class="submenu-toggle"><i class="fa-solid fa-microchip"></i> مكونات الحاسوب الشخصي <i class="fa-solid fa-chevron-down"></i></a>
+                    <ul class="submenu">
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-cpus'); return true;">المعالجات</a></li>
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-motherboards'); return true;">اللوحة الأم</a></li>
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-gpus'); return true;">كروت الشاشة</a></li>
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-psu'); return true;">مجهز الطاقة</a></li>
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-cooling'); return true;">أنظمة التبريد</a></li>
+                        <li><a href="#categories-section" onclick="filterByCategory('cat-cases'); return true;">صندوق الحاسبة</a></li>
+                    </ul>
+                </li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-accessories'); return true;"><i class="fa-solid fa-keyboard"></i> ملحقات الكمبيوتر</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-power'); return true;"><i class="fa-solid fa-plug"></i> الطاقة</a></li>
+                <li><a href="#categories-section" onclick="filterByCategory('cat-security'); return true;"><i class="fa-solid fa-camera"></i> الكاميرات وأنظمة الأمان</a></li>
             </ul>
         </div>
     </nav>
@@ -206,11 +227,9 @@
                         <option value="">-- اختر القسم --</option>
                     </select>
                     
-                    <div id="compareProductsSelects" class="compare-products-selects">
+                    <div id="compareProductsSelects" class="compare-products-selects" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <select id="compareProd1" class="form-select compare-select" disabled><option value="">-- اختر المنتج الأول --</option></select>
                         <select id="compareProd2" class="form-select compare-select" disabled><option value="">-- اختر المنتج الثاني --</option></select>
-                        <select id="compareProd3" class="form-select compare-select" disabled><option value="">-- اختر المنتج الثالث --</option></select>
-                        <select id="compareProd4" class="form-select compare-select" disabled><option value="">-- اختر المنتج الرابع --</option></select>
                     </div>
                     <button id="compareNowBtn" class="btn btn-primary" style="align-self: center; margin-top: 10px;">قارن الآن</button>
                 </div>
@@ -241,32 +260,21 @@
             </div>
         </section>
 
-        <section class="features-bottom section">
-            <div class="section-container features-bottom-flex">
-                <div class="feat-box"><i class="fa-solid fa-gift"></i><div><strong>عروض مستمرة</strong><span>خصومات خاصة</span></div></div>
-                <div class="feat-box"><i class="fa-solid fa-shield-halved"></i><div><strong>دفع آمن</strong><span>جميع وسائل الدفع</span></div></div>
-                <div class="feat-box"><i class="fa-solid fa-rotate-left"></i><div><strong>إرجاع سهل</strong><span>خلال 7 أيام</span></div></div>
-                <div class="feat-box"><i class="fa-solid fa-headset"></i><div><strong>مساعدة العملاء</strong><span>نحن دائماً هنا</span></div></div>
-            </div>
-        </section>
     </main>
 
     <footer class="main-footer">
         <div class="section-container footer-content">
             <div class="footer-brand-block">
                 <a href="index.html" class="brand footer-brand">
-                    <div class="brand-mark"><i class="fa-solid fa-spider"></i></div>
+                    <img src="assets/spider-logo.png" alt="Spider Logo" class="spider-logo-img" style="height: 40px; filter: grayscale(100%) brightness(200%);">
                     <div class="brand-text">
-                        <strong>SPIDER</strong>
-                        <span>GEAR UP YOUR WORLD</span>
+                        <strong>سبايدر للإلكترونيات</strong>
+                        <span>كل ما تحتاجه .. في مكان واحد</span>
                     </div>
                 </a>
                 <div class="social-icons">
-                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="#"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="#"><i class="fa-brands fa-youtube"></i></a>
                     <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#"><i class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
             <div class="footer-links">
@@ -319,6 +327,19 @@
                     </div>
                     <button type="submit" class="btn btn-primary w-100" id="submitOrderBtn">تأكيد الطلب</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Details Modal -->
+    <div class="modal-overlay" id="productDetailsModal">
+        <div class="modal-content" style="max-width: 800px; width: 95%;">
+            <div class="modal-header">
+                <h2 id="modalProductTitle">تفاصيل المنتج</h2>
+                <button class="close-btn" id="closeProductDetailsBtn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" id="productDetailsBody" style="display: flex; flex-direction: column; gap: 20px;">
+                <!-- Content injected via JS -->
             </div>
         </div>
     </div>
