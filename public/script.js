@@ -31,6 +31,7 @@ const state = {
   showCategories: false,
   showBrands: false,
   compare: ['', ''],
+  comparePickerSlot: 0,
   builder: {},
   availabilityProductId: ''
 };
@@ -41,8 +42,12 @@ let authUser = null;
 
 // ===== Utilities =====
 const $ = (id) => document.getElementById(id);
-const esc = (v) => String(v ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
-const formatPrice = (value) => `${Number(value || 0).toLocaleString('ar-IQ')} د.ع`;
+const englishDigits = (v) => String(v ?? '').replace(/[٠-٩۰-۹]/g, (digit) => {
+  const code = digit.charCodeAt(0);
+  return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+});
+const esc = (v) => englishDigits(v).replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
@@ -52,7 +57,7 @@ const imageFor = (p) => p?.image || 'images/default-product.svg';
 const categoryName = (id) => state.categories.find((c) => c.id === id)?.name || id || 'غير محدد';
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [p?.name, p?.brand, p?.model, p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
-const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
+const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = englishDigits(msg); t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
 const modal = (id, open) => $(id)?.classList.toggle('open', open);
 
 // ===== Category fallbacks =====
@@ -120,20 +125,22 @@ function applySettings(settings = {}) {
 
   const storeName = String(settings.storeNameAr || 'سبايدر للإلكترونيات');
   const [name, ...tagline] = storeName.split(' ');
-  $('brandName').textContent = name || 'سبايدر';
-  $('brandTagline').textContent = tagline.join(' ') || 'للإلكترونيات';
+  if ($('brandName')) $('brandName').textContent = englishDigits(name || 'سبايدر');
+  if ($('brandTagline')) $('brandTagline').textContent = englishDigits(tagline.join(' ') || 'للإلكترونيات');
 
-  if (settings.logoUrl && safeUrl(settings.logoUrl)) $('brandLogo').src = settings.logoUrl;
+  if (settings.logoUrl && safeUrl(settings.logoUrl) && $('brandLogo')) $('brandLogo').src = settings.logoUrl;
   // The approved storefront hero copy is intentionally not overwritten by
   // optional admin settings. Product, category, image, and store data remain live.
-  if (settings.heroImage && safeUrl(settings.heroImage)) $('heroImage').src = settings.heroImage;
-  if (settings.welcomeMessage) $('chatWelcome').textContent = settings.welcomeMessage;
+  if (settings.heroImage && safeUrl(settings.heroImage) && $('heroImage')) $('heroImage').src = settings.heroImage;
+  if (settings.welcomeMessage && $('chatWelcome')) $('chatWelcome').textContent = englishDigits(settings.welcomeMessage);
 
   // Hero CTA button
-  $('heroBuilderBtn').replaceChildren(document.createTextNode('ابنِ تجميعتك الآن '));
-  const icon = document.createElement('i');
-  icon.className = 'fa-solid fa-arrow-left';
-  $('heroBuilderBtn').append(icon);
+  if ($('heroBuilderBtn')) {
+    $('heroBuilderBtn').replaceChildren(document.createTextNode('ابنِ تجميعتك الآن '));
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-arrow-left';
+    $('heroBuilderBtn').append(icon);
+  }
 
   const instagram = safeUrl(settings.instagramUrl);
   const whatsapp = normalizeWhatsApp(settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
@@ -151,6 +158,7 @@ function applySettings(settings = {}) {
 
 // ===== Categories — Circular Row =====
 function renderCategories() {
+  if (!$('categoriesRow')) return;
   const categories = [...state.categories].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
   const row = $('categoriesRow');
 
@@ -257,6 +265,7 @@ function bindProductActions(root = document) {
 }
 
 function renderProducts() {
+  if (!$('productsGrid')) return;
   const filtered = filteredProducts();
   $('productsGrid').innerHTML = filtered.length
     ? filtered.map(productCard).join('')
@@ -267,7 +276,7 @@ function renderProducts() {
     state.filters.brand && `ماركة: ${state.filters.brand}`,
     state.filters.category && `قسم: ${categoryName(state.filters.category)}`
   ].filter(Boolean);
-  $('activeFilter').textContent = bits.join(' · ');
+  $('activeFilter').textContent = englishDigits(bits.join(' · '));
   $('activeFilter').classList.toggle('hidden', !bits.length);
   $('productsSectionTitle').textContent = bits.length ? 'نتائج المنتجات' : 'أحدث المنتجات';
 }
@@ -291,6 +300,7 @@ function clearFilters() {
 
 // ===== Brands =====
 function renderBrands() {
+  if (!$('brandsGrid')) return;
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   $('brandsGrid').classList.toggle('is-collapsed', !state.showBrands);
   $('toggleBrandsBtn').setAttribute('aria-expanded', String(state.showBrands));
@@ -339,11 +349,14 @@ function renderSuggestions(query) {
 
 // ===== COMPARE =====
 function populateCompareFilters() {
+  if (!$('compareCategorySelect')) return;
   $('compareCategorySelect').innerHTML = '<option value="">كل الأقسام</option>' +
     state.categories.map((c) => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort();
   $('compareBrandSelect').innerHTML = '<option value="">كل العلامات</option>' +
     brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  if ($('comparePickerCategory')) $('comparePickerCategory').innerHTML = $('compareCategorySelect').innerHTML;
+  if ($('comparePickerBrand')) $('comparePickerBrand').innerHTML = $('compareBrandSelect').innerHTML;
   populateCompareProducts();
 }
 
@@ -355,6 +368,7 @@ function comparePool() {
 }
 
 function populateCompareProducts() {
+  if (!$('compareProd1Select')) return;
   const pool = comparePool();
   ['compareProd1Select', 'compareProd2Select'].forEach((id, idx) => {
     const sel = $(id);
@@ -366,29 +380,69 @@ function populateCompareProducts() {
   updateCompareView();
 }
 
+function comparePickerPool() {
+  const search = String($('comparePickerSearch')?.value || '').trim().toLowerCase();
+  const category = $('comparePickerCategory')?.value || $('compareCategorySelect')?.value || '';
+  const brand = $('comparePickerBrand')?.value || $('compareBrandSelect')?.value || '';
+  return state.products.filter((p) => productCategoryMatch(p, category) &&
+    (!brand || p.brand === brand) && (!search || productText(p).includes(search)));
+}
+
+function openComparePicker(slot) {
+  if (!$('comparePickerModal')) return;
+  state.comparePickerSlot = Number(slot);
+  if ($('comparePickerCategory')) $('comparePickerCategory').value = $('compareCategorySelect')?.value || '';
+  if ($('comparePickerBrand')) $('comparePickerBrand').value = $('compareBrandSelect')?.value || '';
+  renderComparePickerGrid();
+  modal('comparePickerModal', true);
+}
+
+function renderComparePickerGrid() {
+  const grid = $('comparePickerGrid');
+  if (!grid) return;
+  const otherId = state.compare[Number(state.comparePickerSlot) === 0 ? 1 : 0];
+  const pool = comparePickerPool();
+  grid.innerHTML = pool.length ? pool.map((p) => {
+    const disabled = p.id === otherId;
+    const [availability, tone] = stockLabel(p);
+    return `<button class="compare-picker-option${disabled ? ' is-disabled' : ''}" type="button" data-compare-pick="${esc(p.id)}" ${disabled ? 'disabled' : ''}>
+      <img src="${esc(imageFor(p))}" alt="${esc(p.name)}" onerror="this.src='images/default-product.svg'">
+      <strong>${esc(p.name)}</strong>
+      <span>${esc(p.brand || 'غير متوفر')}${p.model ? ` · ${esc(p.model)}` : ''}</span>
+      <b>${formatPrice(p.price)}</b>
+      <small class="stock ${tone}">${esc(availability)}</small>
+    </button>`;
+  }).join('') : '<div class="empty-state">لا توجد منتجات منشورة مطابقة للفلاتر.</div>';
+  grid.querySelectorAll('[data-compare-pick]').forEach((button) => button.addEventListener('click', () => {
+    const slot = Number(state.comparePickerSlot);
+    const id = button.dataset.comparePick;
+    state.compare[slot] = id;
+    if ($('compareProd1Select')) $('compareProd1Select').value = slot === 0 ? id : state.compare[0];
+    if ($('compareProd2Select')) $('compareProd2Select').value = slot === 1 ? id : state.compare[1];
+    updateCompareView();
+    modal('comparePickerModal', false);
+  }));
+}
+
 function previewCompare(id, previewId) {
   const p = state.products.find((item) => item.id === id);
   const el = $(previewId);
   if (!el) return;
   if (p) {
     el.className = 'compare-picker-card';
+    el.removeAttribute('aria-label');
     el.innerHTML = `
       <img src="${esc(imageFor(p))}" alt="${esc(p.name)}">
       <div class="cpc-name">${esc(p.name)}</div>
-      <div class="cpc-model">${esc(p.model || p.brand || '')}</div>
+      <div class="cpc-model">${esc(p.brand || 'غير متوفر')}${p.model ? ` · ${esc(p.model)}` : ''}</div>
       <div class="cpc-price">${formatPrice(p.price)}</div>
+      <div class="cpc-stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</div>
       <div class="cpc-actions">
         <button class="btn btn-outline" type="button" data-compare-change="${esc(previewId)}">تغيير</button>
         <button class="btn btn-outline" type="button" data-compare-clear="${esc(previewId)}">إزالة</button>
       </div>`;
     // Change button shows the select
-    el.querySelector('[data-compare-change]')?.addEventListener('click', () => {
-      el.className = 'picker-empty';
-      el.innerHTML = '<i class="fa-regular fa-image"></i><span>اختر منتجاً</span>';
-      if (previewId === 'comparePreview1') { $('compareProd1Select').value = ''; state.compare[0] = ''; }
-      else { $('compareProd2Select').value = ''; state.compare[1] = ''; }
-      $('compareResults').classList.add('hidden');
-    });
+    el.querySelector('[data-compare-change]')?.addEventListener('click', () => openComparePicker(previewId === 'comparePreview1' ? 0 : 1));
     el.querySelector('[data-compare-clear]')?.addEventListener('click', () => {
       el.className = 'picker-empty';
       el.innerHTML = '<i class="fa-regular fa-image"></i><span>اختر منتجاً</span>';
@@ -399,10 +453,12 @@ function previewCompare(id, previewId) {
   } else {
     el.className = 'picker-empty';
     el.innerHTML = '<i class="fa-regular fa-image"></i><span>اختر منتجاً</span>';
+    el.setAttribute('aria-label', 'اختر منتجاً');
   }
 }
 
 function updateCompareView() {
+  if (!$('compareProd1Select')) return;
   state.compare = [$('compareProd1Select').value, $('compareProd2Select').value];
   previewCompare(state.compare[0], 'comparePreview1');
   previewCompare(state.compare[1], 'comparePreview2');
@@ -487,6 +543,29 @@ function productsForPart(part) {
   });
 }
 
+function openBuilderPicker(partId) {
+  if (!$('builderPickerModal')) return;
+  state.builderPickerPart = partId;
+  const part = builderParts.find((item) => item.id === partId);
+  if ($('builderPickerTitle')) $('builderPickerTitle').textContent = `اختر ${part?.label || 'قطعة'}`;
+  if ($('builderPickerSearch')) $('builderPickerSearch').value = '';
+  renderBuilderPickerGrid();
+  modal('builderPickerModal', true);
+}
+
+function renderBuilderPickerGrid() {
+  const grid = $('builderPickerGrid');
+  if (!grid) return;
+  const part = builderParts.find((item) => item.id === state.builderPickerPart);
+  const query = String($('builderPickerSearch')?.value || '').trim().toLowerCase();
+  const products = (part ? productsForPart(part) : []).filter((p) => !query || productText(p).includes(query));
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(p.name)}" onerror="this.src='images/default-product.svg'"><strong>${esc(p.name)}</strong><span>${esc(p.brand || 'غير متوفر')}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(p.price)}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : '<div class="empty-state">لا توجد قطع منشورة مطابقة.</div>';
+  grid.querySelectorAll('[data-builder-pick]').forEach((button) => button.addEventListener('click', () => {
+    state.builder[state.builderPickerPart] = button.dataset.builderPick;
+    saveBuilder(); renderBuilder(); modal('builderPickerModal', false);
+  }));
+}
+
 // Get top 3 specs of a product for builder card display
 function topSpecs(product) {
   const specs = Object.entries(product?.specifications || {});
@@ -494,6 +573,7 @@ function topSpecs(product) {
 }
 
 function renderBuilder() {
+  if (!$('builderPartsList')) return;
   const list = $('builderPartsList');
   list.innerHTML = builderParts.map((part) => {
     const options = productsForPart(part);
@@ -532,7 +612,7 @@ function renderBuilder() {
         </div>
       </div>`;
     } else {
-      // Empty card — show select dropdown
+      // Empty card — open the image-based picker
       const noProducts = options.length === 0;
       return `<div class="builder-part" data-part-id="${esc(part.id)}">
         <div class="builder-part-empty">
@@ -543,13 +623,7 @@ function renderBuilder() {
             </div>
             ${!noProducts ? `<div class="part-add-btn"><i class="fa-solid fa-plus"></i></div>` : ''}
           </div>
-          ${noProducts
-            ? `<span class="no-products-note">لا توجد قطعة منشورة حالياً</span>`
-            : `<select data-builder-part="${esc(part.id)}" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;background:var(--soft);font-size:13px;color:var(--ink);outline:none;margin-top:8px">
-                <option value="">اختر ${esc(part.label)}</option>
-                ${options.map((item) => `<option value="${esc(item.id)}">${esc(item.name)} · ${formatPrice(item.price)}</option>`).join('')}
-              </select>`
-          }
+          ${noProducts ? `<span class="no-products-note">لا توجد قطعة منشورة حالياً</span>` : `<button class="builder-empty-choose" type="button" data-builder-open="${esc(part.id)}"><i class="fa-solid fa-image"></i> اختر القطعة بصورة</button>`}
         </div>
       </div>`;
     }
@@ -560,9 +634,13 @@ function renderBuilder() {
   list.onclick = (event) => {
     const remove = event.target.closest('[data-builder-remove]');
     const change = event.target.closest('[data-builder-change]');
+    const open = event.target.closest('[data-builder-open]');
+    if (open) { openBuilderPicker(open.dataset.builderOpen); return; }
     const partId = remove?.dataset.builderRemove || change?.dataset.builderChange;
     if (!partId) return;
+    if (change) { openBuilderPicker(partId); return; }
     delete state.builder[partId];
+    saveBuilder();
     renderBuilder();
   };
   list.onchange = (event) => {
@@ -570,11 +648,19 @@ function renderBuilder() {
     if (!select) return;
     if (select.value) state.builder[select.dataset.builderPart] = select.value;
     else delete state.builder[select.dataset.builderPart];
+    saveBuilder();
     renderBuilder();
   };
 
   updateBuilder();
 }
+
+const BUILDER_STORAGE_KEY = 'spider.builder.v1';
+function readBuilder() {
+  try { const saved = JSON.parse(localStorage.getItem(BUILDER_STORAGE_KEY) || '{}'); state.builder = saved && typeof saved === 'object' ? saved : {}; }
+  catch { state.builder = {}; }
+}
+function saveBuilder() { localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(state.builder)); }
 
 function selectedBuilderProducts() {
   return Object.values(state.builder)
@@ -619,15 +705,15 @@ function compatibilityStatus(selected) {
 }
 
 function updateBuilder() {
+  if (!$('builderTotal')) return;
   const selected = selectedBuilderProducts();
   const total = selected.reduce((sum, p) => sum + Number(p.price || 0), 0);
   $('builderTotal').textContent = formatPrice(total);
-  $('builderStatus').textContent = `${selected.length} قطع`;
+  if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} قطع`;
   const [msg, tone] = compatibilityStatus(selected);
-  $('compatibilityBox').className = `compatibility-box ${tone}`;
-  $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`;
-  $('addBuilderToCartBtn').disabled = !selected.length;
-  $('quoteBuilderBtn').disabled = !selected.length;
+  if ($('compatibilityBox')) { $('compatibilityBox').className = `compatibility-box ${tone}`; $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`; }
+  if ($('addBuilderToCartBtn')) $('addBuilderToCartBtn').disabled = !selected.length;
+  if ($('quoteBuilderBtn')) $('quoteBuilderBtn').disabled = !selected.length;
 }
 
 function quoteLines(products) {
@@ -644,6 +730,7 @@ function openQuote(products = selectedBuilderProducts()) {
 
 // ===== UPGRADE =====
 function renderUpgrade() {
+  if (!$('upgradeForm')) return;
   const fields = [
     { id: 'cpu',       label: 'المعالج الحالي',      match: /cpu|cpus|معالج/i },
     { id: 'motherboard',label: 'اللوحة الأم الحالية', match: /motherboard|لوحة|مذربورد/i },
@@ -659,6 +746,7 @@ function renderUpgrade() {
 }
 
 function renderUpgradeResults() {
+  if (!$('upgradeForm') || !$('upgradeResults')) return;
   const selected = [...$('upgradeForm').querySelectorAll('select')].map((sel) => state.products.find((p) => p.id === sel.value)).filter(Boolean);
   if (!selected.length) { $('upgradeResults').innerHTML = '<div class="empty-state">اختر مواصفة واحدة على الأقل لبدء الاقتراح.</div>'; return; }
   const usedIds = new Set(selected.map((p) => p.id));
@@ -693,6 +781,7 @@ function addToCart(productId) {
 window.addToCart = addToCart;
 
 function renderCart() {
+  if (!$('cartItemsList')) return;
   saveCart();
   const count = state.cart.reduce((sum, i) => sum + i.qty, 0);
   $('cartBadge').textContent = count;
@@ -735,7 +824,7 @@ function openProductDetails(id) {
   const p = state.products.find((item) => item.id === id);
   if (!p) return;
   const specs = Object.entries(p.specifications || {});
-  $('modalProductTitle').textContent = p.name;
+  $('modalProductTitle').textContent = englishDigits(p.name);
   $('productDetailsBody').innerHTML = `<div class="product-detail">
     <img src="${esc(imageFor(p))}" alt="${esc(p.name)}">
     <div>
@@ -764,7 +853,7 @@ function openAvailability(id) {
   const p = state.products.find((item) => item.id === id);
   if (!p) return;
   state.availabilityProductId = id;
-  $('availabilityProductName').textContent = `المنتج: ${p.name}`;
+  $('availabilityProductName').textContent = englishDigits(`المنتج: ${p.name}`);
   $('availabilityContact').value = '';
   modal('availabilityModal', true);
 }
@@ -794,6 +883,7 @@ function loadFavorites() {
 }
 
 function renderAccount() {
+  if (!$('accountState') || !$('favoritesList')) return;
   const box = $('accountState');
   if (authUser) {
     box.innerHTML = `<div class="favorite-row"><img src="${esc(authUser.photoURL || 'assets/spider-bot.png')}" alt=""><div>${esc(authUser.displayName || authUser.email || 'حساب Google')}<small>${esc(authUser.email || '')}</small></div><button class="btn btn-outline" id="logoutBtn" type="button">خروج</button></div>`;
@@ -815,7 +905,7 @@ function closeChat() { $('chatbotContainer').classList.add('hidden'); }
 function appendChat(text, user = false, products = []) {
   const msg = document.createElement('div');
   msg.className = `message ${user ? 'user-message' : 'bot-message'}`;
-  msg.textContent = text;
+  msg.textContent = englishDigits(text);
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
@@ -834,7 +924,7 @@ function respondChat(text) {
   let reply = 'أكدر أساعدك من المنتجات المنشورة فقط. جرّب اسم منتج أو اختر سؤالاً جاهزاً.';
   if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? 'هذه لابتوبات منشورة حالياً:' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'; }
   else if (/ميزان|budget|سعر|بشكد/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
-  else if (/حاسبة|تجميع|ألعاب|gaming/.test(query)) { document.querySelector('#pcBuilderSection').scrollIntoView({ behavior: 'smooth' }); reply = 'فتحت لك ابنِ حاسبتك. القطع الظاهرة هي المنتجات المنشورة فقط.'; }
+  else if (/حاسبة|تجميع|ألعاب|gaming/.test(query)) { window.location.href = 'builder.html'; reply = 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
   else if (/طوّر|ترقية|upgrade/.test(query)) { document.querySelector('#upgradeSection').scrollIntoView({ behavior: 'smooth' }); reply = 'فتحت لك طوّر حاسبتك حتى تدخل مواصفات جهازك الحالي.'; }
   else if (/قارن|مقارنة/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
   else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = 'وجدت هذه المنتجات المنشورة:'; }
@@ -895,6 +985,22 @@ async function submitCheckout(event) {
 function closeSidebar() { $('sidebarMenu').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); }
 
 // ===== Bind All Events =====
+function bindBuilderPageEvents() {
+  $('openCartBtn')?.addEventListener('click', openCart);
+  $('floatingCartBtn')?.addEventListener('click', openCart);
+  $('closeCartBtn')?.addEventListener('click', closeCart);
+  $('cartOverlay')?.addEventListener('click', closeCart);
+  $('quoteBuilderBtn')?.addEventListener('click', () => openQuote());
+  $('closeBuilderPickerBtn')?.addEventListener('click', () => modal('builderPickerModal', false));
+  $('builderPickerModal')?.addEventListener('click', (event) => { if (event.target === $('builderPickerModal')) modal('builderPickerModal', false); });
+  $('builderPickerSearch')?.addEventListener('input', renderBuilderPickerGrid);
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast('تمت إضافة القطع المنشورة إلى السلة.'); });
+  $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
+  $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast('تم نسخ عرض السعر.'); } catch { showToast('تعذر النسخ.'); } });
+  $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
+  $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+}
+
 function bindEvents() {
   // Categories are always visible — no toggle needed
   const catToggleBtn = $('viewAllCatBtn');
@@ -910,8 +1016,12 @@ function bindEvents() {
   });
   document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) $('searchSuggestions').classList.add('hidden'); });
 
-  $('compareCategorySelect').addEventListener('change', populateCompareProducts);
-  $('compareBrandSelect').addEventListener('change', populateCompareProducts);
+  $('compareCategorySelect').addEventListener('change', () => { populateCompareProducts(); if ($('comparePickerCategory')) $('comparePickerCategory').value = $('compareCategorySelect').value; });
+  $('compareBrandSelect').addEventListener('change', () => { populateCompareProducts(); if ($('comparePickerBrand')) $('comparePickerBrand').value = $('compareBrandSelect').value; });
+  document.querySelectorAll('[data-compare-open]').forEach((button) => button.addEventListener('click', () => openComparePicker(button.dataset.compareOpen)));
+  $('closeComparePickerBtn').addEventListener('click', () => modal('comparePickerModal', false));
+  $('comparePickerModal').addEventListener('click', (event) => { if (event.target === $('comparePickerModal')) modal('comparePickerModal', false); });
+  ['comparePickerSearch', 'comparePickerCategory', 'comparePickerBrand'].forEach((id) => $(id).addEventListener('input', renderComparePickerGrid));
   ['compareProd1Select', 'compareProd2Select'].forEach((id, index) => {
     $(id).addEventListener('change', () => {
       const otherId = index === 0 ? 'compareProd2Select' : 'compareProd1Select';
@@ -930,7 +1040,7 @@ function bindEvents() {
   });
   $('compareNowBtn').addEventListener('click', updateCompareView);
 
-  $('heroBuilderBtn').addEventListener('click', () => $('pcBuilderSection').scrollIntoView({ behavior: 'smooth' }));
+  $('heroBuilderBtn').addEventListener('click', () => { window.location.href = 'builder.html'; });
 
   $('floatingCartBtn').addEventListener('click', openCart);
   $('openCartBtn').addEventListener('click', openCart);
@@ -976,7 +1086,7 @@ function bindEvents() {
 
   // viewFullBuildBtn — scroll to builder
   const vfbBtn = $('viewFullBuildBtn');
-  if (vfbBtn) vfbBtn.addEventListener('click', () => $('pcBuilderSection').scrollIntoView({ behavior: 'smooth' }));
+  if (vfbBtn) vfbBtn.addEventListener('click', () => { window.location.href = 'builder.html'; });
 
   renderSidebarAll();
 }
@@ -1024,8 +1134,10 @@ onAuthStateChanged(auth, (user) => {
 
 // ===== Init =====
 readCart();
+readBuilder();
 loadFavorites();
-bindEvents();
+if (document.body.dataset.page === 'builder') bindBuilderPageEvents();
+else bindEvents();
 updateFavoriteBadge();
 renderCart();
 renderAccount();

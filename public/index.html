@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -84,11 +84,13 @@
   <!-- ===== MAIN ===== -->
   <main id="top">
 
-    <!-- 1. HERO BANNER -->
+    <!-- 1. HERO TITLE + BANNER -->
+    <section class="hero-title-strip section-pad" aria-labelledby="heroTitle">
+      <h1 id="heroTitle">عالم الإلكترونيات بين إيديك</h1>
+    </section>
     <section class="hero" aria-labelledby="heroTitle">
       <div class="hero-copy">
         <p class="hero-kicker">سبايدر للإلكترونيات</p>
-        <h1 id="heroTitle">عالم الإلكترونيات بين إيديك</h1>
         <p id="heroSubtitle">أجهزة أصلية .. أداء أعلى .. تجربة أفضل</p>
         <button class="hero-cta" id="heroBuilderBtn" type="button">
           ابنِ تجميعتك الآن <i class="fa-solid fa-arrow-left"></i>
@@ -176,11 +178,11 @@
 
         <div class="compare-picker" id="comparePicker1">
           <div class="picker-label">المنتج الأول</div>
-          <div id="comparePreview1" class="picker-empty">
+          <button id="comparePreview1" class="picker-empty" type="button" data-compare-open="0">
             <i class="fa-regular fa-image"></i>
             <span>اختر منتجاً</span>
-          </div>
-          <div class="picker-select-row">
+          </button>
+          <div class="picker-select-row hidden">
             <select id="compareProd1Select">
               <option value="">اختر المنتج الأول</option>
             </select>
@@ -191,11 +193,11 @@
 
         <div class="compare-picker" id="comparePicker2">
           <div class="picker-label">المنتج الثاني</div>
-          <div id="comparePreview2" class="picker-empty">
+          <button id="comparePreview2" class="picker-empty" type="button" data-compare-open="1">
             <i class="fa-regular fa-image"></i>
             <span>اختر منتجاً</span>
-          </div>
-          <div class="picker-select-row">
+          </button>
+          <div class="picker-select-row hidden">
             <select id="compareProd2Select">
               <option value="">اختر المنتج الثاني</option>
             </select>
@@ -209,41 +211,7 @@
       <div id="compareResults" class="compare-results hidden"></div>
     </section>
 
-    <!-- 7. BUILDER -->
-    <section class="section-pad builder-section" id="pcBuilderSection" aria-labelledby="builderTitle">
-      <!-- Banner strip -->
-      <div class="builder-banner">
-        <div class="builder-banner-copy">
-          <div class="section-title-bar" style="margin-bottom:6px">
-            <h2 id="builderTitle">ابنِ حاسبتك</h2>
-          </div>
-          <p>اختر القطع المناسبة لك وأنشئ حاسوبك المثالي</p>
-        </div>
-        <img class="builder-banner-img" src="assets/gaming-pc.jpg" alt="تجميع حاسبة">
-        <span class="builder-status" id="builderStatus" style="position:absolute;right:16px;top:16px;background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:3px 10px">0 قطع</span>
-      </div>
-
-      <div class="builder-layout">
-        <div class="builder-parts" id="builderPartsList"></div>
-        <aside class="builder-summary">
-          <div class="summary-label">إجمالي التجميعة</div>
-          <strong id="builderTotal">0 د.ع</strong>
-          <div class="compatibility-box" id="compatibilityBox">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>اختر القطع لفحص التوافق.</span>
-          </div>
-          <div class="summary-actions">
-            <button class="btn btn-primary" id="addBuilderToCartBtn" type="button" disabled>أضف التجميعة إلى السلة</button>
-            <button class="btn btn-outline" id="quoteBuilderBtn" type="button" disabled>اطلب عرض سعر</button>
-          </div>
-          <button class="view-full-build" id="viewFullBuildBtn" type="button">
-            عرض التجميعة الكاملة <i class="fa-solid fa-arrow-left"></i>
-          </button>
-        </aside>
-      </div>
-    </section>
-
-    <!-- 8. UPGRADE -->
+    <!-- 7. UPGRADE -->
     <section class="section-pad upgrade-section" id="upgradeSection" aria-labelledby="upgradeTitle">
       <div class="section-heading">
         <div class="section-title-bar">
@@ -257,6 +225,22 @@
     </section>
 
   </main>
+
+  <!-- Image-based comparison picker -->
+  <div class="modal-overlay" id="comparePickerModal">
+    <div class="modal-content compare-picker-modal-content">
+      <div class="modal-head">
+        <h2>اختر منتج المقارنة</h2>
+        <button class="icon-btn" id="closeComparePickerBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="compare-picker-tools">
+        <input id="comparePickerSearch" type="search" placeholder="ابحث بالاسم أو الموديل" aria-label="البحث في منتجات المقارنة">
+        <select id="comparePickerCategory" aria-label="فلتر القسم"><option value="">كل الأقسام</option></select>
+        <select id="comparePickerBrand" aria-label="فلتر العلامة التجارية"><option value="">كل العلامات</option></select>
+      </div>
+      <div class="compare-picker-grid" id="comparePickerGrid"></div>
+    </div>
+  </div>
 
   <!-- ===== FOOTER ===== -->
   <footer class="site-footer">
@@ -449,6 +433,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="script.js?v=9"></script>
+  <script type="module" src="script.js?v=10"></script>
 </body>
 </html>

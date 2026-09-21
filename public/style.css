@@ -47,6 +47,8 @@ img{max-width:100%;display:block}
 .brand-copy{display:flex;flex-direction:column;line-height:1.1;text-align:right}
 .brand-copy strong{color:var(--red);font-size:clamp(18px,2vw,24px);font-weight:900;white-space:nowrap}
 .brand-copy small{font-size:9px;color:#333;font-weight:700;margin-top:1px;white-space:nowrap;letter-spacing:.3px}
+.hero-title-strip{padding-top:20px;padding-bottom:8px}
+.hero-title-strip h1{font-size:clamp(24px,3vw,38px);line-height:1.35;color:var(--ink);font-weight:900;text-align:right}
 
 /* Header Actions — left side */
 .header-actions{display:flex;align-items:center;gap:4px;direction:rtl}
@@ -440,6 +442,23 @@ img{max-width:100%;display:block}
 }
 .picker-empty:hover{border-color:#ffc3c6;color:var(--red)}
 .picker-empty i{font-size:20px}
+.compare-picker-option{border:1px solid #eee;border-radius:12px;background:#fff;padding:10px;text-align:right;display:flex;flex-direction:column;gap:4px;min-width:0;transition:.15s}
+.compare-picker-option:hover{border-color:#ed1c24;box-shadow:0 4px 16px rgba(237,28,36,.12);transform:translateY(-1px)}
+.compare-picker-option.is-disabled{opacity:.45;cursor:not-allowed}
+.compare-picker-option img{width:100%;height:120px;object-fit:contain;background:var(--soft);border-radius:9px}
+.compare-picker-option strong{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.compare-picker-option span{font-size:11px;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
+.compare-picker-option b{font-size:14px;color:var(--red);margin-top:auto}
+.compare-picker-option small{width:max-content}
+.cpc-stock{font-size:10px;margin-bottom:5px}.cpc-stock.in{color:var(--green)}.cpc-stock.limited{color:var(--orange)}.cpc-stock.out{color:var(--red-dark)}
+.compare-picker-modal-content{width:min(760px,calc(100vw - 24px));max-height:min(90vh,760px)}
+.compare-picker-tools{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.compare-picker-tools input,.compare-picker-tools select{min-height:42px;border:1px solid var(--line);border-radius:9px;padding:0 10px;background:#fff;color:var(--ink);outline:none;font-size:12px;min-width:0}
+.compare-picker-tools input:focus,.compare-picker-tools select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(237,28,36,.08)}
+.compare-picker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 16px;overflow:auto;min-height:0}
+.builder-page-main{background:linear-gradient(180deg,#fff 0,#fff8f8 100%);min-height:calc(100vh - 88px)}
+.builder-page-head{padding-top:34px;padding-bottom:4px}.builder-page-head h1{font-size:clamp(28px,4vw,44px);line-height:1.3;margin:4px 0;color:var(--ink)}.builder-page-head>p:last-child{color:var(--muted);font-size:15px;line-height:1.8}.back-to-store{color:var(--red);font-weight:800;font-size:13px;display:inline-flex;gap:6px;align-items:center;margin-bottom:18px}
+.builder-page .builder-section{padding-top:18px}.builder-page .builder-banner{margin-bottom:18px}
 
 .picker-select-row{display:block}
 .picker-select-row select{
@@ -520,6 +539,8 @@ img{max-width:100%;display:block}
 .part-add-btn{width:34px;height:34px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:14px;transition:.15s;flex-shrink:0}
 .builder-part-empty .part-header{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px}
 .no-products-note{font-size:11px;color:var(--muted)}
+.builder-empty-choose{width:100%;min-height:42px;border:1px solid #ffc3c6;border-radius:9px;background:var(--red-soft);color:var(--red);font-size:13px;font-weight:800;padding:8px;display:flex;align-items:center;justify-content:center;gap:7px}
+.builder-empty-choose:hover{background:#ffe2e4}
 
 /* Filled part card — image-based like reference */
 .builder-part-filled{padding:0}
@@ -788,9 +809,9 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   .header-shell{padding:0 13px}
   .header-actions{gap:2px}
   .icon-btn{width:34px;height:34px;font-size:14px}
-  .brand-lockup img{width:36px;height:36px}
-  .brand-copy strong{font-size:17px}
-  .brand-copy small{font-size:8px}
+  .brand-lockup img{width:48px;height:48px}
+  .brand-copy strong{font-size:23px}
+  .brand-copy small{font-size:9px}
   .header-menu-row{height:31px;margin-top:-6px}
   .header-menu-row .menu-btn{width:31px;height:31px}
 
@@ -872,6 +893,13 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
 
   /* Section heading */
   .section-heading h2{font-size:16px}
+  .hero-title-strip{padding-top:16px;padding-bottom:4px}
+  .hero-title-strip h1{font-size:24px;line-height:1.45}
+  .compare-picker-tools{grid-template-columns:1fr 1fr;gap:7px;padding:10px 12px}
+  .compare-picker-tools input{grid-column:1/-1}
+  .compare-picker-grid{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px;gap:8px}
+  .compare-picker-option{padding:8px}.compare-picker-option img{height:90px}.compare-picker-option strong{font-size:12px}.compare-picker-option b{font-size:13px}
+  .builder-page-head{padding-top:24px}.builder-page-head h1{font-size:30px}.builder-page-head>p:last-child{font-size:14px}
 }
 
 @media (max-width:380px) {
@@ -890,4 +918,173 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
 
 @media (prefers-reduced-motion:reduce) {
   *,*:before,*:after{scroll-behavior:auto!important;transition:none!important}
+}
+
+/* ===== Readability and no-clipping pass ===== */
+/* Text is allowed to wrap everywhere; image containers keep their intentional crop. */
+.section-heading h2,
+.section-heading p,
+.eyebrow,
+.hero h1,
+.hero-copy>p,
+.btn,
+.hero-cta,
+.text-btn,
+.product-brand,
+.product-title,
+.product-model,
+.product-price,
+.old-price,
+.stock,
+.cat-name,
+.brand-item,
+.picker-label,
+.compare-picker-card .cpc-name,
+.compare-picker-card .cpc-brand,
+.compare-card h3,
+.spec-row,
+.builder-banner-copy h2,
+.builder-banner-copy p,
+.part-label,
+.part-filled-category,
+.part-filled-name,
+.part-filled-model,
+.part-filled-price,
+.part-filled-specs,
+.summary-label,
+.compatibility-box,
+.view-full-build,
+.upgrade-field,
+.upgrade-note,
+.cart-item-title,
+.cart-item-price,
+.drawer-head h2,
+.modal-head h2,
+.modal-body,
+.detail-meta,
+.detail-price,
+.favorite-row div,
+.quote-line,
+.message,
+.chat-quick-replies button,
+.chat-input input,
+.footer-brand p,
+.footer-links a {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.product-title,
+.compare-picker-card .cpc-name,
+.part-filled-name {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: initial;
+}
+
+.product-card,
+.builder-part,
+.compare-card,
+.compare-picker,
+.compare-picker-card,
+.builder-banner,
+.cart-item,
+.favorite-row,
+.quote-line {
+  min-width: 0;
+}
+
+.builder-banner { position: relative; }
+
+.product-actions .btn,
+.part-filled-actions .btn,
+.compare-result-actions .btn,
+.detail-actions .btn,
+.quote-actions .btn,
+.summary-actions .btn {
+  height: auto;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.45;
+}
+
+.product-title { line-height: 1.5; }
+.compare-picker-card .cpc-name { line-height: 1.45; }
+.part-filled-name { line-height: 1.45; }
+.spec-row>* { min-width: 0; overflow-wrap: anywhere; }
+.toast { white-space: normal; text-align: center; max-width: min(92vw, 480px); line-height: 1.5; }
+.brand-copy strong,
+.brand-copy small,
+.suggestion b { white-space: normal; }
+
+@media (max-width:600px) {
+  body { font-size: 16px; }
+  .section-pad { padding-inline: 14px; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-copy { padding: 20px 16px; gap: 10px; }
+  .hero h1 { font-size: 22px; line-height: 1.35; }
+  .hero-copy>p:not(.hero-kicker) { font-size: 15px; line-height: 1.65; }
+  .hero-cta { font-size: 15px; line-height: 1.45; padding: 10px 14px; }
+  .hero-media { min-height: 180px; }
+  .section-heading { align-items: flex-start; flex-wrap: wrap; }
+  .section-heading h2 { font-size: 20px; line-height: 1.45; }
+  .section-heading p { font-size: 14px; }
+  .text-btn { font-size: 14px; line-height: 1.45; }
+  .cat-name { font-size: 13px; line-height: 1.4; max-width: 76px; }
+  .product-title { font-size: 15px; line-height: 1.5; }
+  .product-brand { font-size: 12px; }
+  .product-model { font-size: 13px; line-height: 1.45; }
+  .product-price { font-size: 17px; }
+  .old-price { font-size: 12px; }
+  .stock { font-size: 12px; line-height: 1.35; }
+  .product-actions .btn { font-size: 14px; min-height: 40px; padding: 7px 6px; }
+  .brand-item { font-size: 13px; line-height: 1.4; }
+  .compare-filters label,
+  .compare-filters select,
+  .picker-label,
+  .picker-select-row select { font-size: 13px; line-height: 1.45; }
+  .compare-picker-card .cpc-name { font-size: 13px; }
+  .compare-picker-card .cpc-brand { font-size: 12px; }
+  .compare-picker-card .cpc-price { font-size: 15px; }
+  .compare-picker-card .cpc-actions .btn { font-size: 12px; min-height: 32px; }
+  .compare-card h3 { font-size: 14px; }
+  .compare-card strong { font-size: 16px; }
+  .spec-row { font-size: 12px; line-height: 1.5; }
+  .spec-row>* { padding: 8px 5px; }
+  .builder-banner { align-items: flex-start; padding: 16px 14px; }
+  .builder-banner-copy h2 { font-size: 20px; line-height: 1.45; }
+  .builder-banner-copy p { font-size: 14px; line-height: 1.6; }
+  .builder-status { font-size: 12px !important; line-height: 1.4; }
+  .part-label { font-size: 15px; }
+  .part-filled-name { font-size: 14px; }
+  .part-filled-model { font-size: 12px; }
+  .part-filled-price { font-size: 16px; line-height: 1.45; }
+  .part-filled-price span { font-size: 12px; }
+  .part-filled-specs { font-size: 12px; line-height: 1.5; }
+  .part-filled-actions .btn,
+  .summary-actions .btn,
+  .view-full-build { font-size: 14px; min-height: 40px; }
+  .summary-label { font-size: 13px; }
+  .builder-summary>strong { font-size: 26px; }
+  .compatibility-box { font-size: 13px; line-height: 1.6; }
+  .upgrade-field { font-size: 14px; line-height: 1.45; }
+  .upgrade-field select { font-size: 14px; min-height: 44px; }
+  .upgrade-note { font-size: 13px; line-height: 1.6; }
+  .cart-item-title { font-size: 14px; line-height: 1.5; }
+  .cart-item-price { font-size: 15px; }
+  .cart-footer>div { font-size: 14px; }
+  .cart-footer strong { font-size: 20px; }
+  .cart-footer .btn { font-size: 15px; }
+  .drawer-head h2, .modal-head h2 { font-size: 18px; line-height: 1.45; }
+  .modal-body input, .modal-body select, .modal-body textarea { font-size: 14px; min-height: 44px; }
+  .detail-meta, .form-note, .modal-body small { font-size: 12px; line-height: 1.6; }
+  .detail-price { font-size: 24px; }
+  .message { font-size: 14px; line-height: 1.6; }
+  .chat-quick-replies button { font-size: 12px; padding: 7px 9px; }
+  .chat-input input { font-size: 14px; min-height: 40px; }
+  .footer-brand p, .footer-links a { font-size: 13px; line-height: 1.5; }
 }
