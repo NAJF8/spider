@@ -55,27 +55,42 @@ const productText = (p) => [p?.name, p?.brand, p?.model, p?.description, ...Obje
 const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
 const modal = (id, open) => $(id)?.classList.toggle('open', open);
 
-// ===== Fallback images per category keyword =====
+// ===== Category fallbacks =====
+// Firebase keeps any valid custom image URL. These local GitHub-hosted assets
+// are used only when that URL is absent or fails to load.
 const FALLBACK_IMAGES = {
-  cpu: 'assets/cpu.jpg',
-  معالج: 'assets/cpu.jpg',
-  gpu: 'assets/gpu.jpg',
-  كرت: 'assets/gpu.jpg',
-  شاشة: 'assets/monitor.jpg',
-  monitor: 'assets/monitor.jpg',
-  لابتوب: 'assets/laptop.jpg',
-  laptop: 'assets/laptop.jpg',
-  سماعة: 'assets/headset.jpg',
-  headset: 'assets/headset.jpg',
-  gaming: 'assets/gaming-pc.jpg',
-  ألعاب: 'assets/gaming-pc.jpg'
+  'cat-computers': 'assets/category-fallbacks/computer.svg',
+  'cat-storage': 'assets/category-fallbacks/storage.svg',
+  'cat-ram': 'assets/category-fallbacks/ram.svg',
+  'cat-monitors': 'assets/category-fallbacks/monitor.svg',
+  'cat-printers': 'assets/category-fallbacks/printer.svg',
+  'cat-network': 'assets/category-fallbacks/network.svg',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg',
+  'cat-cpus': 'assets/category-fallbacks/cpu.svg',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg',
+  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg',
+  'cat-psu': 'assets/category-fallbacks/power.svg',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg',
+  'cat-cases': 'assets/category-fallbacks/computer.svg',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg',
+  'cat-power': 'assets/category-fallbacks/power.svg',
+  'cat-security': 'assets/category-fallbacks/security.svg'
 };
+const FALLBACK_KEYWORDS = [
+  ['معالج', 'cpu'], ['cpu', 'cpu'], ['رام', 'ram'], ['ذاكرة', 'ram'],
+  ['لوحة', 'motherboard'], ['motherboard', 'motherboard'], ['كرت', 'gpu'], ['gpu', 'gpu'],
+  ['تخزين', 'storage'], ['ssd', 'storage'], ['hdd', 'storage'], ['شاشة', 'monitor'], ['monitor', 'monitor'],
+  ['طابعة', 'printer'], ['ماسح', 'printer'], ['شبك', 'network'], ['router', 'network'], ['راوتر', 'network'],
+  ['تبريد', 'cooling'], ['مجهز', 'power'], ['طاقة', 'power'], ['كاميرا', 'security'], ['أمان', 'security'],
+  ['ملحق', 'accessories'], ['سماعة', 'accessories'], ['حاسوب', 'computer'], ['كمبيوتر', 'computer']
+];
 function categoryFallback(cat) {
   const key = `${cat.id || ''} ${cat.name || ''}`.toLowerCase();
-  for (const [k, src] of Object.entries(FALLBACK_IMAGES)) {
-    if (key.includes(k.toLowerCase())) return src;
+  if (FALLBACK_IMAGES[cat.id]) return FALLBACK_IMAGES[cat.id];
+  for (const [keyword, asset] of FALLBACK_KEYWORDS) {
+    if (key.includes(keyword)) return `assets/category-fallbacks/${asset}.svg`;
   }
-  return 'images/default-category.svg';
+  return 'assets/category-fallbacks/pc-parts.svg';
 }
 
 // ===== Product category matching =====
@@ -151,7 +166,8 @@ function renderCategories() {
 
   row.innerHTML = categories.map((cat) => {
     const imgSrc = cat.image || categoryFallback(cat);
-    const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(cat.name)}" loading="lazy" onerror="this.src='${categoryFallback(cat)}'">`;
+    const fallback = categoryFallback(cat);
+    const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(cat.name)}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     return `<button class="cat-circle-item" type="button" data-category-id="${esc(cat.id)}" title="${esc(cat.name)}">
       <span class="cat-circle">${imgHtml}</span>
       <span class="cat-name">${esc(cat.name)}</span>

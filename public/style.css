@@ -40,7 +40,7 @@ img{max-width:100%;display:block}
   gap:10px;padding:10px 0;direction:rtl;
 }
 
-/* Brand side — RTL: اسم → لوكو → ☰ */
+/* Brand side — name and original logo stay together in the first row. */
 .brand-side{display:flex;align-items:center;gap:6px;direction:rtl}
 .brand-lockup{display:flex;align-items:center;gap:6px;direction:rtl}
 .brand-lockup img{width:42px;height:42px;object-fit:contain;flex-shrink:0}
@@ -68,6 +68,8 @@ img{max-width:100%;display:block}
 
 /* Menu button */
 .menu-btn{color:#333}
+.header-menu-row{display:flex;justify-content:flex-start;direction:rtl;height:34px;align-items:center;margin-top:-5px}
+.header-menu-row .menu-btn{width:34px;height:34px;border-radius:9px}
 
 /* Search Bar */
 .search-wrap{position:relative;padding:8px 0 10px}
@@ -269,8 +271,9 @@ img{max-width:100%;display:block}
 .categories-section{padding-top:20px;padding-bottom:8px}
 .categories-row{
   display:flex;flex-direction:row;gap:14px;
-  overflow-x:auto;padding:10px 2px 8px;
+  overflow-x:auto;padding:12px 7px 12px;
   scrollbar-width:none;-ms-overflow-style:none;
+  overscroll-behavior-inline:contain;
 }
 .categories-row::-webkit-scrollbar{display:none}
 .categories-row.is-collapsed{display:none}
@@ -281,18 +284,20 @@ img{max-width:100%;display:block}
 }
 .cat-circle-item.active .cat-circle{
   border-color:var(--red);
-  box-shadow:0 0 0 3px rgba(237,28,36,.15);
+  box-shadow:0 0 0 2px rgba(237,28,36,.13),0 3px 12px rgba(237,28,36,.22);
   background:#fff7f7;
 }
-.cat-circle-item:hover .cat-circle{border-color:var(--red);box-shadow:0 0 0 2px rgba(237,28,36,.12)}
+.cat-circle-item:hover .cat-circle{border-color:#f04a50;box-shadow:0 0 0 2px rgba(237,28,36,.12),0 4px 15px rgba(237,28,36,.25)}
 
 .cat-circle{
   width:72px;height:72px;border-radius:50%;
-  border:2px solid #eee;overflow:hidden;
-  background:var(--soft);display:flex;
-  align-items:center;justify-content:center;transition:.2s;flex-shrink:0;
+  border:1.5px solid rgba(237,28,36,.62);overflow:hidden;
+  background:#fff;display:flex;
+  align-items:center;justify-content:center;transition:box-shadow .2s,border-color .2s,transform .2s;flex-shrink:0;
+  box-shadow:0 2px 10px rgba(237,28,36,.18);
 }
-.cat-circle img{width:100%;height:100%;object-fit:cover}
+.cat-circle-item:hover .cat-circle{transform:translateY(-1px)}
+.cat-circle img{width:100%;height:100%;object-fit:cover;padding:7px}
 .cat-circle i{font-size:26px;color:var(--red)}
 
 .cat-name{
@@ -786,6 +791,8 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   .brand-lockup img{width:36px;height:36px}
   .brand-copy strong{font-size:17px}
   .brand-copy small{font-size:8px}
+  .header-menu-row{height:31px;margin-top:-6px}
+  .header-menu-row .menu-btn{width:31px;height:31px}
 
   /* Hero banner */
   .hero{
@@ -801,7 +808,7 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   /* Categories */
   .cat-circle{width:64px;height:64px}
   .cat-name{font-size:10px;max-width:64px}
-  .categories-row{gap:10px}
+  .categories-row{gap:10px;padding-inline:6px}
   .categories-section{padding-top:16px}
 
   /* Products grid: 2 columns */
