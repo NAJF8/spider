@@ -60,7 +60,7 @@ const modal = (id, open) => $(id)?.classList.toggle('open', open);
 // are used only when that URL is absent or fails to load.
 const FALLBACK_IMAGES = {
   'cat-computers': 'assets/category-fallbacks/computer.svg',
-  'cat-storage': 'assets/category-fallbacks/storage.svg',
+  'cat-storage': 'assets/category-fallbacks/storage.svg?v=1',
   'cat-ram': 'assets/category-fallbacks/ram.svg',
   'cat-monitors': 'assets/category-fallbacks/monitor.svg',
   'cat-printers': 'assets/category-fallbacks/printer.svg',
