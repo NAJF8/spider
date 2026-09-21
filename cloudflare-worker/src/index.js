@@ -136,6 +136,7 @@ export default {
       try {
         const body = await request.json();
         const { items, customer } = body;
+        const requestId = String(body.requestId || request.headers?.get?.('X-Request-Id') || '').trim();
 
         if (!items || !Array.isArray(items) || items.length === 0) {
           return errorResponse('CART_EMPTY', 400);
@@ -160,6 +161,21 @@ export default {
           return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
         }
         const databaseQuery = `?auth=${encodeURIComponent(databaseSecret)}`;
+
+        // A client retry may safely replay the same response after the first save.
+        // The request id is opaque and contains no customer data.
+        if (requestId && !/^[A-Za-z0-9_-]{16,100}$/.test(requestId)) {
+          return errorResponse('INVALID_REQUEST_ID', 400);
+        }
+        if (requestId) {
+          const replayRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/checkout_requests/${encodeURIComponent(requestId)}.json${databaseQuery}`);
+          if (replayRes.ok) {
+            const replay = await replayRes.json();
+            if (replay?.success && replay.orderNumber) {
+              return jsonResponse(replay);
+            }
+          }
+        }
 
         // Fetch live products and settings
         const [productsRes, settingsRes] = await Promise.all([
@@ -187,7 +203,8 @@ export default {
             return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
           }
           
-          if (liveProd.stock !== undefined && liveProd.stock !== null && Number(liveProd.stock) < item.qty) {
+          const availableStock = liveProd.stockQuantity ?? liveProd.stock;
+          if (availableStock !== undefined && availableStock !== null && Number(availableStock) < item.qty) {
             return errorResponse(`OUT_OF_STOCK_${item.id}`, 400);
           }
 
@@ -233,19 +250,23 @@ export default {
           return errorResponse('ORDER_SAVE_FAILED', 500);
         }
 
-        return new Response(JSON.stringify({
+        const responsePayload = {
           success: true,
           orderNumber,
           subtotal,
           deliveryFee,
           grandTotal,
           items: verifiedItems
-        }), {
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
-        });
+        };
+        if (requestId) {
+          const replaySave = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/checkout_requests/${encodeURIComponent(requestId)}.json${databaseQuery}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...responsePayload, savedAt: Date.now() })
+          });
+          if (!replaySave.ok) console.error('Checkout idempotency record failed:', replaySave.status);
+        }
+        return jsonResponse(responsePayload);
 
       } catch (err) {
         console.error("Checkout Error:", err.message);
@@ -260,6 +281,16 @@ export default {
 function errorResponse(code, status) {
   return new Response(JSON.stringify({ error: code }), {
     status: status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    }
+  });
+}
+
+function jsonResponse(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*'

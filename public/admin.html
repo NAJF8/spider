@@ -429,16 +429,20 @@
                             </div>
                             <div class="form-group"><label>رقم الهاتف</label><input type="text" id="settingPhone" placeholder="07XXXXXXXXX" dir="ltr"></div>
                             <div class="form-group"><label>رابط إنستغرام</label><input type="url" id="settingInstagramUrl" placeholder="https://instagram.com/..." dir="ltr"></div>
-                            <div class="form-group"><label>رابط فيسبوك</label><input type="url" id="settingFacebookUrl" placeholder="https://facebook.com/..." dir="ltr"></div>
                             <div class="form-group"><label>رابط Google Maps</label><input type="url" id="settingGoogleMapsUrl" placeholder="https://maps.google.com/..." dir="ltr"></div>
                             <div class="form-group"><label>عنوان المتجر</label><input type="text" id="settingStoreAddress" placeholder="العنوان التفصيلي"></div>
                             <div class="form-group"><label>رسالة الترحيب</label><textarea id="settingWelcomeMessage" placeholder="أهلاً بيكم في سبايدر"></textarea></div>
+                            <div class="form-group"><label>عنوان البانر</label><input type="text" id="settingHeroTitle" placeholder="عالم الإلكترونيات بين إيديك"></div>
+                            <div class="form-group"><label>وصف البانر</label><input type="text" id="settingHeroSubtitle" placeholder="أجهزة أصلية .. أداء أعلى .. تجربة أفضل"></div>
+                            <div class="form-group"><label>نص زر البانر</label><input type="text" id="settingHeroCta" placeholder="ابنِ تجميعتك الآن"></div>
+                            <div class="form-group"><label>صورة البانر</label><input type="url" id="settingHeroImage" placeholder="https://..." dir="ltr"></div>
                             <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingChatbotEnabled" checked><span>تفعيل مساعد سبايدر</span></label></div>
                             <div class="form-group">
                                 <label>تكلفة التوصيل الافتراضية <span class="req">*</span></label>
                                 <input type="number" id="settingDeliveryFee" required placeholder="5000">
                                 <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
                             </div>
+                            <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
                     </form>

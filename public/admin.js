@@ -1587,10 +1587,14 @@ onValue(ref(db, 'settings'), (snapshot) => {
         settingWhatsapp: storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '',
         settingPhone: storeSettings.phoneNumber || storeSettings.storePhone || '',
         settingInstagramUrl: storeSettings.instagramUrl || '',
-        settingFacebookUrl: storeSettings.facebookUrl || '',
         settingGoogleMapsUrl: storeSettings.googleMapsUrl || '',
         settingStoreAddress: storeSettings.storeAddress || '',
-        settingWelcomeMessage: storeSettings.welcomeMessage || ''
+        settingWelcomeMessage: storeSettings.welcomeMessage || '',
+        settingHeroTitle: storeSettings.heroTitle || '',
+        settingHeroSubtitle: storeSettings.heroSubtitle || '',
+        settingHeroCta: storeSettings.heroCta || '',
+        settingHeroImage: storeSettings.heroImage || '',
+        settingLowStockThreshold: storeSettings.lowStockThreshold ?? 3
     };
     Object.entries(fields).forEach(([id, value]) => { const el = document.getElementById(id); if (el) el.value = value; });
     const chatbotEnabled = document.getElementById('settingChatbotEnabled');
@@ -1618,10 +1622,14 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             whatsappNumber: wa,
             phoneNumber: document.getElementById('settingPhone').value.trim(),
             instagramUrl: document.getElementById('settingInstagramUrl').value.trim(),
-            facebookUrl: document.getElementById('settingFacebookUrl').value.trim(),
             googleMapsUrl: document.getElementById('settingGoogleMapsUrl').value.trim(),
             storeAddress: document.getElementById('settingStoreAddress').value.trim(),
             welcomeMessage: document.getElementById('settingWelcomeMessage').value.trim(),
+            heroTitle: document.getElementById('settingHeroTitle').value.trim(),
+            heroSubtitle: document.getElementById('settingHeroSubtitle').value.trim(),
+            heroCta: document.getElementById('settingHeroCta').value.trim(),
+            heroImage: document.getElementById('settingHeroImage').value.trim(),
+            lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
             deliveryFee: df
         });
