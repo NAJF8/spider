@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#e50914">
+  <meta name="theme-color" content="#ed1c24">
   <title>سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 
@@ -81,38 +81,52 @@
   <!-- ===== MAIN ===== -->
   <main id="top">
 
-    <!-- 1. HERO / BANNER -->
-    <section class="hero section-pad" aria-labelledby="heroTitle">
+    <!-- 1. TEXT ABOVE BANNER -->
+    <div class="hero-above">
+      <h1 class="hero-above-title">عالم الإلكترونيات بين إيديك</h1>
+      <p class="hero-above-sub">أجهزة أصلية .. أداء أعلى .. تجربة أفضل</p>
+    </div>
+
+    <!-- 2. HERO BANNER -->
+    <section class="hero" aria-labelledby="heroTitle">
       <div class="hero-copy">
-        <p class="hero-kicker">سبايدر للإلكترونيات</p>
-        <h1 id="heroTitle">عالم الإلكترونيات بين إيديك</h1>
+        <p class="hero-kicker" id="heroTitle">سبايدر للإلكترونيات</p>
+        <h2 id="heroCopyTitle">كل ما تحتاجه لهواة الكمبيوتر في مكان واحد</h2>
         <p id="heroSubtitle">أجهزة أصلية .. أداء أعلى .. تجربة أفضل</p>
-        <button class="btn btn-primary hero-cta" id="heroBuilderBtn" type="button">
+        <button class="hero-cta" id="heroBuilderBtn" type="button">
           ابنِ تجميعتك الآن <i class="fa-solid fa-arrow-left"></i>
         </button>
       </div>
       <div class="hero-media">
         <img id="heroImage" src="assets/hero-setup.jpg" alt="تجهيز ألعاب وكمبيوتر من سبايدر" fetchpriority="high">
+        <div class="hero-pwc">
+          <p>PLAY</p>
+          <p>WORK</p>
+          <p>CREATE</p>
+          <p style="color:#ed1c24">MORE</p>
+        </div>
       </div>
     </section>
 
-    <!-- 2. CATEGORIES — Circular Row -->
-    <section class="section-pad categories-section" aria-labelledby="categoriesTitle">
-      <button class="section-toggle" id="viewAllCatBtn" type="button"
-        aria-expanded="false" aria-controls="categoriesRow">
-        <span id="categoriesTitle">انقر لعرض الأقسام</span>
-        <i class="fa-solid fa-chevron-down"></i>
-      </button>
-      <div class="categories-row is-collapsed" id="categoriesRow">
+    <!-- 3. CATEGORIES — Always visible circular row -->
+    <section class="section-pad categories-section" aria-label="أقسام المتجر">
+      <div class="categories-row" id="categoriesRow">
         <div class="loading-state">جاري تحميل الأقسام...</div>
       </div>
+      <!-- Show-all toggle (optional) -->
+      <div style="text-align:center;margin-top:12px">
+        <button class="section-toggle hidden" id="viewAllCatBtn" type="button"
+          aria-expanded="false" aria-controls="categoriesRow" style="display:none">
+          <span id="categoriesTitle">انقر لعرض الأقسام</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+      </div>
     </section>
 
-    <!-- 3. PRODUCTS -->
+    <!-- 4. PRODUCTS -->
     <section class="section-pad products-section" id="productsSection" aria-labelledby="productsSectionTitle">
       <div class="section-heading">
-        <div>
-          <span class="eyebrow">الكتالوگ المنشور</span>
+        <div class="section-title-bar">
           <h2 id="productsSectionTitle">أحدث المنتجات</h2>
         </div>
         <button class="text-btn" id="viewAllProdBtn" type="button">
@@ -125,16 +139,15 @@
       </div>
     </section>
 
-    <!-- 4. BRANDS -->
+    <!-- 5. BRANDS -->
     <section class="section-pad brands-section" aria-labelledby="brandsTitle">
       <div class="section-heading">
-        <div>
-          <span class="eyebrow">اختيارات موثقة</span>
+        <div class="section-title-bar">
           <h2 id="brandsTitle">العلامات التجارية</h2>
         </div>
-        <div class="heading-actions">
+        <div style="display:flex;align-items:center;gap:10px">
           <button class="text-btn" id="toggleBrandsBtn" type="button" aria-expanded="false">
-            اضغط لإظهار العلامات التجارية <i class="fa-solid fa-chevron-down"></i>
+            إظهار <i class="fa-solid fa-chevron-down"></i>
           </button>
           <button class="text-btn hidden" id="clearBrandBtn" type="button">إلغاء الفلتر</button>
         </div>
@@ -142,18 +155,16 @@
       <div class="brands-grid is-collapsed" id="brandsGrid"></div>
     </section>
 
-    <!-- 5. COMPARE -->
+    <!-- 6. COMPARE -->
     <section class="section-pad compare-section" id="compareSection" aria-labelledby="compareTitle">
       <div class="section-heading">
-        <div>
-          <span class="eyebrow">قرار شراء أوضح</span>
+        <div class="section-title-bar">
           <h2 id="compareTitle">مقارنة المنتجات</h2>
-          <p>اختر منتجين من نفس القسم وشاهد المواصفات المتوفرة فعلياً.</p>
         </div>
         <button class="text-btn" id="clearCompareBtn" type="button">مسح المقارنة</button>
       </div>
 
-      <!-- Filter: Category on top -->
+      <!-- Filter: Category + Brand -->
       <div class="compare-filters">
         <label>
           القسم
@@ -207,16 +218,20 @@
       <div id="compareResults" class="compare-results hidden"></div>
     </section>
 
-    <!-- 6. BUILDER -->
+    <!-- 7. BUILDER -->
     <section class="section-pad builder-section" id="pcBuilderSection" aria-labelledby="builderTitle">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">اختيارات مبنية على المنتجات المنشورة</span>
-          <h2 id="builderTitle">ابنِ حاسبتك</h2>
-          <p>اختر القطع المتوفرة فعلياً. القطع غير المعتمدة تبقى خارج خيارات البيع.</p>
+      <!-- Banner strip -->
+      <div class="builder-banner">
+        <div class="builder-banner-copy">
+          <div class="section-title-bar" style="margin-bottom:6px">
+            <h2 id="builderTitle">ابنِ حاسبتك</h2>
+          </div>
+          <p>اختر القطع المناسبة لك وأنشئ حاسوبك المثالي</p>
         </div>
-        <span class="builder-status" id="builderStatus">0 قطع</span>
+        <img class="builder-banner-img" src="assets/gaming-pc.jpg" alt="تجميع حاسبة">
+        <span class="builder-status" id="builderStatus" style="position:absolute;right:16px;top:16px;background:var(--red);color:#fff;font-size:10px;font-weight:800;border-radius:99px;padding:3px 10px">0 قطع</span>
       </div>
+
       <div class="builder-layout">
         <div class="builder-parts" id="builderPartsList"></div>
         <aside class="builder-summary">
@@ -230,17 +245,18 @@
             <button class="btn btn-primary" id="addBuilderToCartBtn" type="button" disabled>أضف التجميعة إلى السلة</button>
             <button class="btn btn-outline" id="quoteBuilderBtn" type="button" disabled>اطلب عرض سعر</button>
           </div>
+          <button class="view-full-build" id="viewFullBuildBtn" type="button">
+            عرض التجميعة الكاملة <i class="fa-solid fa-arrow-left"></i>
+          </button>
         </aside>
       </div>
     </section>
 
-    <!-- 7. UPGRADE -->
+    <!-- 8. UPGRADE -->
     <section class="section-pad upgrade-section" id="upgradeSection" aria-labelledby="upgradeTitle">
       <div class="section-heading">
-        <div>
-          <span class="eyebrow">ترقية بدون تخمين</span>
+        <div class="section-title-bar">
           <h2 id="upgradeTitle">طوّر حاسبتك</h2>
-          <p>أدخل ما تعرفه عن جهازك الحالي لنقترح منتجات منشورة فقط.</p>
         </div>
       </div>
       <div class="upgrade-form" id="upgradeForm"></div>
@@ -442,6 +458,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="script.js?v=8"></script>
+  <script type="module" src="script.js?v=9"></script>
 </body>
 </html>

@@ -1,0 +1,12 @@
+{
+  "-TestProd" : {
+    "brand" : "ASUS",
+    "categoryId" : "-TestCat",
+    "description" : "لابتوب قوي",
+    "isHidden" : false,
+    "name" : "لابتوب العاب ASUS",
+    "price" : 1200000,
+    "status" : "published"
+  }
+}
+

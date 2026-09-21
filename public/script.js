@@ -109,7 +109,12 @@ function applySettings(settings = {}) {
   $('brandTagline').textContent = tagline.join(' ') || 'للإلكترونيات';
 
   if (settings.logoUrl && safeUrl(settings.logoUrl)) $('brandLogo').src = settings.logoUrl;
-  if (settings.heroTitle) $('heroTitle').textContent = settings.heroTitle;
+  if (settings.heroTitle) {
+    const titleEl = $('heroTitle') || $('heroCopyTitle');
+    if (titleEl) titleEl.textContent = settings.heroTitle;
+    const copyTitleEl = $('heroCopyTitle');
+    if (copyTitleEl) copyTitleEl.textContent = settings.heroTitle;
+  }
   if (settings.heroSubtitle) $('heroSubtitle').textContent = settings.heroSubtitle;
   if (settings.heroImage && safeUrl(settings.heroImage)) $('heroImage').src = settings.heroImage;
   if (settings.welcomeMessage) $('chatWelcome').textContent = settings.welcomeMessage;
@@ -138,17 +143,16 @@ function applySettings(settings = {}) {
 function renderCategories() {
   const categories = [...state.categories].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
   const row = $('categoriesRow');
-  const btn = $('viewAllCatBtn');
 
-  row.classList.toggle('is-collapsed', !state.showCategories);
-  btn.setAttribute('aria-expanded', String(state.showCategories));
-  $('categoriesTitle').textContent = state.showCategories ? 'انقر لإخفاء الأقسام' : 'انقر لعرض الأقسام';
-  btn.querySelector('i').className = `fa-solid ${state.showCategories ? 'fa-chevron-up' : 'fa-chevron-down'}`;
+  // Always show categories (no toggle)
+  row.classList.remove('is-collapsed');
+  state.showCategories = true;
 
   if (!categories.length) {
     row.innerHTML = '<div class="loading-state">لا توجد أقسام منشورة حالياً.</div>';
     return;
   }
+
 
   row.innerHTML = categories.map((cat) => {
     const imgSrc = cat.image || categoryFallback(cat);
@@ -897,7 +901,9 @@ function closeSidebar() { $('sidebarMenu').classList.remove('open'); $('sidebarO
 
 // ===== Bind All Events =====
 function bindEvents() {
-  $('viewAllCatBtn').addEventListener('click', () => { state.showCategories = !state.showCategories; renderCategories(); });
+  // Categories are always visible — no toggle needed
+  const catToggleBtn = $('viewAllCatBtn');
+  if (catToggleBtn) catToggleBtn.addEventListener('click', () => { state.showCategories = !state.showCategories; renderCategories(); });
   $('viewAllProdBtn').addEventListener('click', clearFilters);
   $('clearBrandBtn').addEventListener('click', clearFilters);
   $('searchInput').addEventListener('input', (e) => {
@@ -964,6 +970,10 @@ function bindEvents() {
   $('shareQuoteBtn').addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
 
   $('toggleBrandsBtn').addEventListener('click', () => { state.showBrands = !state.showBrands; renderBrands(); });
+
+  // viewFullBuildBtn — scroll to builder
+  const vfbBtn = $('viewFullBuildBtn');
+  if (vfbBtn) vfbBtn.addEventListener('click', () => $('pcBuilderSection').scrollIntoView({ behavior: 'smooth' }));
 
   renderSidebarAll();
 }

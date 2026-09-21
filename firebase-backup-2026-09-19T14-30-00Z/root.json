@@ -1,0 +1,20 @@
+{
+  "categories" : {
+    "-TestCat" : {
+      "isHidden" : false,
+      "name" : "لابتوبات الألعاب"
+    }
+  },
+  "products" : {
+    "-TestProd" : {
+      "brand" : "ASUS",
+      "categoryId" : "-TestCat",
+      "description" : "لابتوب قوي",
+      "isHidden" : false,
+      "name" : "لابتوب العاب ASUS",
+      "price" : 1200000,
+      "status" : "published"
+    }
+  }
+}
+
