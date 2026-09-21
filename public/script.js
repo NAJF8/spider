@@ -109,18 +109,13 @@ function applySettings(settings = {}) {
   $('brandTagline').textContent = tagline.join(' ') || 'للإلكترونيات';
 
   if (settings.logoUrl && safeUrl(settings.logoUrl)) $('brandLogo').src = settings.logoUrl;
-  if (settings.heroTitle) {
-    const titleEl = $('heroTitle') || $('heroCopyTitle');
-    if (titleEl) titleEl.textContent = settings.heroTitle;
-    const copyTitleEl = $('heroCopyTitle');
-    if (copyTitleEl) copyTitleEl.textContent = settings.heroTitle;
-  }
-  if (settings.heroSubtitle) $('heroSubtitle').textContent = settings.heroSubtitle;
+  // The approved storefront hero copy is intentionally not overwritten by
+  // optional admin settings. Product, category, image, and store data remain live.
   if (settings.heroImage && safeUrl(settings.heroImage)) $('heroImage').src = settings.heroImage;
   if (settings.welcomeMessage) $('chatWelcome').textContent = settings.welcomeMessage;
 
   // Hero CTA button
-  $('heroBuilderBtn').replaceChildren(document.createTextNode(`${settings.heroCta || 'ابنِ تجميعتك الآن'} `));
+  $('heroBuilderBtn').replaceChildren(document.createTextNode('ابنِ تجميعتك الآن '));
   const icon = document.createElement('i');
   icon.className = 'fa-solid fa-arrow-left';
   $('heroBuilderBtn').append(icon);
@@ -461,24 +456,17 @@ const builderParts = [
   { id: 'motherboard', label: 'اللوحة الأم',        icon: 'fa-border-all',      match: /motherboard|motherboards|لوحة|مذربورد/i },
   { id: 'ram',         label: 'الذاكرة RAM',        icon: 'fa-memory',          match: /ram|ذاكرة|رام/i },
   { id: 'gpu',         label: 'كرت الشاشة GPU',     icon: 'fa-display',         match: /gpu|كرت|كروت|vga/i },
-  { id: 'ssd',         label: 'تخزين SSD',          icon: 'fa-hard-drive',      match: /ssd|nvme|m\.2/i },
-  { id: 'hdd',         label: 'تخزين HDD',          icon: 'fa-database',        match: /hdd|hard|هارد|تخزين/i },
+  { id: 'storage',     label: 'التخزين',            icon: 'fa-hard-drive',      match: /ssd|nvme|m\.2|hdd|hard|هارد|تخزين/i },
   { id: 'psu',         label: 'مزود الطاقة PSU',    icon: 'fa-plug',            match: /psu|power|طاقة|مجهز/i },
   { id: 'case',        label: 'الصندوق Case',       icon: 'fa-box',             match: /case|صندوق/i },
-  { id: 'cooling',     label: 'التبريد',            icon: 'fa-fan',             match: /cooling|تبريد/i },
-  { id: 'monitor',     label: 'الشاشة',             icon: 'fa-tv',              match: /monitor|شاشة/i },
-  { id: 'keyboard',    label: 'كيبورد',             icon: 'fa-keyboard',        match: /keyboard|كيبورد/i },
-  { id: 'mouse',       label: 'ماوس',               icon: 'fa-computer-mouse',  match: /mouse|ماوس/i },
-  { id: 'headset',     label: 'سماعة',              icon: 'fa-headphones',      match: /headset|سماعة/i },
-  { id: 'os',          label: 'نظام التشغيل',       icon: 'fa-windows',         match: /windows|operating|نظام تشغيل/i }
+  { id: 'cooling',     label: 'التبريد',            icon: 'fa-fan',             match: /cooling|تبريد/i }
 ];
 
 function productsForPart(part) {
   return state.products.filter((p) => {
     const text = `${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name || ''}`;
     if (part.id === 'gpu') return /gpu|gpus|كرت|كروت/i.test(text);
-    if (part.id === 'ssd') return /ssd|nvme|m\.2/i.test(text);
-    if (part.id === 'hdd') return /hdd|hard|هارد/i.test(text) && !/ssd|nvme/i.test(text);
+    if (part.id === 'storage') return /ssd|nvme|m\.2|hdd|hard|هارد|تخزين/i.test(text);
     return part.match.test(text);
   });
 }
@@ -551,32 +539,23 @@ function renderBuilder() {
     }
   }).join('');
 
-  // Bind change/remove buttons on filled cards
-  list.querySelectorAll('[data-builder-remove]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      delete state.builder[btn.dataset.builderRemove];
-      renderBuilder();
-      updateBuilder();
-    });
-  });
-
-  list.querySelectorAll('[data-builder-change]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      delete state.builder[btn.dataset.builderChange];
-      renderBuilder();
-      updateBuilder();
-    });
-  });
-
-  // Bind selects
-  list.querySelectorAll('[data-builder-part]').forEach((sel) => {
-    sel.addEventListener('change', () => {
-      if (sel.value) state.builder[sel.dataset.builderPart] = sel.value;
-      else delete state.builder[sel.dataset.builderPart];
-      renderBuilder();
-      updateBuilder();
-    });
-  });
+  // Delegate interactions from the stable list container so freshly rendered
+  // cards always retain working تغيير/مسح and selection controls.
+  list.onclick = (event) => {
+    const remove = event.target.closest('[data-builder-remove]');
+    const change = event.target.closest('[data-builder-change]');
+    const partId = remove?.dataset.builderRemove || change?.dataset.builderChange;
+    if (!partId) return;
+    delete state.builder[partId];
+    renderBuilder();
+  };
+  list.onchange = (event) => {
+    const select = event.target.closest('[data-builder-part]');
+    if (!select) return;
+    if (select.value) state.builder[select.dataset.builderPart] = select.value;
+    else delete state.builder[select.dataset.builderPart];
+    renderBuilder();
+  };
 
   updateBuilder();
 }
@@ -917,8 +896,16 @@ function bindEvents() {
 
   $('compareCategorySelect').addEventListener('change', populateCompareProducts);
   $('compareBrandSelect').addEventListener('change', populateCompareProducts);
-  $('compareProd1Select').addEventListener('change', updateCompareView);
-  $('compareProd2Select').addEventListener('change', updateCompareView);
+  ['compareProd1Select', 'compareProd2Select'].forEach((id, index) => {
+    $(id).addEventListener('change', () => {
+      const otherId = index === 0 ? 'compareProd2Select' : 'compareProd1Select';
+      if ($(id).value && $(id).value === $(otherId).value) {
+        $(id).value = '';
+        showToast('لا يمكن اختيار المنتج نفسه في المقارنة مرتين.');
+      }
+      updateCompareView();
+    });
+  });
   $('clearCompareBtn').addEventListener('click', () => {
     state.compare = ['', ''];
     $('compareCategorySelect').value = '';
