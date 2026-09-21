@@ -60,7 +60,8 @@ function applySettings(settings = {}) {
   if (settings.welcomeMessage) $('chatWelcome').textContent = settings.welcomeMessage;
   const instagram = safeUrl(settings.instagramUrl);
   const whatsapp = normalizeWhatsApp(settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
-  [['instagramLink', instagram], ['footerWhatsapp', whatsapp ? `https://wa.me/${whatsapp}` : '']].forEach(([id, url]) => { const el = $(id); if (!el) return; if (url) { el.href = url; el.classList.remove('hidden'); } else { el.classList.add('hidden'); } });
+  const map = safeUrl(settings.googleMapsUrl || settings.mapUrl);
+  [['instagramLink', instagram], ['footerWhatsapp', whatsapp ? `https://wa.me/${whatsapp}` : ''], ['mapLink', map]].forEach(([id, url]) => { const el = $(id); if (!el) return; if (url) { el.href = url; el.classList.remove('hidden'); } else { el.classList.add('hidden'); } });
   if (settings.chatbotEnabled === false) { $('chatbotFab')?.classList.add('hidden'); } else { $('chatbotFab')?.classList.remove('hidden'); }
   $('heroBuilderBtn').replaceChildren(document.createTextNode(`${settings.heroCta || 'ابنِ تجميعتك الآن'} `));
   const icon = document.createElement('i'); icon.className = 'fa-solid fa-arrow-left'; $('heroBuilderBtn').append(icon);
@@ -110,7 +111,7 @@ function renderBrands() {
   $('brandsGrid').classList.toggle('is-collapsed', !state.showBrands);
   $('toggleBrandsBtn').setAttribute('aria-expanded', String(state.showBrands));
   $('toggleBrandsBtn').innerHTML = `${state.showBrands ? 'اضغط لإخفاء العلامات التجارية' : 'اضغط لإظهار العلامات التجارية'} <i class="fa-solid ${state.showBrands ? 'fa-chevron-up' : 'fa-chevron-down'}"></i>`;
-  $('brandsGrid').innerHTML = brands.length ? brands.map((brand) => `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}"><span class="brand-mark">${esc(brand.slice(0, 2).toUpperCase())}</span>${esc(brand)}</button>`).join('') : '<div class="empty-state">لا توجد علامات في المنتجات المنشورة.</div>';
+  $('brandsGrid').innerHTML = brands.length ? brands.map((brand) => { const product = state.products.find((item) => item.brand === brand); const logo = product?.brandLogo || product?.logo; return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${esc(brand)}">` : `<span class="brand-mark">${esc(brand.slice(0, 3).toUpperCase())}</span>`}<span>${esc(brand)}</span></button>`; }).join('') : '<div class="empty-state">لا توجد علامات في المنتجات المنشورة.</div>';
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((button) => button.addEventListener('click', () => { state.filters = { category: '', brand: button.dataset.brand, search: '' }; $('searchInput').value = ''; $('clearBrandBtn').classList.remove('hidden'); renderBrands(); renderProducts(); document.querySelector('#productsSection').scrollIntoView({ behavior: 'smooth' }); }));
 }
 
@@ -172,4 +173,4 @@ onValue(ref(db, 'products'), (snapshot) => { state.products = []; if (snapshot.e
 onValue(ref(db, 'settings'), (snapshot) => { applySettings(snapshot.exists() ? snapshot.val() : {}); renderCart(); });
 onAuthStateChanged(auth, (user) => { authUser = user; loadFavorites(); updateFavoriteBadge(); renderProducts(); renderAccount(); });
 
-readCart(); loadFavorites(); bindEvents(); $('toggleBrandsBtn').addEventListener('click', () => { state.showBrands = !state.showBrands; renderBrands(); }); updateFavoriteBadge(); renderCart(); renderAccount();
+readCart(); loadFavorites(); bindEvents(); $('compareNowBtn').addEventListener('click', updateCompareView); $('toggleBrandsBtn').addEventListener('click', () => { state.showBrands = !state.showBrands; renderBrands(); }); updateFavoriteBadge(); renderCart(); renderAccount();
