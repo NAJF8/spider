@@ -20,3 +20,16 @@
 @media (max-width:380px){.products-grid{grid-template-columns:1fr}.upgrade-form{grid-template-columns:1fr}.header-actions .icon-btn{width:31px}.brand-copy strong{font-size:17px}}
 @media (min-width:1200px){.products-grid{grid-template-columns:repeat(5,1fr)}.hero{min-height:390px}.hero-media{min-height:390px}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+/* Storefront alignment refinements: brand block stays on the right, utilities on the left. */
+.brand-side{display:flex;align-items:center;gap:5px;direction:rtl}
+.site-header{order:0}
+main{display:flex;flex-direction:column}
+.hero{order:1}.categories-section{order:2}.brands-section{order:3}.compare-section{order:4}.products-section{order:5}.bundles-section{order:6}.builder-section{order:7}.upgrade-section{order:8}.trust-strip{order:9}
+.header-row{direction:ltr}
+.heading-actions{display:flex;align-items:center;gap:12px}
+.brands-grid.is-collapsed{display:none}
+.text-btn i{margin-inline-start:4px;transition:.2s}
+.text-btn[aria-expanded="true"] i{transform:rotate(180deg)}
+.fav-badge{position:absolute;top:0;right:-1px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:var(--red);color:#fff;font-size:10px;line-height:17px;text-align:center}
+@media (max-width:600px){.brand-side{gap:1px}.heading-actions{gap:8px;align-items:flex-start;flex-direction:column}.heading-actions .text-btn{font-size:11px}.brand-side .icon-btn{width:34px;height:34px}}
