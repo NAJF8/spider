@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ed1c24">
+  <script>try{const t=localStorage.getItem('spider.theme.v1');const l=localStorage.getItem('spider.language.v1');if(t==='dark')document.documentElement.dataset.theme='dark';if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}</script>
+  <title>طوّر حاسبتك | سبايدر للإلكترونيات</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css?v=11">
+</head>
+<body data-page="upgrade" class="builder-page upgrade-page">
+  <header class="site-header"><div class="header-shell"><div class="header-row">
+    <div class="brand-side"><a class="brand-lockup" href="index.html" aria-label="العودة إلى متجر سبايدر"><span class="brand-copy"><strong id="brandName">سبايدر</strong><small id="brandTagline">للإلكترونيات</small></span><img id="brandLogo" src="assets/spider-logo.png" alt="لوكو سبايدر للإلكترونيات"></a></div>
+    <div class="header-actions"><button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة">EN</button><button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع"><i class="fa-solid fa-moon"></i></button><button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cartBadge">0</span></button></div>
+  </div></div></header>
+  <main class="builder-page-main"><div class="builder-page-head section-pad"><a class="back-to-store" href="index.html" id="builderBackLink"><i class="fa-solid fa-arrow-right"></i> العودة إلى المتجر</a><p class="hero-kicker">SPIDER UPGRADE LAB</p><h1 id="builderPageTitle">طوّر حاسبتك</h1><p id="builderPageIntro">أدخل مواصفات جهازك الحالي ثم اختر القطع المناسبة لترقيته.</p></div>
+    <section class="section-pad upgrade-section" aria-labelledby="upgradeTitle"><div class="builder-banner"><div class="builder-banner-copy"><div class="section-title-bar"><h2 id="upgradeTitle">طوّر حاسبتك</h2></div><p id="upgradeIntro">اختر مواصفات جهازك الحالي، ثم تصفح القطع المقترحة لترقية أدائه.</p></div><img class="builder-banner-img" src="assets/gaming-pc.jpg" alt="ترقية حاسبة"></div>
+      <div class="upgrade-form" id="upgradeForm" aria-label="مواصفات الجهاز الحالي"></div>
+      <div class="builder-catalog-meta"><strong id="upgradeResultsTitle">القطع المقترحة للترقية</strong></div>
+      <div class="builder-toolbar upgrade-catalog-toolbar" aria-label="فلاتر قطع الترقية"><label class="builder-search"><i class="fa-solid fa-magnifying-glass"></i><input id="upgradeCatalogSearch" type="search" placeholder="ابحث بالاسم أو الموديل" aria-label="البحث في قطع الترقية"></label><label><span id="upgradeCatalogCategoryLabel">القسم</span><select id="upgradeCatalogCategory"><option value="">كل الأقسام</option></select></label><label><span id="upgradeCatalogBrandLabel">العلامة التجارية</span><select id="upgradeCatalogBrand"><option value="">كل العلامات</option></select></label></div>
+      <div class="upgrade-results" id="upgradeResults"><div class="empty-state">اختر مواصفة واحدة على الأقل لبدء الاقتراح.</div></div>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-inner"><div class="footer-brand"><a class="brand-lockup" href="index.html"><span class="brand-copy"><strong>سبايدر</strong><small>للإلكترونيات</small></span><img src="assets/spider-logo.png" alt="لوكو سبايدر"></a><p>نعتز بثقتكم</p></div><div class="footer-links"><a href="https://wa.me/9647827337942" target="_blank" rel="noopener" aria-label="واتساب"><i class="fa-brands fa-whatsapp"></i></a><a href="https://www.instagram.com/spider_najaf" target="_blank" rel="noopener" aria-label="إنستغرام"><i class="fa-brands fa-instagram"></i></a></div></div></footer>
+  <button class="floating-cart" id="floatingCartBtn" type="button" aria-label="فتح السلة"><i class="fa-solid fa-cart-shopping"></i><span id="floatingCartBadge">0</span></button>
+  <div class="drawer-overlay" id="cartOverlay"></div><aside class="cart-drawer" id="cartSidebar" aria-label="سلة المشتريات"><div class="drawer-head"><h2><i class="fa-solid fa-cart-shopping"></i> سلة المشتريات</h2><button class="icon-btn" id="closeCartBtn" type="button" aria-label="إغلاق السلة"><i class="fa-solid fa-xmark"></i></button></div><div class="cart-items" id="cartItemsList"><div class="empty-state">السلة فارغة</div></div><div class="cart-footer"><div><span>المجموع الكلي</span><strong id="cartTotalValue">0 د.ع</strong></div><button class="btn btn-primary" id="checkoutBtn" type="button" disabled>إتمام الطلب</button></div></aside>
+  <div class="modal-overlay" id="productDetailsModal"><div class="modal-content"><div class="modal-head"><h2 id="modalProductTitle">تفاصيل المنتج</h2><button class="icon-btn" id="closeProductDetailsBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body" id="productDetailsBody"></div></div></div>
+  <div class="modal-overlay" id="upgradePickerModal"><div class="modal-content compare-picker-modal-content"><div class="modal-head"><h2 id="upgradePickerTitle">اختر قطعة</h2><button class="icon-btn" id="closeUpgradePickerBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div><div class="compare-picker-tools upgrade-picker-tools"><input id="upgradePickerSearch" type="search" placeholder="ابحث بالاسم أو الموديل" aria-label="البحث في قطع الترقية"></div><div class="compare-picker-grid" id="upgradePickerGrid"></div></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="script.js?v=11"></script>
+</body>
+</html>

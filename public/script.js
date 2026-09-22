@@ -34,7 +34,9 @@ const state = {
   compare: ['', ''],
   comparePickerSlot: 0,
   builder: {},
+  upgrade: {},
   builderCatalog: { part: '', category: '', brand: '', search: '' },
+  upgradeCatalog: { category: '', brand: '', search: '' },
   availabilityProductId: ''
 };
 
@@ -138,10 +140,12 @@ function applyAppearance() {
   document.documentElement.lang = language;
   document.documentElement.dir = language === 'en' ? 'ltr' : 'rtl';
   document.documentElement.dataset.theme = theme;
+  document.documentElement?.setAttribute('data-theme', theme);
   document.body?.setAttribute('data-theme', theme);
+  const page = document.body?.dataset.page;
   document.title = language === 'en'
-    ? (document.body?.dataset.page === 'builder' ? 'Upgrade your PC | Spider Electronics' : 'Spider Electronics | Computer & Electronics Store')
-    : (document.body?.dataset.page === 'builder' ? 'طوّر حاسبتك | سبايدر للإلكترونيات' : 'سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر');
+    ? (page === 'builder' ? 'Build your PC | Spider Electronics' : page === 'upgrade' ? 'Upgrade your PC | Spider Electronics' : 'Spider Electronics | Computer & Electronics Store')
+    : (page === 'builder' ? 'ابنِ تجميعتك | سبايدر للإلكترونيات' : page === 'upgrade' ? 'طوّر حاسبتك | سبايدر للإلكترونيات' : 'سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر');
   const themeButton = $('themeToggle');
   const languageButton = $('languageToggle');
   if (themeButton) { themeButton.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>`; themeButton.title = theme === 'dark' ? t('themeLight') : t('themeDark'); themeButton.setAttribute('aria-label', themeButton.title); }
@@ -150,8 +154,15 @@ function applyAppearance() {
 }
 
 function localizeBuilderPage() {
-  if (document.body?.dataset.page !== 'builder') return;
-  const text = { builderPageTitle: t('upgrade'), builderPageIntro: language === 'en' ? 'Choose products from their cards to build your PC.' : 'اختر المنتجات من بطاقاتها لبناء تجميعتك.', builderTitle: t('upgrade'), builderIntro: language === 'en' ? 'Choose products from their cards and build your PC step by step.' : 'اختر القطع من بطاقاتها وصمّم تجميعتك خطوة بخطوة.', builderCategoryLabel: t('builderCategory'), builderBrandLabel: t('builderBrand'), builderCatalogTitle: t('builderCatalogTitle'), builderSummaryTitle: t('builderSummary'), builderSummaryHint: t('builderHint') };
+  const page = document.body?.dataset.page;
+  if (page === 'upgrade') {
+    const text = { builderPageTitle: t('upgrade'), builderPageIntro: language === 'en' ? 'Enter your current PC specifications and choose suitable parts to upgrade it.' : 'أدخل مواصفات جهازك الحالي ثم اختر القطع المناسبة لترقيته.', upgradeTitle: t('upgrade'), upgradeIntro: language === 'en' ? 'Choose your current specifications, then browse suggested parts to improve performance.' : 'اختر مواصفات جهازك الحالي، ثم تصفح القطع المقترحة لترقية أدائه.', upgradeResultsTitle: language === 'en' ? 'Suggested upgrade parts' : 'القطع المقترحة للترقية', upgradeCatalogCategoryLabel: t('builderCategory'), upgradeCatalogBrandLabel: t('builderBrand') };
+    Object.entries(text).forEach(([id, value]) => { const el = $(id); if (el) el.textContent = value; });
+    const upgradeSearch = $('upgradeCatalogSearch'); if (upgradeSearch) { upgradeSearch.placeholder = t('builderSearch'); upgradeSearch.setAttribute('aria-label', t('builderSearch')); }
+    return;
+  }
+  if (page !== 'builder') return;
+  const text = { builderPageTitle: t('builderTitle'), builderPageIntro: language === 'en' ? 'Build a new PC from scratch, check compatibility, and add it to your cart.' : 'ابنِ حاسبتك الجديدة من الصفر، وافحص التوافق قبل إضافة التجميعة إلى السلة.', builderTitle: t('builderTitle'), builderIntro: language === 'en' ? 'Choose CPU, motherboard, memory and the rest of the parts step by step.' : 'اختر المعالج واللوحة والذاكرة وبقية القطع لبناء حاسبتك خطوة بخطوة.', builderCategoryLabel: t('builderCategory'), builderBrandLabel: t('builderBrand'), builderCatalogTitle: t('builderCatalogTitle'), builderSummaryTitle: t('builderSummary'), builderSummaryHint: t('builderHint') };
   Object.entries(text).forEach(([id, value]) => { const el = $(id); if (el) el.textContent = value; });
   const search = $('builderCatalogSearch'); if (search) { search.placeholder = t('builderSearch'); search.setAttribute('aria-label', t('builderSearch')); }
 }
@@ -815,11 +826,17 @@ function renderBuilder() {
 }
 
 const BUILDER_STORAGE_KEY = 'spider.builder.v1';
+const UPGRADE_STORAGE_KEY = 'spider.upgrade.v1';
 function readBuilder() {
   try { const saved = JSON.parse(localStorage.getItem(BUILDER_STORAGE_KEY) || '{}'); state.builder = saved && typeof saved === 'object' ? saved : {}; }
   catch { state.builder = {}; }
 }
 function saveBuilder() { localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringify(state.builder)); }
+function readUpgrade() {
+  try { const saved = JSON.parse(localStorage.getItem(UPGRADE_STORAGE_KEY) || '{}'); state.upgrade = saved && typeof saved === 'object' ? saved : {}; }
+  catch { state.upgrade = {}; }
+}
+function saveUpgrade() { localStorage.setItem(UPGRADE_STORAGE_KEY, JSON.stringify(state.upgrade)); }
 
 function selectedBuilderProducts() {
   return Object.values(state.builder)
@@ -899,52 +916,100 @@ const UPGRADE_FALLBACK_IMAGES = {
   psu: 'assets/category-fallbacks/power.svg'
 };
 
+const upgradeFields = () => [
+  { id: 'cpu', label: language === 'en' ? 'Current CPU' : 'المعالج الحالي', match: /cpu|cpus|معالج/i },
+  { id: 'motherboard', label: language === 'en' ? 'Current motherboard' : 'اللوحة الأم الحالية', match: /motherboard|لوحة|مذربورد/i },
+  { id: 'ram', label: language === 'en' ? 'Current RAM' : 'الرام الحالية', match: /ram|ذاكرة|رام/i },
+  { id: 'gpu', label: language === 'en' ? 'Current GPU' : 'كرت الشاشة الحالي', match: /gpu|كرت|كروت/i },
+  { id: 'storage', label: language === 'en' ? 'Current storage' : 'التخزين الحالي', match: /storage|هارد|ssd|hdd/i },
+  { id: 'case', label: language === 'en' ? 'Current case' : 'الكيس الحالي', match: /case|صندوق/i },
+  { id: 'cooling', label: language === 'en' ? 'Current cooling' : 'التبريد الحالي', match: /cooling|تبريد/i },
+  { id: 'psu', label: language === 'en' ? 'Current power supply' : 'مزود الطاقة الحالي', match: /psu|power|طاقة|مجهز/i }
+];
+
+// Prefer the product-specific GitHub-hosted asset when the legacy Firebase
+// record still points at a generic category image.
+const upgradeImageFor = (product) => product?.id === 'seed-ram-1' ? 'images/products/ram-corsair-ddr5.svg' : imageFor(product);
+
 function upgradeFallbackMarkup(field) {
-  return `<div class="upgrade-preview-empty"><img src="${UPGRADE_FALLBACK_IMAGES[field.id]}" alt="${esc(field.label)}"><strong>${esc(field.label)}</strong><span>${language === 'en' ? 'Choose a published part to see its details' : 'اختر قطعة منشورة لعرض تفاصيلها'}</span></div>`;
+  return `<div class="upgrade-preview-empty"><button type="button" data-upgrade-open="${field.id}" aria-label="${language === 'en' ? 'Choose' : 'اختيار'} ${esc(field.label)}"><img src="${UPGRADE_FALLBACK_IMAGES[field.id]}" alt="${esc(field.label)}"><strong>${esc(field.label)}</strong><span>${language === 'en' ? 'Choose a published part' : 'اضغط لاختيار قطعة منشورة'}</span></button></div>`;
 }
 
 function renderUpgrade() {
   if (!$('upgradeForm')) return;
-  const fields = [
-    { id: 'cpu',       label: language === 'en' ? 'Current CPU' : 'المعالج الحالي',      match: /cpu|cpus|معالج/i },
-    { id: 'motherboard',label: language === 'en' ? 'Current motherboard' : 'اللوحة الأم الحالية', match: /motherboard|لوحة|مذربورد/i },
-    { id: 'ram',       label: language === 'en' ? 'Current RAM' : 'الرام الحالية',        match: /ram|ذاكرة|رام/i },
-    { id: 'gpu',       label: language === 'en' ? 'Current GPU' : 'كرت الشاشة الحالي',   match: /gpu|كرت|كروت/i },
-    { id: 'storage',   label: language === 'en' ? 'Current storage' : 'التخزين الحالي',       match: /storage|هارد|ssd|hdd/i },
-    { id: 'case',      label: language === 'en' ? 'Current case' : 'الكيس الحالي',             match: /case|صندوق/i },
-    { id: 'cooling',   label: language === 'en' ? 'Current cooling' : 'التبريد الحالي',        match: /cooling|تبريد/i },
-    { id: 'psu',       label: language === 'en' ? 'Current power supply' : 'مزود الطاقة الحالي', match: /psu|power|طاقة|مجهز/i }
-  ];
+  const fields = upgradeFields();
   $('upgradeForm').innerHTML = fields.map((field) => {
-    const options = state.products.filter((p) => field.match.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`));
-    return `<div class="upgrade-field"><label for="upgrade-${field.id}">${field.label}</label><select id="upgrade-${field.id}" data-upgrade="${field.id}"><option value="">${t('unknown')}</option>${options.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('')}</select><div class="upgrade-selection-preview" data-upgrade-preview="${field.id}">${upgradeFallbackMarkup(field)}</div></div>`;
+    return `<div class="upgrade-field"><label for="upgrade-${field.id}-picker">${esc(field.label)}</label><div class="upgrade-selection-preview" data-upgrade-preview="${field.id}">${upgradeFallbackMarkup(field)}</div></div>`;
   }).join('');
-  $('upgradeForm').querySelectorAll('[data-upgrade]').forEach((sel) => sel.addEventListener('change', renderUpgradeResults));
+  renderUpgradeCatalogFilters();
   renderUpgradeSelectionPreviews();
+  renderUpgradeResults();
+}
+
+function upgradeProductsFor(field) {
+  return state.products.filter((p) => isAvailable(p) && field.match.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name || ''}`));
+}
+
+function openUpgradePicker(fieldId) {
+  const field = upgradeFields().find((item) => item.id === fieldId);
+  if (!$('upgradePickerModal') || !field) return;
+  state.upgradePickerField = fieldId;
+  if ($('upgradePickerTitle')) $('upgradePickerTitle').textContent = `${language === 'en' ? 'Choose' : 'اختيار'} ${field.label}`;
+  if ($('upgradePickerSearch')) $('upgradePickerSearch').value = '';
+  renderUpgradePickerGrid();
+  modal('upgradePickerModal', true);
+}
+
+function renderUpgradePickerGrid() {
+  const grid = $('upgradePickerGrid');
+  const field = upgradeFields().find((item) => item.id === state.upgradePickerField);
+  if (!grid || !field) return;
+  const query = String($('upgradePickerSearch')?.value || '').trim().toLowerCase();
+  const products = upgradeProductsFor(field).filter((p) => !query || productText(p).includes(query));
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(p.price)}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
+  grid.querySelectorAll('[data-upgrade-pick]').forEach((button) => button.addEventListener('click', () => {
+    state.upgrade[state.upgradePickerField] = button.dataset.upgradePick;
+    saveUpgrade();
+    renderUpgrade();
+    modal('upgradePickerModal', false);
+  }));
+}
+
+function renderUpgradeCatalogFilters() {
+  const category = $('upgradeCatalogCategory');
+  const brand = $('upgradeCatalogBrand');
+  if (!category || !brand) return;
+  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + state.categories.map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
+  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  category.value = state.upgradeCatalog.category;
+  brand.value = state.upgradeCatalog.brand;
 }
 
 function renderUpgradeSelectionPreviews() {
   if (!$('upgradeForm')) return;
   $('upgradeForm').querySelectorAll('[data-upgrade-preview]').forEach((preview) => {
-    const select = $('upgradeForm').querySelector(`[data-upgrade="${preview.dataset.upgradePreview}"]`);
-    const field = { id: preview.dataset.upgradePreview, label: select?.previousElementSibling?.textContent || preview.dataset.upgradePreview };
-    const product = state.products.find((p) => p.id === select?.value);
+    const field = upgradeFields().find((item) => item.id === preview.dataset.upgradePreview) || { id: preview.dataset.upgradePreview, label: preview.dataset.upgradePreview };
+    const product = state.products.find((p) => p.id === state.upgrade[field.id]);
     if (!product) {
       preview.innerHTML = upgradeFallbackMarkup(field);
+      preview.querySelector('[data-upgrade-open]')?.addEventListener('click', () => openUpgradePicker(field.id));
       return;
     }
     const specs = topSpecs(product);
-    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(product.price)}</b></div>`;
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(product.price)}</b><div class="upgrade-preview-actions"><button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
+    preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
+    preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; saveUpgrade(); renderUpgrade(); });
   });
 }
 
 function renderUpgradeResults() {
   if (!$('upgradeForm') || !$('upgradeResults')) return;
-  const selected = [...$('upgradeForm').querySelectorAll('select')].map((sel) => state.products.find((p) => p.id === sel.value)).filter(Boolean);
+  const selected = upgradeFields().map((field) => state.products.find((p) => p.id === state.upgrade[field.id])).filter(Boolean);
   renderUpgradeSelectionPreviews();
   if (!selected.length) { $('upgradeResults').innerHTML = `<div class="empty-state">${t('chooseSpec')}</div>`; return; }
   const usedIds = new Set(selected.map((p) => p.id));
-  const recs = state.products.filter((p) => !usedIds.has(p.id) && isAvailable(p)).filter((p) => /gpu|gpus|كرت|ram|ذاكرة|storage|تخزين|ssd|hdd|cpu|cpus|معالج/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`)).slice(0, 4);
+  const filter = state.upgradeCatalog;
+  const recs = state.products.filter((p) => !usedIds.has(p.id) && isAvailable(p)).filter((p) => /gpu|gpus|كرت|ram|ذاكرة|storage|تخزين|ssd|hdd|cpu|cpus|معالج|motherboard|لوحة|power|طاقة|cooling|تبريد|case|صندوق/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`)).filter((p) => productCategoryMatch(p, filter.category)).filter((p) => !filter.brand || String(p.brand || '').toLowerCase() === filter.brand.toLowerCase()).filter((p) => !filter.search || productText(p).includes(filter.search.toLowerCase())).slice(0, 8);
   $('upgradeResults').innerHTML = `<p class="upgrade-note">${language === 'en' ? 'Suggestions use only published categories and specifications; compatibility is not guaranteed when device data is incomplete.' : 'الاقتراحات مبنية على القسم والمواصفات المتاحة فقط؛ لا ندّعي التوافق الكامل عند نقص بيانات جهازك.'}</p>${recs.length ? recs.map(productCard).join('') : `<div class="empty-state">${language === 'en' ? 'No matching published upgrade is available.' : 'لا توجد ترقية منشورة مطابقة حالياً.'}</div>`}`;
   bindProductActions($('upgradeResults'));
 }
@@ -1121,7 +1186,7 @@ function respondChat(text) {
   if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? (language === 'en' ? 'Here are currently published laptops:' : 'هذه لابتوبات منشورة حالياً:') : (language === 'en' ? 'No matching published laptops are available.' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'); }
   else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
   else if (/حاسبة|تجميع|ألعاب|gaming|build/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
-  else if (/طوّر|ترقية|upgrade/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة طوّر حاسبتك المستقلة.'; }
+  else if (/طوّر|ترقية|upgrade/.test(query)) { window.location.href = 'upgrade.html'; reply = language === 'en' ? 'I opened the dedicated PC upgrade page.' : 'فتحت لك صفحة طوّر حاسبتك المستقلة.'; }
   else if (/قارن|مقارنة|compare/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened comparison. Choose two products from the same category.' : 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
   else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = language === 'en' ? 'I found these published products:' : 'وجدت هذه المنتجات المنشورة:'; }
   setTimeout(() => appendChat(reply, false, matches), 250);
@@ -1202,6 +1267,21 @@ function bindBuilderPageEvents() {
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
   $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+}
+
+function bindUpgradePageEvents() {
+  $('openCartBtn')?.addEventListener('click', openCart);
+  $('floatingCartBtn')?.addEventListener('click', openCart);
+  $('closeCartBtn')?.addEventListener('click', closeCart);
+  $('cartOverlay')?.addEventListener('click', closeCart);
+  $('closeProductDetailsBtn')?.addEventListener('click', () => modal('productDetailsModal', false));
+  $('closeUpgradePickerBtn')?.addEventListener('click', () => modal('upgradePickerModal', false));
+  $('upgradePickerModal')?.addEventListener('click', (event) => { if (event.target === $('upgradePickerModal')) modal('upgradePickerModal', false); });
+  $('upgradePickerSearch')?.addEventListener('input', renderUpgradePickerGrid);
+  $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+  $('upgradeCatalogSearch')?.addEventListener('input', (event) => { state.upgradeCatalog.search = event.target.value; renderUpgradeResults(); });
+  $('upgradeCatalogCategory')?.addEventListener('change', (event) => { state.upgradeCatalog.category = event.target.value; renderUpgradeResults(); });
+  $('upgradeCatalogBrand')?.addEventListener('change', (event) => { state.upgradeCatalog.brand = event.target.value; renderUpgradeResults(); });
 }
 
 function bindEvents() {
@@ -1339,8 +1419,10 @@ onAuthStateChanged(auth, (user) => {
 bindAppearanceEvents();
 readCart();
 readBuilder();
+readUpgrade();
 loadFavorites();
 if (document.body.dataset.page === 'builder') bindBuilderPageEvents();
+else if (document.body.dataset.page === 'upgrade') bindUpgradePageEvents();
 else bindEvents();
 updateFavoriteBadge();
 renderCart();
