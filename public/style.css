@@ -920,6 +920,89 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   *,*:before,*:after{scroll-behavior:auto!important;transition:none!important}
 }
 
+/* ===== Theme and bilingual UI ===== */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#f4f6f8;
+  --muted:#b2bac6;
+  --line:#343a45;
+  --soft:#262b34;
+  --red-soft:#3a1d22;
+  --shadow:0 4px 20px rgba(0,0,0,.28);
+  --shadow-card:0 2px 12px rgba(0,0,0,.25);
+}
+html[data-theme="dark"] body{background:#171a20;color:var(--ink)}
+html[data-theme="dark"] .site-header,
+html[data-theme="dark"] .hero-copy,
+html[data-theme="dark"] .compare-section,
+html[data-theme="dark"] .product-card,
+html[data-theme="dark"] .brand-item,
+html[data-theme="dark"] .compare-picker,
+html[data-theme="dark"] .compare-card,
+html[data-theme="dark"] .builder-part,
+html[data-theme="dark"] .builder-summary,
+html[data-theme="dark"] .builder-page-main{background:#1d2129;color:var(--ink)}
+html[data-theme="dark"] .hero,
+html[data-theme="dark"] .builder-banner{border-color:#454b57;background:#1d2129}
+html[data-theme="dark"] .hero-copy>p:not(.hero-kicker),
+html[data-theme="dark"] .brand-copy small{color:#c2c8d1}
+html[data-theme="dark"] .search-wrap input,
+html[data-theme="dark"] .upgrade-field select,
+html[data-theme="dark"] .compare-filters select,
+html[data-theme="dark"] .compare-picker-tools input,
+html[data-theme="dark"] .compare-picker-tools select,
+html[data-theme="dark"] .modal-body input,
+html[data-theme="dark"] .modal-body select,
+html[data-theme="dark"] .modal-body textarea,
+html[data-theme="dark"] .chat-input input{background:#242a33;color:var(--ink);border-color:#454b57}
+html[data-theme="dark"] .search-suggestions,
+html[data-theme="dark"] .cart-drawer,
+html[data-theme="dark"] .modal-content,
+html[data-theme="dark"] .chatbot-window{background:#1d2129;color:var(--ink);border-color:#454b57}
+html[data-theme="dark"] .suggestion,
+html[data-theme="dark"] .chat-messages{background:#242a33}
+html[data-theme="dark"] .suggestion:hover,
+html[data-theme="dark"] .chat-product,
+html[data-theme="dark"] .bot-message{background:#2b313c}
+html[data-theme="dark"] .chat-product{border-color:#454b57}
+html[data-theme="dark"] .product-image,
+html[data-theme="dark"] .compare-picker-option img,
+html[data-theme="dark"] .product-detail>img,
+html[data-theme="dark"] .cart-item img{background:#272d36}
+html[data-theme="dark"] .product-card,
+html[data-theme="dark"] .compare-picker-option{border-color:#3b424e}
+html[data-theme="dark"] .compare-picker-option:hover{border-color:var(--red)}
+html[data-theme="dark"] .stock.out{background:#41252a}
+html[data-theme="dark"] .order-summary{background:#272d36}
+html[data-theme="dark"] .active-filter{background:#2d2225}
+html[data-theme="dark"] .footer-links a{border-color:#4a515d;color:#e9edf2}
+html[data-theme="dark"] .chat-quick-replies button{background:#242a33}
+html[data-theme="dark"] .toast{background:#f4f6f8;color:#171a20}
+html[data-theme="dark"] .header-setting-btn{color:#f4f6f8}
+html[data-theme="dark"] .btn-outline{background:#262b34;color:#f4f6f8;border-color:#4a515d}
+html[data-theme="dark"] .btn-outline:disabled{background:#262b34;color:#8f98a6;border-color:#454b57}
+html[data-theme="dark"] .compatibility-box{background:#262b34;color:#e8edf3}
+html[data-theme="dark"] .builder-empty-choose{background:#3a1d22;border-color:#6b343a}
+html[data-theme="dark"] .builder-empty-choose:hover{background:#4a2329}
+html[dir="ltr"] .header-row,
+html[dir="ltr"] .brand-side,
+html[dir="ltr"] .brand-lockup,
+html[dir="ltr"] .header-actions{direction:ltr}
+html[dir="ltr"] .brand-copy{text-align:left}
+html[dir="ltr"] .search-wrap>i{left:auto;right:14px}
+html[dir="ltr"] .search-wrap input{padding-left:12px;padding-right:40px}
+html[dir="ltr"] .suggestion,
+html[dir="ltr"] .sidebar-nav>li>button,
+html[dir="ltr"] .sidebar-all{direction:ltr;text-align:left}
+html[dir="ltr"] .hero-copy{align-items:flex-start}
+html[dir="ltr"] .hero-title-strip h1{text-align:left}
+html[dir="ltr"] .sidebar{right:auto;left:0;transform:translateX(-105%)}
+html[dir="ltr"] .sidebar.open{transform:translateX(0)}
+html[dir="ltr"] .cart-drawer{left:auto;right:0;transform:translateX(105%)}
+html[dir="ltr"] .cart-drawer.open{transform:translateX(0)}
+html[dir="ltr"] .floating-cart{left:auto;right:max(16px,env(safe-area-inset-right))}
+html[dir="ltr"] .chatbot-fab{right:auto;left:max(16px,env(safe-area-inset-left))}
+
 /* ===== Readability and no-clipping pass ===== */
 /* Text is allowed to wrap everywhere; image containers keep their intentional crop. */
 .section-heading h2,

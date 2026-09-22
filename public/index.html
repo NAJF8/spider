@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ed1c24">
+  <script>try{const t=localStorage.getItem('spider.theme.v1');const l=localStorage.getItem('spider.language.v1');if(t==='dark')document.documentElement.dataset.theme='dark';if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}</script>
   <title>سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,6 +32,8 @@
 
         <!-- Left side: Account, Favorites, Cart -->
         <div class="header-actions" aria-label="اختصارات المتجر">
+          <button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة" title="English">EN</button>
+          <button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع" title="الوضع الليلي"><i class="fa-solid fa-moon"></i></button>
           <button class="icon-btn" id="accountBtn" type="button" aria-label="حسابي">
             <i class="fa-regular fa-user"></i>
           </button>
@@ -256,6 +259,9 @@
         <p>نعتز بثقتكم</p>
       </div>
       <div class="footer-links" id="footerLinks">
+        <a id="facebookLink" href="https://facebook.com/share/1457GS92Ld/?mibextid=wwXIfr" target="_blank" rel="noopener">
+          <i class="fa-brands fa-facebook"></i> فيسبوك
+        </a>
         <a id="footerWhatsapp" class="hidden" target="_blank" rel="noopener">
           <i class="fa-brands fa-whatsapp"></i> واتساب
         </a>

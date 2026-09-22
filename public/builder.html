@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ed1c24">
+  <script>try{const t=localStorage.getItem('spider.theme.v1');const l=localStorage.getItem('spider.language.v1');if(t==='dark')document.documentElement.dataset.theme='dark';if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}</script>
   <title>ابنِ تجميعتك | سبايدر للإلكترونيات</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -17,7 +18,7 @@
           <span class="brand-copy"><strong id="brandName">سبايدر</strong><small id="brandTagline">للإلكترونيات</small></span>
           <img id="brandLogo" src="assets/spider-logo.png" alt="لوكو سبايدر للإلكترونيات">
         </a></div>
-        <div class="header-actions"><button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cartBadge">0</span></button></div>
+        <div class="header-actions"><button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة" title="English">EN</button><button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع" title="الوضع الليلي"><i class="fa-solid fa-moon"></i></button><button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة"><i class="fa-solid fa-cart-shopping"></i><span class="cart-badge" id="cartBadge">0</span></button></div>
       </div>
     </div>
   </header>
@@ -34,6 +35,13 @@
       <div class="builder-layout"><div class="builder-parts" id="builderPartsList"></div><aside class="builder-summary"><div class="summary-label">إجمالي التجميعة</div><strong id="builderTotal">0 د.ع</strong><div class="compatibility-box" id="compatibilityBox"><i class="fa-solid fa-circle-info"></i><span>اختر القطع لفحص التوافق.</span></div><div class="summary-actions"><button class="btn btn-primary" id="addBuilderToCartBtn" type="button" disabled>أضف التجميعة إلى السلة</button><button class="btn btn-outline" id="quoteBuilderBtn" type="button" disabled>اطلب عرض سعر</button></div></aside></div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand"><a class="brand-lockup" href="index.html"><span class="brand-copy"><strong>سبايدر</strong><small>للإلكترونيات</small></span><img src="assets/spider-logo.png" alt="لوكو سبايدر"></a><p>نعتز بثقتكم</p></div>
+      <div class="footer-links"><a href="https://facebook.com/share/1457GS92Ld/?mibextid=wwXIfr" target="_blank" rel="noopener"><i class="fa-brands fa-facebook"></i> فيسبوك</a><a href="https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==" target="_blank" rel="noopener"><i class="fa-brands fa-instagram"></i> إنستغرام</a><a href="https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic" target="_blank" rel="noopener"><i class="fa-solid fa-location-dot"></i> الموقع الجغرافي</a></div>
+    </div>
+  </footer>
 
   <button class="floating-cart" id="floatingCartBtn" type="button" aria-label="فتح السلة"><i class="fa-solid fa-cart-shopping"></i><span id="floatingCartBadge">0</span></button>
   <div class="drawer-overlay" id="cartOverlay"></div><aside class="cart-drawer" id="cartSidebar" aria-label="سلة المشتريات"><div class="drawer-head"><h2><i class="fa-solid fa-cart-shopping"></i> سلة المشتريات</h2><button class="icon-btn" id="closeCartBtn" type="button" aria-label="إغلاق السلة"><i class="fa-solid fa-xmark"></i></button></div><div class="cart-items" id="cartItemsList"><div class="empty-state">السلة فارغة</div></div><div class="cart-footer"><div><span>المجموع الكلي</span><strong id="cartTotalValue">0 د.ع</strong></div><button class="btn btn-primary" id="checkoutBtn" type="button" disabled>إتمام الطلب</button></div></aside>
