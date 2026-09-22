@@ -696,12 +696,12 @@ const builderPartLabel = (part) => {
 };
 
 function productsForPart(part) {
-  return state.products.filter((p) => {
+  return state.products.filter((p) => isAvailable(p) && (() => {
     const text = `${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name || ''}`;
     if (part.id === 'gpu') return /gpu|gpus|كرت|كروت/i.test(text);
     if (part.id === 'storage') return /ssd|nvme|m\.2|hdd|hard|هارد|تخزين/i.test(text);
     return part.match.test(text);
-  });
+  })());
 }
 
 function builderPartForProduct(product) {
@@ -801,13 +801,20 @@ function topSpecs(product) {
 function renderBuilder() {
   if (!$('builderPartsList')) return;
   const list = $('builderPartsList');
-  const selected = builderParts.map((part) => ({ part, product: state.products.find((p) => p.id === state.builder[part.id]) })).filter((item) => item.product);
-  list.innerHTML = selected.length ? selected.map(({ part, product }) => `<article class="builder-selected-card">
-    <img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'">
-    <div class="builder-selected-copy"><small>${esc(builderPartLabel(part))}</small><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span></div>
-    <b>${formatPrice(product.price)}</b>
-    <div class="builder-selected-actions"><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-xmark"></i> ${t('clear')}</button></div>
-  </article>`).join('') : `<div class="builder-selected-empty">${language === 'en' ? 'Choose a product card to start your build.' : 'اختر بطاقة منتج للبدء ببناء تجميعتك.'}</div>`;
+  list.innerHTML = builderParts.map((part, index) => {
+    const product = state.products.find((p) => p.id === state.builder[part.id]);
+    const fallback = `assets/category-fallbacks/${part.id === 'case' ? 'computer' : part.id === 'psu' ? 'power' : part.id}.svg`;
+    const label = builderPartLabel(part);
+    if (!product) return `<article class="builder-part-card is-empty" data-builder-part-card="${esc(part.id)}">
+      <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Choose a published part' : 'اختر قطعة منشورة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
+      <button class="builder-empty-choose" type="button" data-builder-change="${esc(part.id)}"><img src="${fallback}" alt=""><span>${language === 'en' ? `Choose ${esc(label)}` : `اختر ${esc(label)}`}</span><i class="fa-solid fa-plus"></i></button>
+    </article>`;
+    return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
+      <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
+      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(product.price)}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="builder-part-actions"><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
+    </article>`;
+  }).join('');
 
   // Delegate interactions from the stable list container so freshly rendered
   // cards always retain working تغيير/مسح and selection controls.

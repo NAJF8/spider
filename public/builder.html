@@ -33,19 +33,12 @@
     <section class="section-pad builder-section" id="pcBuilderSection" aria-labelledby="builderTitle">
       <div class="builder-banner"><div class="builder-banner-copy"><div class="section-title-bar"><h2 id="builderTitle">ابنِ تجميعتك</h2></div><p id="builderIntro">اختر CPU واللوحة والذاكرة وبقية القطع لبناء حاسبتك خطوة بخطوة.</p></div><img class="builder-banner-img" src="assets/gaming-pc.jpg" alt="تجميع حاسبة"><span class="builder-status" id="builderStatus">0 قطع</span></div>
       <div class="builder-workspace">
-        <div class="builder-catalog-area">
-          <div class="builder-toolbar" aria-label="فلاتر المنتجات">
-            <label class="builder-search"><i class="fa-solid fa-magnifying-glass"></i><input id="builderCatalogSearch" type="search" placeholder="ابحث بالاسم أو الموديل" aria-label="البحث في منتجات التجميعة"></label>
-            <label><span id="builderCategoryLabel">القسم</span><select id="builderCatalogCategory"><option value="">كل الأقسام</option></select></label>
-            <label><span id="builderBrandLabel">العلامة التجارية</span><select id="builderCatalogBrand"><option value="">كل العلامات</option></select></label>
-          </div>
-          <div class="builder-part-tabs" id="builderPartTabs" role="tablist" aria-label="نوع القطعة"></div>
-          <div class="builder-catalog-meta"><strong id="builderCatalogTitle">منتجات التجميعة</strong><span id="builderCatalogCount"></span></div>
-          <div class="builder-product-grid" id="builderCatalogGrid"></div>
+        <div class="builder-cards-column">
+          <div class="builder-cards-intro"><span>01—08</span><strong id="builderPartsHeading">اختر قطع حاسبتك بالترتيب</strong></div>
+          <div class="builder-part-cards" id="builderPartsList"></div>
         </div>
         <aside class="builder-summary" aria-labelledby="builderSummaryTitle">
           <div class="summary-heading"><div><div class="summary-label" id="builderSummaryTitle">ملخص التجميعة</div><span id="builderSummaryHint">أجزاءك المختارة</span></div><strong id="builderTotal">0 د.ع</strong></div>
-          <div class="builder-selected-list" id="builderPartsList"></div>
           <div class="compatibility-box" id="compatibilityBox"><i class="fa-solid fa-circle-info"></i><span>اختر القطع لفحص التوافق.</span></div>
           <div class="summary-actions"><button class="btn btn-primary" id="addBuilderToCartBtn" type="button" disabled>أضف التجميعة إلى السلة</button><button class="btn btn-outline" id="quoteBuilderBtn" type="button" disabled>اطلب عرض سعر</button></div>
         </aside>
