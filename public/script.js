@@ -272,7 +272,6 @@ function applySettings(settings = {}) {
   if (settings.logoUrl && safeUrl(settings.logoUrl) && $('brandLogo')) $('brandLogo').src = settings.logoUrl;
   // The approved storefront hero copy is intentionally not overwritten by
   // optional admin settings. Product, category, image, and store data remain live.
-  if (settings.heroImage && safeUrl(settings.heroImage) && $('heroImage')) $('heroImage').src = settings.heroImage;
   const welcome = language === 'en' ? (settings.welcomeMessageEn || settings.welcomeMessage) : (settings.welcomeMessageAr || settings.welcomeMessage);
   if (welcome && $('chatWelcome')) $('chatWelcome').textContent = englishDigits(welcome);
 
@@ -283,6 +282,9 @@ function applySettings(settings = {}) {
     icon.className = 'fa-solid fa-arrow-left';
     $('heroBuilderBtn').append(icon);
   }
+  if ($('heroKicker')) $('heroKicker').textContent = t('store');
+  if ($('upgradePromoTitle')) $('upgradePromoTitle').textContent = t('upgrade');
+  if ($('upgradePromoDescription')) $('upgradePromoDescription').textContent = language === 'en' ? 'Choose the right parts to improve your computer performance.' : 'اختَر القطع المناسبة لتطوير أداء جهازك';
 
   const instagram = safeUrl(settings.instagramUrl || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==') || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==';
   const whatsapp = normalizeWhatsApp(settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
@@ -1119,7 +1121,7 @@ function respondChat(text) {
   if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? (language === 'en' ? 'Here are currently published laptops:' : 'هذه لابتوبات منشورة حالياً:') : (language === 'en' ? 'No matching published laptops are available.' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'); }
   else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
   else if (/حاسبة|تجميع|ألعاب|gaming|build/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
-  else if (/طوّر|ترقية|upgrade/.test(query)) { document.querySelector('#upgradeSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened Upgrade your PC so you can enter your current specifications.' : 'فتحت لك طوّر حاسبتك حتى تدخل مواصفات جهازك الحالي.'; }
+  else if (/طوّر|ترقية|upgrade/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة طوّر حاسبتك المستقلة.'; }
   else if (/قارن|مقارنة|compare/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened comparison. Choose two products from the same category.' : 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
   else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = language === 'en' ? 'I found these published products:' : 'وجدت هذه المنتجات المنشورة:'; }
   setTimeout(() => appendChat(reply, false, matches), 250);
@@ -1346,5 +1348,4 @@ renderAccount();
 // Render the independent builder/upgrade surfaces immediately as well as
 // after Firebase updates, so the page never opens as an empty shell.
 renderBuilder();
-renderUpgrade();
 localizeDom();

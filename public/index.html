@@ -87,21 +87,33 @@
   <!-- ===== MAIN ===== -->
   <main id="top">
 
-    <!-- 1. HERO TITLE + BANNER -->
-    <section class="hero-title-strip section-pad" aria-labelledby="heroTitle">
-      <h1 id="heroTitle">عالم الإلكترونيات بين إيديك</h1>
-    </section>
-    <section class="hero" aria-labelledby="heroTitle">
-      <div class="hero-copy">
-        <p class="hero-kicker">سبايدر للإلكترونيات</p>
-        <p id="heroSubtitle">أجهزة أصلية .. أداء أعلى .. تجربة أفضل</p>
-        <button class="hero-cta" id="heroBuilderBtn" type="button">
-          ابنِ تجميعتك الآن <i class="fa-solid fa-arrow-left"></i>
-        </button>
-      </div>
+    <!-- 1. FULL-WIDTH VIDEO HERO -->
+    <section class="hero" aria-labelledby="heroKicker">
       <div class="hero-media">
-        <img id="heroImage" src="assets/hero-setup.jpg" alt="تجهيز ألعاب وكمبيوتر من سبايدر" fetchpriority="high">
+        <video id="heroVideo" class="hero-video" autoplay muted loop playsinline preload="metadata"
+          poster="assets/spider-hero-poster.jpg" aria-label="فيديو سبايدر للإلكترونيات">
+          <source src="assets/spider-hero.mp4" type="video/mp4">
+        </video>
+        <div class="hero-overlay" aria-hidden="true"></div>
+        <div class="hero-copy">
+          <p class="hero-kicker" id="heroKicker">سبايدر للإلكترونيات</p>
+          <p id="heroSubtitle">أجهزة أصلية .. أداء أعلى .. تجربة أفضل</p>
+          <button class="hero-cta" id="heroBuilderBtn" type="button">
+            ابنِ تجميعتك الآن <i class="fa-solid fa-arrow-left"></i>
+          </button>
+        </div>
       </div>
+    </section>
+
+    <!-- 2. INDEPENDENT UPGRADE ENTRY -->
+    <section class="section-pad upgrade-promo-section" aria-labelledby="upgradePromoTitle">
+      <a class="upgrade-promo" id="upgradePromoLink" href="builder.html">
+        <span class="upgrade-promo-copy">
+          <strong id="upgradePromoTitle">طوّر حاسبتك</strong>
+          <span id="upgradePromoDescription">اختَر القطع المناسبة لتطوير أداء جهازك</span>
+        </span>
+        <i class="fa-solid fa-arrow-left upgrade-promo-icon" aria-hidden="true"></i>
+      </a>
     </section>
 
     <!-- 3. CATEGORIES — Always visible circular row -->
@@ -212,19 +224,6 @@
       <button class="btn btn-primary compare-submit" id="compareNowBtn" type="button">قارن الآن</button>
 
       <div id="compareResults" class="compare-results hidden"></div>
-    </section>
-
-    <!-- 7. UPGRADE -->
-    <section class="section-pad upgrade-section" id="upgradeSection" aria-labelledby="upgradeTitle">
-      <div class="section-heading">
-        <div class="section-title-bar">
-          <h2 id="upgradeTitle">طوّر حاسبتك</h2>
-        </div>
-      </div>
-      <div class="upgrade-form" id="upgradeForm"></div>
-      <div class="upgrade-results" id="upgradeResults">
-        <div class="empty-state">اختر مواصفة واحدة على الأقل لبدء الاقتراح.</div>
-      </div>
     </section>
 
   </main>
