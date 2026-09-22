@@ -606,9 +606,20 @@ img{max-width:100%;display:block}
 /* ===== UPGRADE SECTION ===== */
 .upgrade-section{padding-top:8px}
 .upgrade-form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.upgrade-field{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:800;color:#666}
+.upgrade-field{display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;color:#666;min-width:0}
+.upgrade-field label{color:var(--ink);line-height:1.4}
 .upgrade-field select{border:1px solid #eee;border-radius:9px;background:#fff;padding:9px 10px;min-height:38px;outline:none;color:var(--ink);font-size:12px}
 .upgrade-field select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(237,28,36,.08)}
+.upgrade-selection-preview{min-height:104px;border:1px solid #f0dfe0;border-radius:11px;background:linear-gradient(145deg,#fff,#fff8f8);padding:7px;display:flex;align-items:center;overflow:hidden}
+.upgrade-preview-empty{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--muted);font-size:10px;line-height:1.5;font-weight:600}
+.upgrade-preview-empty i{color:var(--red);font-size:17px}
+.upgrade-preview-card{display:grid;grid-template-columns:54px minmax(0,1fr);grid-template-rows:auto auto;gap:5px 8px;width:100%;min-width:0;align-items:center}
+.upgrade-preview-card img{grid-row:1 / span 2;width:54px;height:54px;object-fit:contain;border-radius:8px;background:var(--soft);border:1px solid #eee}
+.upgrade-preview-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.upgrade-preview-copy strong{font-size:11px;line-height:1.35;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.upgrade-preview-copy span{font-size:9px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upgrade-preview-copy small{font-size:9px;font-weight:600;color:#69727e;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.upgrade-preview-card>b{grid-column:2;color:var(--red);font-size:12px;font-weight:900;direction:rtl;white-space:nowrap}
 .upgrade-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px}
 .upgrade-note{grid-column:1/-1;color:var(--muted);font-size:11px}
 
@@ -626,8 +637,8 @@ img{max-width:100%;display:block}
 .footer-brand p{color:#ff8d92;font-weight:800;font-size:12px;margin-top:10px}
 .footer-links{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .footer-links a{
-  border:1px solid #343841;border-radius:9px;
-  padding:8px 13px;color:#e8ebef;font-size:12px;
+  width:40px;height:40px;border:1px solid #343841;border-radius:10px;
+  padding:0;color:#e8ebef;font-size:18px;justify-content:center;
   display:flex;align-items:center;gap:6px;transition:.15s;
 }
 .footer-links a:hover{border-color:var(--red);color:#fff}
@@ -878,8 +889,10 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   .upgrade-form{grid-template-columns:1fr 1fr}
 
   /* Footer */
-  .footer-inner{display:block}
-  .footer-links{justify-content:flex-start;margin-top:13px}
+  .footer-inner{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:14px}
+  .footer-brand{width:100%;display:flex;flex-direction:column;align-items:center}
+  .footer-brand .brand-lockup{justify-content:center}
+  .footer-links{justify-content:center;margin-top:0;width:100%}
 
   /* Modals */
   .product-detail{grid-template-columns:1fr}
@@ -982,6 +995,7 @@ html[data-theme="dark"] .header-setting-btn{color:#f4f6f8}
 html[data-theme="dark"] .btn-outline{background:#262b34;color:#f4f6f8;border-color:#4a515d}
 html[data-theme="dark"] .btn-outline:disabled{background:#262b34;color:#8f98a6;border-color:#454b57}
 html[data-theme="dark"] .compatibility-box{background:#262b34;color:#e8edf3}
+html[data-theme="dark"] .upgrade-selection-preview{background:linear-gradient(145deg,#242a33,#2c2225);border-color:#4a515d}
 html[data-theme="dark"] .builder-empty-choose{background:#3a1d22;border-color:#6b343a}
 html[data-theme="dark"] .builder-empty-choose:hover{background:#4a2329}
 html[dir="ltr"] .header-row,
@@ -1169,5 +1183,6 @@ html[dir="ltr"] .chatbot-fab{right:auto;left:max(16px,env(safe-area-inset-left))
   .message { font-size: 14px; line-height: 1.6; }
   .chat-quick-replies button { font-size: 12px; padding: 7px 9px; }
   .chat-input input { font-size: 14px; min-height: 40px; }
-  .footer-brand p, .footer-links a { font-size: 13px; line-height: 1.5; }
+  .footer-brand p { font-size: 13px; line-height: 1.5; }
+  .footer-links a { font-size: 18px; line-height: 1; }
 }

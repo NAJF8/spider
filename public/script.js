@@ -254,9 +254,9 @@ function applySettings(settings = {}) {
     $('heroBuilderBtn').append(icon);
   }
 
-  const instagram = safeUrl(settings.instagramUrl);
+  const instagram = safeUrl(settings.instagramUrl || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==') || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==';
   const whatsapp = normalizeWhatsApp(settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
-  const map = safeUrl(settings.googleMapsUrl || settings.mapUrl);
+  const map = safeUrl(settings.googleMapsUrl || settings.mapUrl || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic') || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic';
 
   [['instagramLink', instagram], ['footerWhatsapp', whatsapp ? `https://wa.me/${whatsapp}` : ''], ['mapLink', map]].forEach(([id, url]) => {
     const el = $(id); if (!el) return;
@@ -854,18 +854,37 @@ function renderUpgrade() {
     { id: 'motherboard',label: language === 'en' ? 'Current motherboard' : 'اللوحة الأم الحالية', match: /motherboard|لوحة|مذربورد/i },
     { id: 'ram',       label: language === 'en' ? 'Current RAM' : 'الرام الحالية',        match: /ram|ذاكرة|رام/i },
     { id: 'gpu',       label: language === 'en' ? 'Current GPU' : 'كرت الشاشة الحالي',   match: /gpu|كرت|كروت/i },
-    { id: 'storage',   label: language === 'en' ? 'Current storage' : 'التخزين الحالي',       match: /storage|هارد|ssd|hdd/i }
+    { id: 'storage',   label: language === 'en' ? 'Current storage' : 'التخزين الحالي',       match: /storage|هارد|ssd|hdd/i },
+    { id: 'case',      label: language === 'en' ? 'Current case' : 'الكيس الحالي',             match: /case|صندوق/i },
+    { id: 'cooling',   label: language === 'en' ? 'Current cooling' : 'التبريد الحالي',        match: /cooling|تبريد/i },
+    { id: 'psu',       label: language === 'en' ? 'Current power supply' : 'مزود الطاقة الحالي', match: /psu|power|طاقة|مجهز/i }
   ];
   $('upgradeForm').innerHTML = fields.map((field) => {
     const options = state.products.filter((p) => field.match.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`));
-    return `<label class="upgrade-field">${field.label}<select data-upgrade="${field.id}"><option value="">${t('unknown')}</option>${options.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('')}</select></label>`;
+    return `<div class="upgrade-field"><label for="upgrade-${field.id}">${field.label}</label><select id="upgrade-${field.id}" data-upgrade="${field.id}"><option value="">${t('unknown')}</option>${options.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('')}</select><div class="upgrade-selection-preview" data-upgrade-preview="${field.id}"><span class="upgrade-preview-empty"><i class="fa-regular fa-image"></i>${language === 'en' ? 'Selected part preview appears here' : 'ستظهر معاينة القطعة المختارة هنا'}</span></div></div>`;
   }).join('');
   $('upgradeForm').querySelectorAll('[data-upgrade]').forEach((sel) => sel.addEventListener('change', renderUpgradeResults));
+  renderUpgradeSelectionPreviews();
+}
+
+function renderUpgradeSelectionPreviews() {
+  if (!$('upgradeForm')) return;
+  $('upgradeForm').querySelectorAll('[data-upgrade-preview]').forEach((preview) => {
+    const select = $('upgradeForm').querySelector(`[data-upgrade="${preview.dataset.upgradePreview}"]`);
+    const product = state.products.find((p) => p.id === select?.value);
+    if (!product) {
+      preview.innerHTML = `<span class="upgrade-preview-empty"><i class="fa-regular fa-image"></i>${language === 'en' ? 'Selected part preview appears here' : 'ستظهر معاينة القطعة المختارة هنا'}</span>`;
+      return;
+    }
+    const specs = topSpecs(product);
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(product.price)}</b></div>`;
+  });
 }
 
 function renderUpgradeResults() {
   if (!$('upgradeForm') || !$('upgradeResults')) return;
   const selected = [...$('upgradeForm').querySelectorAll('select')].map((sel) => state.products.find((p) => p.id === sel.value)).filter(Boolean);
+  renderUpgradeSelectionPreviews();
   if (!selected.length) { $('upgradeResults').innerHTML = `<div class="empty-state">${t('chooseSpec')}</div>`; return; }
   const usedIds = new Set(selected.map((p) => p.id));
   const recs = state.products.filter((p) => !usedIds.has(p.id) && isAvailable(p)).filter((p) => /gpu|gpus|كرت|ram|ذاكرة|storage|تخزين|ssd|hdd|cpu|cpus|معالج/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`)).slice(0, 4);
@@ -1260,4 +1279,8 @@ else bindEvents();
 updateFavoriteBadge();
 renderCart();
 renderAccount();
+// Render the independent builder/upgrade surfaces immediately as well as
+// after Firebase updates, so the page never opens as an empty shell.
+renderBuilder();
+renderUpgrade();
 localizeDom();
