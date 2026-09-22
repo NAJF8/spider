@@ -85,7 +85,17 @@ const previewTranslation = (kind, item) => language === 'en'
   : (item?.nameAr || item?.localizedText?.ar || item?.name || '');
 const productName = (p) => language === 'en' ? (previewTranslation('products', p) || p?.name || '') : (p?.nameAr || p?.localizedText?.ar || p?.name || '');
 const categoryLabel = (c) => language === 'en' ? (previewTranslation('categories', c) || c?.name || '') : (c?.nameAr || c?.localizedText?.ar || c?.name || '');
-const localizedAttribute = (value) => typeof value === 'object' ? (value?.[language] || value?.ar || value?.en || '') : value;
+const ATTRIBUTE_TRANSLATIONS = {
+  'الأنوية': 'Cores', 'المسارات': 'Threads', 'الاتصال': 'Connectivity', 'التخزين': 'Storage',
+  'التردد': 'Refresh rate', 'الحجم': 'Size', 'الدقة': 'Resolution', 'الرام': 'RAM',
+  'السرعة': 'Speed', 'السعة': 'Capacity', 'الشاشة': 'Display', 'الصوت المحيطي': 'Surround sound',
+  'المعالج': 'Processor', 'المعمارية': 'Architecture', 'النوع': 'Type', 'ذاكرة الرسوميات': 'Graphics memory',
+  'كرت الشاشة': 'Graphics card', 'منحنية': 'Curved', 'بوصة': 'inch'
+};
+const localizedAttribute = (value) => {
+  if (typeof value === 'object') return value?.[language] || value?.ar || value?.en || '';
+  return language === 'en' ? (ATTRIBUTE_TRANSLATIONS[String(value)] || value) : value;
+};
 
 const DIRECT_TRANSLATIONS = {
   'عالم الإلكترونيات بين إيديك': ['The world of electronics in your hands', 'عالم الإلكترونيات بين إيديك'], 'أجهزة أصلية .. أداء أعلى .. تجربة أفضل': ['Original devices .. Higher performance .. Better experience', 'أجهزة أصلية .. أداء أعلى .. تجربة أفضل'], 'ابحث عن منتج، شركة أو موديل ...': ['Search by product, brand or model ...', 'ابحث عن منتج، شركة أو موديل ...'], 'ابنِ تجميعتك الآن': ['Build your PC now', 'ابنِ تجميعتك الآن'], 'اختياراتك محفوظة عند الرجوع إلى المتجر.': ['Your choices are saved when you return to the store.', 'اختياراتك محفوظة عند الرجوع إلى المتجر.'], 'اختر القطع لفحص التوافق.': ['Choose parts to check compatibility.', 'اختر القطع لفحص التوافق.'], 'العلامة': ['Brand', 'العلامة'], 'الضمان': ['Warranty', 'الضمان'], 'SPIDER BUILD LAB': ['SPIDER BUILD LAB', 'SPIDER BUILD LAB'], 'اختر القطع المنشورة فعلياً، وشاهد الإجمالي وفحص التوافق قبل إضافة التجميعة إلى السلة.': ['Choose published parts, see the total and compatibility check before adding the build to your cart.', 'اختر القطع المنشورة فعلياً، وشاهد الإجمالي وفحص التوافق قبل إضافة التجميعة إلى السلة.'],
@@ -698,7 +708,7 @@ function renderBuilderPickerGrid() {
 // Get top 3 specs of a product for builder card display
 function topSpecs(product) {
   const specs = Object.entries(product?.specifications || {});
-  return specs.slice(0, 3).map(([k, v]) => `${k}: ${v}`);
+  return specs.slice(0, 3).map(([k, v]) => `${localizedAttribute(k)}: ${localizedAttribute(v)}`);
 }
 
 function renderBuilder() {
