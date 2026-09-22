@@ -34,6 +34,7 @@ const state = {
   compare: ['', ''],
   comparePickerSlot: 0,
   builder: {},
+  builderCatalog: { part: '', category: '', brand: '', search: '' },
   availabilityProductId: ''
 };
 
@@ -61,7 +62,7 @@ const I18N = {
     chatbot: 'مساعد SPIDER', chatPlaceholder: 'اكتب سؤالك...', chatbotWelcome: 'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.',
     noSections: 'لا توجد أقسام منشورة حالياً.', noProducts: 'لا توجد منتجات منشورة مطابقة للبحث أو الفلتر.', noBrands: 'لا توجد علامات في المنتجات المنشورة.', noResults: 'لا توجد نتائج منشورة', tryAnother: 'جرّب اسم شركة أو موديل آخر',
     selectedParts: 'قطع', unknown: 'غير معروف', change: 'تغيير', remove: 'إزالة', clear: 'مسح', chooseProductNumber: 'اختر المنتج', comparisonSameCategory: 'اختر منتجين من نفس القسم لإظهار مقارنة عادلة.', noSpecs: 'لا توجد مواصفات منشورة للمقارنة.', notAvailable: 'غير متوفر', showBrands: 'اضغط لإظهار العلامات التجارية', hideBrands: 'اضغط لإخفاء العلامات التجارية',
-    notificationsSaved: 'تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.', added: 'تمت إضافة المنتج إلى السلة', buildAdded: 'تمت إضافة القطع المنشورة إلى السلة.', sameProduct: 'لا يمكن اختيار المنتج نفسه في المقارنة مرتين.'
+    builderCatalogTitle: 'منتجات التجميعة', builderSearch: 'ابحث بالاسم أو الموديل', builderCategory: 'القسم', builderBrand: 'العلامة التجارية', chooseForBuild: 'اختيار لهذه التجميعة', selectedForBuild: 'مختارة', allParts: 'كل القطع', builderSummary: 'ملخص التجميعة', builderHint: 'أجزاؤك المختارة', productCount: 'منتجات', notificationsSaved: 'تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.', added: 'تمت إضافة المنتج إلى السلة', buildAdded: 'تمت إضافة القطع المنشورة إلى السلة.', sameProduct: 'لا يمكن اختيار المنتج نفسه في المقارنة مرتين.'
   },
   en: {
     languageButton: 'AR', themeLight: 'Light mode', themeDark: 'Dark mode',
@@ -73,7 +74,7 @@ const I18N = {
     upgrade: 'Upgrade your PC', chooseSpec: 'Choose at least one specification to start suggestions.', footerPride: 'We value your trust', whatsapp: 'WhatsApp', instagram: 'Instagram', map: 'Location', facebook: 'Facebook',
     cart: 'Shopping cart', emptyCart: 'Your cart is empty', total: 'Total', checkout: 'Checkout', close: 'Close', checkoutTitle: 'Checkout', fullName: 'Full name', phone: 'Phone number (07XXXXXXXXX)', chooseGovernorate: 'Choose governorate...', city: 'City / area', address: 'Detailed address', notes: 'Additional notes (optional)', confirmOrder: 'Confirm order, save, then open WhatsApp', orderNote: 'Your cart will stay intact if validation or saving fails.',
     details: 'Details', addToCart: 'Add to cart', notify: 'Notify me when available', available: 'Available', limited: 'Limited quantity', unavailable: 'Unavailable', account: 'Account & favorites', loginHint: 'Sign in to save favorites on this device.', google: 'Continue with Google', phoneOtp: 'Continue with phone OTP', favorites: 'Favorites', open: 'Open', noFavorites: 'You have not added any favorites yet.', logout: 'Sign out',
-    builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', chooseProductNumber: 'Choose product', comparisonSameCategory: 'Choose two products from the same category for a fair comparison.', noSpecs: 'No published specifications for comparison.', notAvailable: 'Not available', showBrands: 'Show brands', hideBrands: 'Hide brands', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to the cart.', sameProduct: 'The same product cannot be selected twice.'
+    builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', chooseProductNumber: 'Choose product', comparisonSameCategory: 'Choose two products from the same category for a fair comparison.', noSpecs: 'No published specifications for comparison.', notAvailable: 'Not available', showBrands: 'Show brands', hideBrands: 'Hide brands', builderCatalogTitle: 'Build products', builderSearch: 'Search by name or model', builderCategory: 'Category', builderBrand: 'Brand', chooseForBuild: 'Choose for this build', selectedForBuild: 'Selected', allParts: 'All parts', builderSummary: 'Build summary', builderHint: 'Your selected parts', productCount: 'products', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to the cart.', sameProduct: 'The same product cannot be selected twice.'
   }
 };
 
@@ -139,12 +140,20 @@ function applyAppearance() {
   document.documentElement.dataset.theme = theme;
   document.body?.setAttribute('data-theme', theme);
   document.title = language === 'en'
-    ? (document.body?.dataset.page === 'builder' ? 'Build your PC | Spider Electronics' : 'Spider Electronics | Computer & Electronics Store')
-    : (document.body?.dataset.page === 'builder' ? 'ابنِ تجميعتك | سبايدر للإلكترونيات' : 'سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر');
+    ? (document.body?.dataset.page === 'builder' ? 'Upgrade your PC | Spider Electronics' : 'Spider Electronics | Computer & Electronics Store')
+    : (document.body?.dataset.page === 'builder' ? 'طوّر حاسبتك | سبايدر للإلكترونيات' : 'سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر');
   const themeButton = $('themeToggle');
   const languageButton = $('languageToggle');
   if (themeButton) { themeButton.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>`; themeButton.title = theme === 'dark' ? t('themeLight') : t('themeDark'); themeButton.setAttribute('aria-label', themeButton.title); }
   if (languageButton) { languageButton.textContent = t('languageButton'); languageButton.title = language === 'ar' ? 'English' : 'العربية'; }
+  localizeBuilderPage();
+}
+
+function localizeBuilderPage() {
+  if (document.body?.dataset.page !== 'builder') return;
+  const text = { builderPageTitle: t('upgrade'), builderPageIntro: language === 'en' ? 'Choose products from their cards to build your PC.' : 'اختر المنتجات من بطاقاتها لبناء تجميعتك.', builderTitle: t('upgrade'), builderIntro: language === 'en' ? 'Choose products from their cards and build your PC step by step.' : 'اختر القطع من بطاقاتها وصمّم تجميعتك خطوة بخطوة.', builderCategoryLabel: t('builderCategory'), builderBrandLabel: t('builderBrand'), builderCatalogTitle: t('builderCatalogTitle'), builderSummaryTitle: t('builderSummary'), builderSummaryHint: t('builderHint') };
+  Object.entries(text).forEach(([id, value]) => { const el = $(id); if (el) el.textContent = value; });
+  const search = $('builderCatalogSearch'); if (search) { search.placeholder = t('builderSearch'); search.setAttribute('aria-label', t('builderSearch')); }
 }
 
 function setTheme(next = theme === 'dark' ? 'light' : 'dark') {
@@ -682,6 +691,71 @@ function productsForPart(part) {
   });
 }
 
+function builderPartForProduct(product) {
+  const active = builderParts.find((part) => part.id === state.builderCatalog.part);
+  if (active && productsForPart(active).some((item) => item.id === product.id)) return active;
+  return builderParts.find((part) => productsForPart(part).some((item) => item.id === product.id));
+}
+
+function builderCatalogProducts() {
+  const filter = state.builderCatalog;
+  const part = builderParts.find((item) => item.id === filter.part);
+  const pool = part ? productsForPart(part) : state.products.filter((product) => builderPartForProduct(product));
+  return pool.filter((product) => productCategoryMatch(product, filter.category))
+    .filter((product) => !filter.brand || String(product.brand || '').toLowerCase() === filter.brand.toLowerCase())
+    .filter((product) => !filter.search || productText(product).includes(filter.search.toLowerCase()));
+}
+
+function renderBuilderCatalogFilters() {
+  const category = $('builderCatalogCategory');
+  const brand = $('builderCatalogBrand');
+  if (!category || !brand) return;
+  const currentCategory = state.builderCatalog.category;
+  const currentBrand = state.builderCatalog.brand;
+  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + state.categories.map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
+  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.filter((p) => builderPartForProduct(p)).map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  category.value = currentCategory;
+  brand.value = currentBrand;
+}
+
+function renderBuilderPartTabs() {
+  const tabs = $('builderPartTabs');
+  if (!tabs) return;
+  tabs.innerHTML = `<button type="button" class="builder-part-tab ${!state.builderCatalog.part ? 'active' : ''}" data-builder-part-filter="">${t('allParts')}</button>` + builderParts.map((part) => `<button type="button" class="builder-part-tab ${state.builderCatalog.part === part.id ? 'active' : ''}" data-builder-part-filter="${part.id}"><i class="fa-solid ${part.icon}"></i>${esc(builderPartLabel(part))}</button>`).join('');
+  tabs.querySelectorAll('[data-builder-part-filter]').forEach((button) => button.addEventListener('click', () => {
+    state.builderCatalog.part = button.dataset.builderPartFilter;
+    renderBuilderCatalog();
+  }));
+}
+
+function renderBuilderCatalog() {
+  const grid = $('builderCatalogGrid');
+  if (!grid) return;
+  renderBuilderCatalogFilters();
+  renderBuilderPartTabs();
+  const products = builderCatalogProducts();
+  const title = $('builderCatalogTitle');
+  if (title) title.textContent = state.builderCatalog.part ? builderPartLabel(builderParts.find((p) => p.id === state.builderCatalog.part)) : t('builderCatalogTitle');
+  if ($('builderCatalogCount')) $('builderCatalogCount').textContent = `${englishDigits(products.length)} ${t('productCount')}`;
+  grid.innerHTML = products.length ? products.map((product) => {
+    const part = builderPartForProduct(product);
+    const selected = part && state.builder[part.id] === product.id;
+    const available = isAvailable(product);
+    const specs = topSpecs(product);
+    return `<article class="builder-product-card ${selected ? 'is-selected' : ''}">
+      <div class="builder-product-image"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg'"></div>
+      <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta"><strong>${formatPrice(product.price)}</strong>${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
+    </article>`;
+  }).join('') : `<div class="empty-state builder-empty-state">${t('noPublished')}</div>`;
+  grid.querySelectorAll('[data-builder-product]').forEach((button) => button.addEventListener('click', () => {
+    const product = state.products.find((item) => item.id === button.dataset.builderProduct);
+    const part = product && builderPartForProduct(product);
+    if (!product || !part) return;
+    state.builder[part.id] = product.id;
+    saveBuilder(); renderBuilder();
+  }));
+}
+
 function openBuilderPicker(partId) {
   if (!$('builderPickerModal')) return;
   state.builderPickerPart = partId;
@@ -714,67 +788,19 @@ function topSpecs(product) {
 function renderBuilder() {
   if (!$('builderPartsList')) return;
   const list = $('builderPartsList');
-  list.innerHTML = builderParts.map((part) => {
-    const options = productsForPart(part);
-    const selectedId = state.builder[part.id];
-    const product = state.products.find((p) => p.id === selectedId);
-
-    if (product) {
-      // Filled card
-      const specs = topSpecs(product);
-      return `<div class="builder-part" data-part-id="${esc(part.id)}">
-        <div class="builder-part-filled">
-          <div class="builder-part-filled-inner">
-            <div class="part-filled-top">
-              <img class="part-filled-img" src="${esc(imageFor(product))}" alt="${esc(productName(product))}"
-                onerror="this.src='images/default-product.svg'">
-              <div class="part-filled-info">
-                <div class="part-filled-category"><i class="fa-solid ${esc(part.icon)}"></i> ${esc(builderPartLabel(part))}</div>
-                <div class="part-filled-name">${esc(productName(product))}</div>
-                <div class="part-filled-model">${esc(product.model || product.brand || '')}</div>
-              </div>
-            </div>
-            ${specs.length ? `<div class="part-filled-specs">${specs.map((s) => `<span class="part-spec-chip">${esc(s)}</span>`).join('')}</div>` : ''}
-          </div>
-          <div class="part-filled-price">
-            <strong>${formatPrice(product.price)}</strong>
-            <span>${availabilityMarkup(product)}</span>
-          </div>
-          <div class="part-filled-actions">
-            <button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}">
-              <i class="fa-solid fa-rotate"></i> ${t('change')}
-            </button>
-            <button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}">
-              <i class="fa-solid fa-xmark"></i> ${t('clear')}
-            </button>
-          </div>
-        </div>
-      </div>`;
-    } else {
-      // Empty card — open the image-based picker
-      const noProducts = options.length === 0;
-      return `<div class="builder-part" data-part-id="${esc(part.id)}">
-        <div class="builder-part-empty">
-          <div class="part-header">
-            <div style="display:flex;align-items:center;gap:10px">
-              <div class="part-icon-wrap"><i class="fa-solid ${esc(part.icon)}"></i></div>
-              <span class="part-label">${esc(builderPartLabel(part))}</span>
-            </div>
-            ${!noProducts ? `<div class="part-add-btn"><i class="fa-solid fa-plus"></i></div>` : ''}
-          </div>
-          ${noProducts ? `<span class="no-products-note">${language === 'en' ? 'No published part available' : 'لا توجد قطعة منشورة حالياً'}</span>` : `<button class="builder-empty-choose" type="button" data-builder-open="${esc(part.id)}"><i class="fa-solid fa-image"></i> ${language === 'en' ? 'Choose with image' : 'اختر القطعة بصورة'}</button>`}
-        </div>
-      </div>`;
-    }
-  }).join('');
+  const selected = builderParts.map((part) => ({ part, product: state.products.find((p) => p.id === state.builder[part.id]) })).filter((item) => item.product);
+  list.innerHTML = selected.length ? selected.map(({ part, product }) => `<article class="builder-selected-card">
+    <img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'">
+    <div class="builder-selected-copy"><small>${esc(builderPartLabel(part))}</small><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span></div>
+    <b>${formatPrice(product.price)}</b>
+    <div class="builder-selected-actions"><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-xmark"></i> ${t('clear')}</button></div>
+  </article>`).join('') : `<div class="builder-selected-empty">${language === 'en' ? 'Choose a product card to start your build.' : 'اختر بطاقة منتج للبدء ببناء تجميعتك.'}</div>`;
 
   // Delegate interactions from the stable list container so freshly rendered
   // cards always retain working تغيير/مسح and selection controls.
   list.onclick = (event) => {
     const remove = event.target.closest('[data-builder-remove]');
     const change = event.target.closest('[data-builder-change]');
-    const open = event.target.closest('[data-builder-open]');
-    if (open) { openBuilderPicker(open.dataset.builderOpen); return; }
     const partId = remove?.dataset.builderRemove || change?.dataset.builderChange;
     if (!partId) return;
     if (change) { openBuilderPicker(partId); return; }
@@ -782,15 +808,7 @@ function renderBuilder() {
     saveBuilder();
     renderBuilder();
   };
-  list.onchange = (event) => {
-    const select = event.target.closest('[data-builder-part]');
-    if (!select) return;
-    if (select.value) state.builder[select.dataset.builderPart] = select.value;
-    else delete state.builder[select.dataset.builderPart];
-    saveBuilder();
-    renderBuilder();
-  };
-
+  renderBuilderCatalog();
   updateBuilder();
 }
 
@@ -1174,6 +1192,9 @@ function bindBuilderPageEvents() {
   $('closeBuilderPickerBtn')?.addEventListener('click', () => modal('builderPickerModal', false));
   $('builderPickerModal')?.addEventListener('click', (event) => { if (event.target === $('builderPickerModal')) modal('builderPickerModal', false); });
   $('builderPickerSearch')?.addEventListener('input', renderBuilderPickerGrid);
+  $('builderCatalogSearch')?.addEventListener('input', (event) => { state.builderCatalog.search = event.target.value; renderBuilderCatalog(); });
+  $('builderCatalogCategory')?.addEventListener('change', (event) => { state.builderCatalog.category = event.target.value; renderBuilderCatalog(); });
+  $('builderCatalogBrand')?.addEventListener('change', (event) => { state.builderCatalog.brand = event.target.value; renderBuilderCatalog(); });
   $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast(language === 'en' ? 'Published parts were added to the cart.' : 'تمت إضافة القطع المنشورة إلى السلة.'); });
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
