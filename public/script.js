@@ -1,6 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
@@ -44,7 +45,7 @@ const I18N = {
     electronicsWorld: 'عالم الإلكترونيات بين إيديك', store: 'سبايدر للإلكترونيات', electronics: 'للإلكترونيات',
     originalPerformance: 'أجهزة أصلية .. أداء أعلى .. تجربة أفضل', buildNow: 'ابنِ تجميعتك الآن',
     searchPlaceholder: 'ابحث عن منتج، شركة أو موديل ...', browseSections: 'تصفح الأقسام', allProducts: 'جميع المنتجات',
-    latestProducts: 'أحدث المنتجات', productResults: 'نتائج المنتجات', showAll: 'عرض الكل', brands: 'العلامات التجارية',
+    latestProducts: 'أحدث المنتجات', productResults: 'نتائج المنتجات', showAll: 'عرض الكل', brands: 'العلامات التجارية', searchFilter: 'بحث', brandFilter: 'علامة تجارية', categoryFilter: 'قسم',
     show: 'إظهار', hide: 'إخفاء', clearFilter: 'إلغاء الفلتر', compare: 'مقارنة المنتجات', clearCompare: 'مسح المقارنة',
     category: 'القسم', brand: 'العلامة التجارية', allCategories: 'كل الأقسام', allBrands: 'كل العلامات', firstProduct: 'المنتج الأول', secondProduct: 'المنتج الثاني', chooseProduct: 'اختر منتجاً', compareNow: 'قارن الآن',
     upgrade: 'طوّر حاسبتك', chooseSpec: 'اختر مواصفة واحدة على الأقل لبدء الاقتراح.',
@@ -59,7 +60,7 @@ const I18N = {
     compatibility: 'اختر القطع لفحص التوافق.', noPublished: 'لا توجد منتجات منشورة مطابقة.', noDescription: 'لا يوجد وصف إضافي منشور.',
     chatbot: 'مساعد SPIDER', chatPlaceholder: 'اكتب سؤالك...', chatbotWelcome: 'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.',
     noSections: 'لا توجد أقسام منشورة حالياً.', noProducts: 'لا توجد منتجات منشورة مطابقة للبحث أو الفلتر.', noBrands: 'لا توجد علامات في المنتجات المنشورة.', noResults: 'لا توجد نتائج منشورة', tryAnother: 'جرّب اسم شركة أو موديل آخر',
-    selectedParts: 'قطع', unknown: 'غير معروف', change: 'تغيير', remove: 'إزالة', clear: 'مسح',
+    selectedParts: 'قطع', unknown: 'غير معروف', change: 'تغيير', remove: 'إزالة', clear: 'مسح', chooseProductNumber: 'اختر المنتج', comparisonSameCategory: 'اختر منتجين من نفس القسم لإظهار مقارنة عادلة.', noSpecs: 'لا توجد مواصفات منشورة للمقارنة.', notAvailable: 'غير متوفر', showBrands: 'اضغط لإظهار العلامات التجارية', hideBrands: 'اضغط لإخفاء العلامات التجارية',
     notificationsSaved: 'تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.', added: 'تمت إضافة المنتج إلى السلة', buildAdded: 'تمت إضافة القطع المنشورة إلى السلة.', sameProduct: 'لا يمكن اختيار المنتج نفسه في المقارنة مرتين.'
   },
   en: {
@@ -67,20 +68,23 @@ const I18N = {
     electronicsWorld: 'The world of electronics in your hands', store: 'Spider Electronics', electronics: 'Electronics',
     originalPerformance: 'Original devices .. Higher performance .. Better experience', buildNow: 'Build your PC now',
     searchPlaceholder: 'Search by product, brand or model ...', browseSections: 'Browse categories', allProducts: 'All products',
-    latestProducts: 'Latest products', productResults: 'Product results', showAll: 'View all', brands: 'Brands', show: 'Show', hide: 'Hide', clearFilter: 'Clear filter',
+    latestProducts: 'Latest products', productResults: 'Product results', showAll: 'View all', brands: 'Brands', searchFilter: 'Search', brandFilter: 'Brand', categoryFilter: 'Category', show: 'Show', hide: 'Hide', clearFilter: 'Clear filter',
     compare: 'Compare products', clearCompare: 'Clear comparison', category: 'Category', brand: 'Brand', allCategories: 'All categories', allBrands: 'All brands', firstProduct: 'First product', secondProduct: 'Second product', chooseProduct: 'Choose a product', compareNow: 'Compare now',
     upgrade: 'Upgrade your PC', chooseSpec: 'Choose at least one specification to start suggestions.', footerPride: 'We value your trust', whatsapp: 'WhatsApp', instagram: 'Instagram', map: 'Location', facebook: 'Facebook',
     cart: 'Shopping cart', emptyCart: 'Your cart is empty', total: 'Total', checkout: 'Checkout', close: 'Close', checkoutTitle: 'Checkout', fullName: 'Full name', phone: 'Phone number (07XXXXXXXXX)', chooseGovernorate: 'Choose governorate...', city: 'City / area', address: 'Detailed address', notes: 'Additional notes (optional)', confirmOrder: 'Confirm order, save, then open WhatsApp', orderNote: 'Your cart will stay intact if validation or saving fails.',
     details: 'Details', addToCart: 'Add to cart', notify: 'Notify me when available', available: 'Available', limited: 'Limited quantity', unavailable: 'Unavailable', account: 'Account & favorites', loginHint: 'Sign in to save favorites on this device.', google: 'Continue with Google', phoneOtp: 'Continue with phone OTP', favorites: 'Favorites', open: 'Open', noFavorites: 'You have not added any favorites yet.', logout: 'Sign out',
-    builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to cart.', sameProduct: 'The same product cannot be selected twice.'
+    builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', chooseProductNumber: 'Choose product', comparisonSameCategory: 'Choose two products from the same category for a fair comparison.', noSpecs: 'No published specifications for comparison.', notAvailable: 'Not available', showBrands: 'Show brands', hideBrands: 'Hide brands', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to the cart.', sameProduct: 'The same product cannot be selected twice.'
   }
 };
 
 let language = localStorage.getItem(LANGUAGE_STORAGE_KEY) === 'en' ? 'en' : 'ar';
 let theme = localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light';
 const t = (key) => I18N[language][key] || I18N.ar[key] || key;
-const productName = (p) => language === 'en' ? (p?.nameEn || p?.nameEnglish || p?.localizedText?.en || p?.name || '') : (p?.nameAr || p?.localizedText?.ar || p?.name || '');
-const categoryLabel = (c) => language === 'en' ? (c?.nameEn || c?.nameEnglish || c?.localizedText?.en || c?.name || '') : (c?.nameAr || c?.localizedText?.ar || c?.name || '');
+const previewTranslation = (kind, item) => language === 'en'
+  ? (item?.nameEn || item?.nameEnglish || item?.localizedText?.en || CATALOG_TRANSLATIONS[kind]?.[item?.id] || '')
+  : (item?.nameAr || item?.localizedText?.ar || item?.name || '');
+const productName = (p) => language === 'en' ? (previewTranslation('products', p) || p?.name || '') : (p?.nameAr || p?.localizedText?.ar || p?.name || '');
+const categoryLabel = (c) => language === 'en' ? (previewTranslation('categories', c) || c?.name || '') : (c?.nameAr || c?.localizedText?.ar || c?.name || '');
 const localizedAttribute = (value) => typeof value === 'object' ? (value?.[language] || value?.ar || value?.en || '') : value;
 
 const DIRECT_TRANSLATIONS = {
@@ -94,7 +98,13 @@ const DIRECT_TRANSLATIONS = {
   'السلة فارغة': ['Your cart is empty', 'السلة فارغة'], 'المجموع الكلي': ['Total', 'المجموع الكلي'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'عرض سعر': ['Quote', 'عرض سعر'], 'نسخ العرض': ['Copy quote', 'نسخ العرض'], 'مشاركة عبر واتساب': ['Share via WhatsApp', 'مشاركة عبر واتساب'], 'فتح': ['Open', 'فتح'], 'خروج': ['Sign out', 'خروج'], 'أضف للسلة': ['Add to cart', 'أضف للسلة'], 'التفاصيل': ['Details', 'التفاصيل'], 'إزالة من المفضلة': ['Remove from favorites', 'إزالة من المفضلة'], 'أضف للمفضلة': ['Add to favorites', 'أضف للمفضلة'], 'حفظ طلب التنبيه': ['Save alert request', 'حفظ طلب التنبيه'],
   'الاسم الكامل': ['Full name', 'الاسم الكامل'], 'رقم الهاتف (07XXXXXXXXX)': ['Phone number (07XXXXXXXXX)', 'رقم الهاتف (07XXXXXXXXX)'], 'اختر المحافظة...': ['Choose governorate...', 'اختر المحافظة...'], 'المدينة / المنطقة': ['City / area', 'المدينة / المنطقة'], 'العنوان التفصيلي': ['Detailed address', 'العنوان التفصيلي'], 'ملاحظات إضافية (اختياري)': ['Additional notes (optional)', 'ملاحظات إضافية (اختياري)'], 'تأكيد وحفظ الطلب ثم فتح واتساب': ['Confirm order, save, then open WhatsApp', 'تأكيد وحفظ الطلب ثم فتح واتساب'], 'لن تُفرغ السلة إذا فشل التحقق أو حفظ الطلب.': ['Your cart will stay intact if validation or saving fails.', 'لن تُفرغ السلة إذا فشل التحقق أو حفظ الطلب.'],
   'ابنِ تجميعتك': ['Build your PC', 'ابنِ تجميعتك'], 'قطع التجميعة': ['Build parts', 'قطع التجميعة'], 'إجمالي التجميعة': ['Build total', 'إجمالي التجميعة'], 'أضف التجميعة إلى السلة': ['Add build to cart', 'أضف التجميعة إلى السلة'], 'اطلب عرض سعر': ['Request a quote', 'اطلب عرض سعر'], 'العودة إلى المتجر': ['Back to store', 'العودة إلى المتجر'], 'اختر قطعة': ['Choose a part', 'اختر قطعة'], 'هذا عرض سعر قابل للتغير، وليس طلب شراء مؤكداً.': ['This quote may change and is not a confirmed purchase.', 'هذا عرض سعر قابل للتغير، وليس طلب شراء مؤكداً.'],
-  'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.': ['Welcome to SPIDER! Choose a question and I will help from published products.', 'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.'], 'اكتب سؤالك...': ['Type your question...', 'اكتب سؤالك...']
+  'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.': ['Welcome to SPIDER! Choose a question and I will help from published products.', 'هلا بيك بـ SPIDER! اختار سؤالاً حتى أساعدك من المنتجات المنشورة.'], 'اكتب سؤالك...': ['Type your question...', 'اكتب سؤالك...'],
+  'سبايدر للإلكترونيات': ['Spider Electronics', 'سبايدر للإلكترونيات'], 'تصفح الأقسام': ['Browse categories', 'تصفح الأقسام'], 'قائمة الأقسام': ['Categories menu', 'قائمة الأقسام'], 'اختصارات المتجر': ['Store shortcuts', 'اختصارات المتجر'], 'البحث عن المنتجات': ['Search products', 'البحث عن المنتجات'], 'العودة إلى متجر سبايدر': ['Back to Spider store', 'العودة إلى متجر سبايدر'], 'تجهيز ألعاب وكمبيوتر من سبايدر': ['Gaming and computer setup by Spider', 'تجهيز ألعاب وكمبيوتر من سبايدر'], 'تجميع حاسبة': ['PC build', 'تجميع حاسبة'], 'لوكو سبايدر': ['Spider logo', 'لوكو سبايدر'], 'مساعد سبايدر': ['Spider assistant', 'مساعد سبايدر'], 'فيسبوك': ['Facebook', 'فيسبوك'], 'واتساب': ['WhatsApp', 'واتساب'], 'إنستغرام': ['Instagram', 'إنستغرام'],
+  'سلة المشتريات': ['Shopping cart', 'سلة المشتريات'], 'المجموع': ['Subtotal', 'المجموع'], 'التوصيل': ['Delivery', 'التوصيل'], 'الإجمالي': ['Total', 'الإجمالي'],
+  'اختر مواصفة واحدة على الأقل لبدء الاقتراح.': ['Choose at least one specification to start suggestions.', 'اختر مواصفة واحدة على الأقل لبدء الاقتراح.'],
+  'سيُحفظ الطلب على جهازك فقط ما لم تُفعّل خدمة إرسال من الأدمن.': ['The request is saved on your device unless an admin sending service is enabled.', 'سيُحفظ الطلب على جهازك فقط ما لم تُفعّل خدمة إرسال من الأدمن.'],
+  'البحث في منتجات المقارنة': ['Search comparison products', 'البحث في منتجات المقارنة'], 'إرسال': ['Send', 'إرسال'], 'فتح مساعد سبايدر': ['Open Spider assistant', 'فتح مساعد سبايدر'],
+  'تبديل اللغة': ['Switch language', 'تبديل اللغة'], 'النجف': ['Najaf', 'النجف'], 'بغداد': ['Baghdad', 'بغداد'], 'كربلاء': ['Karbala', 'كربلاء'], 'بابل': ['Babylon', 'بابل'], 'البصرة': ['Basra', 'البصرة'], 'أربيل': ['Erbil', 'أربيل'], 'أخرى': ['Other', 'أخرى']
 };
 
 function localizeDom() {
@@ -168,7 +178,7 @@ const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out'
 const imageFor = (p) => p?.image || 'images/default-product.svg';
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
-const productText = (p) => [p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
+const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
 const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = englishDigits(msg); t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
 const modal = (id, open) => $(id)?.classList.toggle('open', open);
 
@@ -235,7 +245,7 @@ function applySettings(settings = {}) {
   deliveryFee = Number(settings.deliveryFee || 0);
   lowStockThreshold = Number(settings.lowStockThreshold ?? 3);
 
-  const storeName = String((language === 'en' && settings.storeNameEn) || settings.storeNameAr || 'سبايدر للإلكترونيات');
+  const storeName = String(language === 'en' ? (settings.storeNameEn || 'Spider Electronics') : (settings.storeNameAr || settings.storeName || 'سبايدر للإلكترونيات'));
   const [name, ...tagline] = storeName.split(' ');
   if ($('brandName')) $('brandName').textContent = englishDigits(name || (language === 'en' ? 'Spider' : 'سبايدر'));
   if ($('brandTagline')) $('brandTagline').textContent = englishDigits(tagline.join(' ') || t('electronics'));
@@ -244,7 +254,8 @@ function applySettings(settings = {}) {
   // The approved storefront hero copy is intentionally not overwritten by
   // optional admin settings. Product, category, image, and store data remain live.
   if (settings.heroImage && safeUrl(settings.heroImage) && $('heroImage')) $('heroImage').src = settings.heroImage;
-  if (settings.welcomeMessage && $('chatWelcome')) $('chatWelcome').textContent = englishDigits(settings.welcomeMessage);
+  const welcome = language === 'en' ? (settings.welcomeMessageEn || settings.welcomeMessage) : (settings.welcomeMessageAr || settings.welcomeMessage);
+  if (welcome && $('chatWelcome')) $('chatWelcome').textContent = englishDigits(welcome);
 
   // Hero CTA button
   if ($('heroBuilderBtn')) {
@@ -279,7 +290,7 @@ function renderCategories() {
   state.showCategories = true;
 
   if (!categories.length) {
-    row.innerHTML = '<div class="loading-state">لا توجد أقسام منشورة حالياً.</div>';
+    row.innerHTML = `<div class="loading-state">${t('noSections')}</div>`;
     return;
   }
 
@@ -343,7 +354,7 @@ function productCard(p) {
   const [label] = stockLabel(p);
   const fav = state.favorites.includes(p.id);
   return `<article class="product-card ${!isAvailable(p) ? 'is-out' : ''}">
-    <button class="heart-btn ${fav ? 'active' : ''}" type="button" data-favorite="${esc(p.id)}" aria-label="${fav ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}">
+      <button class="heart-btn ${fav ? 'active' : ''}" type="button" data-favorite="${esc(p.id)}" aria-label="${fav ? t('remove') : t('favorites')} ">
       <i class="fa-${fav ? 'solid' : 'regular'} fa-heart"></i>
     </button>
     <div class="product-image" data-details="${esc(p.id)}">
@@ -360,10 +371,10 @@ function productCard(p) {
       </div>
       <div class="product-actions">
         ${isAvailable(p)
-          ? `<button class="btn btn-primary" type="button" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> أضف للسلة</button>`
-          : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> نبّهني عند التوفر</button>`
+          ? `<button class="btn btn-primary" type="button" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> ${t('addToCart')}</button>`
+          : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> ${t('notify')}</button>`
         }
-        <button class="btn btn-outline" type="button" data-details="${esc(p.id)}">التفاصيل</button>
+        <button class="btn btn-outline" type="button" data-details="${esc(p.id)}">${t('details')}</button>
       </div>
     </div>
   </article>`;
@@ -384,13 +395,13 @@ function renderProducts() {
     : `<div class="empty-state">${t('noProducts')}</div>`;
   bindProductActions($('productsGrid'));
   const bits = [
-    state.filters.search && `بحث: ${state.filters.search}`,
-    state.filters.brand && `ماركة: ${state.filters.brand}`,
-    state.filters.category && `قسم: ${categoryName(state.filters.category)}`
+    state.filters.search && `${t('searchFilter')}: ${state.filters.search}`,
+    state.filters.brand && `${t('brandFilter')}: ${state.filters.brand}`,
+    state.filters.category && `${t('categoryFilter')}: ${categoryName(state.filters.category)}`
   ].filter(Boolean);
   $('activeFilter').textContent = englishDigits(bits.join(' · '));
   $('activeFilter').classList.toggle('hidden', !bits.length);
-  $('productsSectionTitle').textContent = bits.length ? 'نتائج المنتجات' : 'أحدث المنتجات';
+  $('productsSectionTitle').textContent = bits.length ? t('productResults') : t('latestProducts');
 }
 
 function filterProductsByCategory(categoryId) {
@@ -416,14 +427,14 @@ function renderBrands() {
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   $('brandsGrid').classList.toggle('is-collapsed', !state.showBrands);
   $('toggleBrandsBtn').setAttribute('aria-expanded', String(state.showBrands));
-  $('toggleBrandsBtn').innerHTML = `${state.showBrands ? 'اضغط لإخفاء العلامات التجارية' : 'اضغط لإظهار العلامات التجارية'} <i class="fa-solid ${state.showBrands ? 'fa-chevron-up' : 'fa-chevron-down'}"></i>`;
+  $('toggleBrandsBtn').innerHTML = `${state.showBrands ? t('hideBrands') : t('showBrands')} <i class="fa-solid ${state.showBrands ? 'fa-chevron-up' : 'fa-chevron-down'}"></i>`;
   $('brandsGrid').innerHTML = brands.length
     ? brands.map((brand) => {
         const prod = state.products.find((p) => p.brand === brand);
         const logo = prod?.brandLogo || prod?.logo;
         return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${esc(brand)}">` : `<span class="brand-mark">${esc(brand.slice(0, 3).toUpperCase())}</span>`}<span>${esc(brand)}</span></button>`;
       }).join('')
-    : '<div class="empty-state">لا توجد علامات في المنتجات المنشورة.</div>';
+    : `<div class="empty-state">${t('noBrands')}</div>`;
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((b) => b.addEventListener('click', () => {
     state.filters = { category: '', brand: b.dataset.brand, search: '' };
     $('searchInput').value = '';
@@ -451,7 +462,7 @@ function renderSuggestions(query) {
   const matches = state.products.filter((p) => productText(p).includes(val)).slice(0, 5);
   box.innerHTML = matches.length
     ? matches.map((p) => `<button class="suggestion" type="button" data-suggestion="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')} · ${stockLabel(p)[0]}</small></div><b>${formatPrice(p.price)}</b></button>`).join('')
-    : '<div class="suggestion"><div><strong>لا توجد نتائج منشورة</strong><small>جرّب اسم شركة أو موديل آخر</small></div></div>';
+    : `<div class="suggestion"><div><strong>${t('noResults')}</strong><small>${t('tryAnother')}</small></div></div>`;
   box.classList.remove('hidden');
   box.querySelectorAll('[data-suggestion]').forEach((b) => b.addEventListener('click', () => {
     box.classList.add('hidden');
@@ -485,7 +496,7 @@ function populateCompareProducts() {
   ['compareProd1Select', 'compareProd2Select'].forEach((id, idx) => {
     const sel = $(id);
     const curr = state.compare[idx];
-    sel.innerHTML = `<option value="">${language === 'en' ? `Choose product ${idx + 1}` : `اختر المنتج ${idx + 1}`}</option>` +
+    sel.innerHTML = `<option value="">${t('chooseProductNumber')} ${idx + 1}</option>` +
       pool.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('');
     if (pool.some((p) => p.id === curr)) sel.value = curr;
   });
@@ -581,7 +592,7 @@ function updateCompareView() {
     return;
   }
   if (categoryIdFor(first) !== categoryIdFor(second)) {
-    $('compareResults').innerHTML = `<div class="empty-state">${language === 'en' ? 'Choose two products from the same category for a fair comparison.' : 'اختر منتجين من نفس القسم لإظهار مقارنة عادلة.'}</div>`;
+    $('compareResults').innerHTML = `<div class="empty-state">${t('comparisonSameCategory')}</div>`;
     $('compareResults').classList.remove('hidden');
     return;
   }
@@ -589,11 +600,11 @@ function updateCompareView() {
   const keys = [...new Set([...Object.keys(first.specifications || {}), ...Object.keys(second.specifications || {})])];
   const rows = keys.length
     ? keys.map((key) => `<div class="spec-row">
-        <span>${esc(first.specifications?.[key] ?? 'غير متوفر')}</span>
-        <span class="spec-key">${esc(key)}</span>
-        <span>${esc(second.specifications?.[key] ?? 'غير متوفر')}</span>
+        <span>${esc(localizedAttribute(first.specifications?.[key]) || t('notAvailable'))}</span>
+        <span class="spec-key">${esc(localizedAttribute(key))}</span>
+        <span>${esc(localizedAttribute(second.specifications?.[key]) || t('notAvailable'))}</span>
       </div>`).join('')
-    : '<div class="empty-state">لا توجد مواصفات منشورة للمقارنة.</div>';
+    : `<div class="empty-state">${t('noSpecs')}</div>`;
 
   $('compareResults').innerHTML = `
     <div class="compare-result-cards">
@@ -618,15 +629,15 @@ function updateCompareView() {
     </div>
     <div class="spec-table">
       <div class="spec-row">
-        <span>${esc(first.brand || 'غير متوفر')}</span>
-        <span class="spec-key">العلامة</span>
-        <span>${esc(second.brand || 'غير متوفر')}</span>
+        <span>${esc(first.brand || t('notAvailable'))}</span>
+        <span class="spec-key">${esc(t('brand'))}</span>
+        <span>${esc(second.brand || t('notAvailable'))}</span>
       </div>
       ${rows}
       <div class="spec-row">
-        <span>${esc(first.warranty || 'غير متوفر')}</span>
-        <span class="spec-key">الضمان</span>
-        <span>${esc(second.warranty || 'غير متوفر')}</span>
+        <span>${esc(first.warranty || t('notAvailable'))}</span>
+        <span class="spec-key">${esc(language === 'en' ? 'Warranty' : 'الضمان')}</span>
+        <span>${esc(second.warranty || t('notAvailable'))}</span>
       </div>
     </div>`;
 
@@ -793,7 +804,7 @@ function specValue(p, names) {
 }
 
 function compatibilityStatus(selected) {
-  if (!selected.length) return ['اختر القطع لفحص التوافق.', ''];
+  if (!selected.length) return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', ''];
   const cpu = selected.find((p) => /cpu|cpus|معالج|معالجات/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
   const mb  = selected.find((p) => /motherboard|لوحة|مذربورد/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
   const ram = selected.find((p) => /ram|ذاكرة|رام/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
@@ -802,24 +813,24 @@ function compatibilityStatus(selected) {
   const cpuSocket = specValue(cpu, ['socket', 'مقبس']);
   const mbSocket  = specValue(mb,  ['socket', 'مقبس']);
   if (cpuSocket && mbSocket && cpuSocket.toLowerCase() !== mbSocket.toLowerCase())
-    reasons.push(`مقبس المعالج ${cpuSocket} لا يطابق اللوحة ${mbSocket}.`);
+    reasons.push(language === 'en' ? `CPU socket ${cpuSocket} does not match motherboard socket ${mbSocket}.` : `مقبس المعالج ${cpuSocket} لا يطابق اللوحة ${mbSocket}.`);
 
   const ramType = specValue(ram, ['نوع الذاكرة', 'memory type', 'type']);
   const mbRam   = specValue(mb,  ['نوع الذاكرة', 'memory type', 'ram']);
   if (ramType && mbRam && /ddr[45]/i.test(ramType) && /ddr[45]/i.test(mbRam) &&
       ramType.match(/ddr[45]/i)?.[0].toLowerCase() !== mbRam.match(/ddr[45]/i)?.[0].toLowerCase())
-    reasons.push(`نوع الذاكرة ${ramType} لا يطابق ${mbRam}.`);
+    reasons.push(language === 'en' ? `Memory type ${ramType} does not match ${mbRam}.` : `نوع الذاكرة ${ramType} لا يطابق ${mbRam}.`);
 
   if (reasons.length) return [reasons.join(' '), 'bad'];
 
   // If some pairing parts exist but missing counterpart — inconclusive
   if ((cpu && !mb) || (mb && !cpu) || (ram && !mb))
-    return ['التوافق يحتاج مراجعة فنية: بعض مواصفات القطع المقابلة غير كافية للحكم.', ''];
+    return [language === 'en' ? 'Compatibility needs technical review: some counterpart specifications are insufficient.' : 'التوافق يحتاج مراجعة فنية: بعض مواصفات القطع المقابلة غير كافية للحكم.', ''];
 
   if (selected.length >= 2)
-    return ['المواصفات المنشورة لا تظهر تعارضاً معروفاً؛ راجع الأبعاد والطاقة قبل الشراء.', 'ok'];
+    return [language === 'en' ? 'Published specifications show no known conflict; check dimensions and power before purchase.' : 'المواصفات المنشورة لا تظهر تعارضاً معروفاً؛ راجع الأبعاد والطاقة قبل الشراء.', 'ok'];
 
-  return ['اختر القطع لفحص التوافق.', ''];
+  return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', ''];
 }
 
 function updateBuilder() {
@@ -847,6 +858,21 @@ function openQuote(products = selectedBuilderProducts()) {
 }
 
 // ===== UPGRADE =====
+const UPGRADE_FALLBACK_IMAGES = {
+  cpu: 'assets/category-fallbacks/cpu.svg',
+  motherboard: 'assets/category-fallbacks/motherboard.svg',
+  ram: 'assets/category-fallbacks/ram.svg',
+  gpu: 'assets/category-fallbacks/gpu.svg',
+  storage: 'assets/category-fallbacks/storage.svg',
+  case: 'assets/category-fallbacks/computer.svg',
+  cooling: 'assets/category-fallbacks/cooling.svg',
+  psu: 'assets/category-fallbacks/power.svg'
+};
+
+function upgradeFallbackMarkup(field) {
+  return `<div class="upgrade-preview-empty"><img src="${UPGRADE_FALLBACK_IMAGES[field.id]}" alt="${esc(field.label)}"><strong>${esc(field.label)}</strong><span>${language === 'en' ? 'Choose a published part to see its details' : 'اختر قطعة منشورة لعرض تفاصيلها'}</span></div>`;
+}
+
 function renderUpgrade() {
   if (!$('upgradeForm')) return;
   const fields = [
@@ -861,7 +887,7 @@ function renderUpgrade() {
   ];
   $('upgradeForm').innerHTML = fields.map((field) => {
     const options = state.products.filter((p) => field.match.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`));
-    return `<div class="upgrade-field"><label for="upgrade-${field.id}">${field.label}</label><select id="upgrade-${field.id}" data-upgrade="${field.id}"><option value="">${t('unknown')}</option>${options.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('')}</select><div class="upgrade-selection-preview" data-upgrade-preview="${field.id}"><span class="upgrade-preview-empty"><i class="fa-regular fa-image"></i>${language === 'en' ? 'Selected part preview appears here' : 'ستظهر معاينة القطعة المختارة هنا'}</span></div></div>`;
+    return `<div class="upgrade-field"><label for="upgrade-${field.id}">${field.label}</label><select id="upgrade-${field.id}" data-upgrade="${field.id}"><option value="">${t('unknown')}</option>${options.map((p) => `<option value="${esc(p.id)}">${esc(productName(p))}</option>`).join('')}</select><div class="upgrade-selection-preview" data-upgrade-preview="${field.id}">${upgradeFallbackMarkup(field)}</div></div>`;
   }).join('');
   $('upgradeForm').querySelectorAll('[data-upgrade]').forEach((sel) => sel.addEventListener('change', renderUpgradeResults));
   renderUpgradeSelectionPreviews();
@@ -871,9 +897,10 @@ function renderUpgradeSelectionPreviews() {
   if (!$('upgradeForm')) return;
   $('upgradeForm').querySelectorAll('[data-upgrade-preview]').forEach((preview) => {
     const select = $('upgradeForm').querySelector(`[data-upgrade="${preview.dataset.upgradePreview}"]`);
+    const field = { id: preview.dataset.upgradePreview, label: select?.previousElementSibling?.textContent || preview.dataset.upgradePreview };
     const product = state.products.find((p) => p.id === select?.value);
     if (!product) {
-      preview.innerHTML = `<span class="upgrade-preview-empty"><i class="fa-regular fa-image"></i>${language === 'en' ? 'Selected part preview appears here' : 'ستظهر معاينة القطعة المختارة هنا'}</span>`;
+      preview.innerHTML = upgradeFallbackMarkup(field);
       return;
     }
     const specs = topSpecs(product);
@@ -1011,7 +1038,9 @@ function toggleFavorite(id) {
   updateFavoriteBadge();
   renderProducts();
   renderAccount();
-  showToast(state.favorites.includes(id) ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة');
+  showToast(language === 'en'
+    ? (state.favorites.includes(id) ? 'Added to favorites' : 'Removed from favorites')
+    : (state.favorites.includes(id) ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة'));
 }
 
 function loadFavorites() {
@@ -1027,8 +1056,8 @@ function renderAccount() {
     $('logoutBtn').addEventListener('click', () => signOut(auth));
   } else {
     box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><button class="btn btn-outline" id="phoneSignInBtn" type="button">${t('phoneOtp')}</button><small>${language === 'en' ? 'Phone sign-in requires Phone Auth and reCAPTCHA in Firebase; no fake code will be used.' : 'تسجيل الهاتف يحتاج تفعيل Phone Auth وreCAPTCHA في Firebase؛ لن نستخدم رمزاً وهمياً.'}</small>`;
-    $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`تعذر تسجيل Google: ${e.code || 'AUTH_ERROR'}`); } });
-    $('phoneSignInBtn').addEventListener('click', () => showToast('تسجيل الهاتف يحتاج تفعيل Phone Auth وreCAPTCHA في Firebase.'));
+    $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`${language === 'en' ? 'Google sign-in failed' : 'تعذر تسجيل Google'}: ${e.code || 'AUTH_ERROR'}`); } });
+    $('phoneSignInBtn').addEventListener('click', () => showToast(language === 'en' ? 'Phone sign-in requires Phone Auth and reCAPTCHA in Firebase.' : 'تسجيل الهاتف يحتاج تفعيل Phone Auth وreCAPTCHA في Firebase.'));
   }
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
   $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(p.price)}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
@@ -1056,15 +1085,15 @@ function appendChat(text, user = false, products = []) {
 
 function respondChat(text) {
   const query = text.toLowerCase();
-  const published = state.products.filter((p) => p.status === 'published');
+  const published = state.products.filter(product => product.status === 'published');
   let matches = [];
-  let reply = 'أكدر أساعدك من المنتجات المنشورة فقط. جرّب اسم منتج أو اختر سؤالاً جاهزاً.';
-  if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? 'هذه لابتوبات منشورة حالياً:' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'; }
-  else if (/ميزان|budget|سعر|بشكد/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
-  else if (/حاسبة|تجميع|ألعاب|gaming/.test(query)) { window.location.href = 'builder.html'; reply = 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
-  else if (/طوّر|ترقية|upgrade/.test(query)) { document.querySelector('#upgradeSection').scrollIntoView({ behavior: 'smooth' }); reply = 'فتحت لك طوّر حاسبتك حتى تدخل مواصفات جهازك الحالي.'; }
-  else if (/قارن|مقارنة/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
-  else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = 'وجدت هذه المنتجات المنشورة:'; }
+  let reply = language === 'en' ? 'I can help with published products only. Try a product name or choose a suggested question.' : 'أكدر أساعدك من المنتجات المنشورة فقط. جرّب اسم منتج أو اختر سؤالاً جاهزاً.';
+  if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? (language === 'en' ? 'Here are currently published laptops:' : 'هذه لابتوبات منشورة حالياً:') : (language === 'en' ? 'No matching published laptops are available.' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'); }
+  else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
+  else if (/حاسبة|تجميع|ألعاب|gaming|build/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
+  else if (/طوّر|ترقية|upgrade/.test(query)) { document.querySelector('#upgradeSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened Upgrade your PC so you can enter your current specifications.' : 'فتحت لك طوّر حاسبتك حتى تدخل مواصفات جهازك الحالي.'; }
+  else if (/قارن|مقارنة|compare/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened comparison. Choose two products from the same category.' : 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
+  else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = language === 'en' ? 'I found these published products:' : 'وجدت هذه المنتجات المنشورة:'; }
   setTimeout(() => appendChat(reply, false, matches), 250);
 }
 
@@ -1102,7 +1131,7 @@ async function submitCheckout(event) {
   const label = submit.textContent;
   try {
     const payload = checkoutPayload(event.currentTarget);
-    submit.disabled = true; submit.textContent = 'جارٍ التحقق والحفظ...';
+    submit.disabled = true; submit.textContent = language === 'en' ? 'Validating and saving...' : 'جارٍ التحقق والحفظ...';
     const response = await fetch(`${BACKEND_URL}/api/store/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Request-Id': payload.requestId }, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) throw new Error(result.error || 'CHECKOUT_FAILED');
@@ -1111,10 +1140,14 @@ async function submitCheckout(event) {
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942');
     if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
-    showToast(`تم حفظ الطلب رقم ${result.orderNumber}. أرسل الرسالة من واتساب.`);
+    showToast(language === 'en' ? `Order saved: ${result.orderNumber}. Send the message from WhatsApp.` : `تم حفظ الطلب رقم ${result.orderNumber}. أرسل الرسالة من واتساب.`);
   } catch (e) {
     const code = e.message;
-    showToast(code === 'ORDER_BACKEND_NOT_CONFIGURED' ? 'إتمام الطلب متوقف: يحتاج Worker إلى سر Firebase قبل الحفظ.' : code === 'DELIVERY_FEE_NOT_CONFIGURED' ? 'اعتمد رسم التوصيل من الأدمن أولاً.' : 'تعذر حفظ الطلب؛ بقيت السلة كما هي.');
+    showToast(code === 'ORDER_BACKEND_NOT_CONFIGURED'
+      ? (language === 'en' ? 'Checkout is paused: the Worker needs the Firebase secret before saving.' : 'إتمام الطلب متوقف: يحتاج Worker إلى سر Firebase قبل الحفظ.')
+      : code === 'DELIVERY_FEE_NOT_CONFIGURED'
+        ? (language === 'en' ? 'Set the delivery fee in Admin first.' : 'اعتمد رسم التوصيل من الأدمن أولاً.')
+        : (language === 'en' ? 'Could not save the order; your cart is still intact.' : 'تعذر حفظ الطلب؛ بقيت السلة كما هي.'));
   } finally { submit.disabled = false; submit.textContent = label; }
 }
 
@@ -1131,9 +1164,9 @@ function bindBuilderPageEvents() {
   $('closeBuilderPickerBtn')?.addEventListener('click', () => modal('builderPickerModal', false));
   $('builderPickerModal')?.addEventListener('click', (event) => { if (event.target === $('builderPickerModal')) modal('builderPickerModal', false); });
   $('builderPickerSearch')?.addEventListener('input', renderBuilderPickerGrid);
-  $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast('تمت إضافة القطع المنشورة إلى السلة.'); });
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast(language === 'en' ? 'Published parts were added to the cart.' : 'تمت إضافة القطع المنشورة إلى السلة.'); });
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
-  $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast('تم نسخ عرض السعر.'); } catch { showToast('تعذر النسخ.'); } });
+  $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
   $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
 }
@@ -1164,7 +1197,7 @@ function bindEvents() {
       const otherId = index === 0 ? 'compareProd2Select' : 'compareProd1Select';
       if ($(id).value && $(id).value === $(otherId).value) {
         $(id).value = '';
-        showToast('لا يمكن اختيار المنتج نفسه في المقارنة مرتين.');
+        showToast(language === 'en' ? 'The same product cannot be selected twice.' : 'لا يمكن اختيار المنتج نفسه في المقارنة مرتين.');
       }
       updateCompareView();
     });
@@ -1198,7 +1231,7 @@ function bindEvents() {
     alerts.push({ productId: state.availabilityProductId, contact: $('availabilityContact').value.trim(), createdAt: Date.now() });
     localStorage.setItem(ALERTS_KEY, JSON.stringify(alerts));
     modal('availabilityModal', false);
-    showToast('تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.');
+    showToast(language === 'en' ? 'The alert request was saved on this device. Sending needs an enabled service.' : 'تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.');
   });
 
   $('mobileMenuBtn').addEventListener('click', () => { $('sidebarMenu').classList.add('open'); $('sidebarOverlay').classList.add('open'); });
@@ -1244,8 +1277,8 @@ onValue(ref(db, 'categories'), (snapshot) => {
 onValue(ref(db, 'products'), (snapshot) => {
   state.products = [];
   if (snapshot.exists()) snapshot.forEach((child) => {
-    const p = { id: child.key, ...child.val() };
-    if (p.status === 'published' && !p.isHidden) state.products.push(p);
+    const prod = { id: child.key, ...child.val() };
+    if (prod.status === 'published' && !prod.isHidden) state.products.push(prod);
   });
   renderProducts();
   renderBrands();
