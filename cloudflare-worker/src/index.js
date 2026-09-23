@@ -4,7 +4,7 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         }
       });
@@ -12,10 +12,33 @@ export default {
 
     const url = new URL(request.url);
 
+    if (url.pathname === '/api/store/prices' && request.method === 'GET') {
+      try {
+        const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+        if (!token) return errorResponse('AUTH_REQUIRED', 401);
+        const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+        const verifyData = await verifyRes.json();
+        const uid = verifyData?.users?.[0]?.localId;
+        if (!uid) return errorResponse('AUTH_INVALID', 401);
+        const databaseSecret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
+        if (!databaseSecret) return errorResponse('PRICE_BACKEND_NOT_CONFIGURED', 503);
+        const query = `?auth=${encodeURIComponent(databaseSecret)}`;
+        const [profileRes, pricesRes] = await Promise.all([
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/profiles/${encodeURIComponent(uid)}.json${query}`),
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${query}`)
+        ]);
+        const profile = profileRes.ok ? await profileRes.json() : null;
+        const accountType = ['retail', 'wholesale', 'special'].includes(profile?.accountType) ? profile.accountType : 'retail';
+        const allPrices = pricesRes.ok ? ((await pricesRes.json()) || {}) : {};
+        const prices = accountType === 'retail' ? {} : Object.fromEntries(Object.entries(allPrices).map(([id, value]) => [id, accountType === 'wholesale' ? { wholesale_price: value?.wholesale_price } : { special_price: value?.special_price }]));
+        return jsonResponse({ success: true, accountType, prices });
+      } catch { return errorResponse('PRICE_LOOKUP_FAILED', 500); }
+    }
+
     if (url.pathname === '/api/admin/products/upload-image' && request.method === 'POST') {
       try {
         // 1. Verify Authentication (Signature, Expiry, Project, UID)
-        const authHeader = request.headers.get('Authorization') || '';
+        const authHeader = request.headers?.get?.('Authorization') || '';
         const token = authHeader.replace('Bearer ', '').trim();
         
         if (!token) return errorResponse('AUTH_REQUIRED', 401);
@@ -189,6 +212,22 @@ export default {
 
         const productsObj = await productsRes.json() || {};
         const settingsObj = await settingsRes.json() || {};
+        let accountType = 'retail';
+        const authHeader = request.headers?.get?.('Authorization') || '';
+        const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+        if (token) {
+          const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+          const verifyData = await verifyRes.json();
+          const uid = verifyData?.users?.[0]?.localId;
+          if (!uid) return errorResponse('AUTH_INVALID', 401);
+          const profileRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/profiles/${encodeURIComponent(uid)}.json${databaseQuery}`);
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            if (['retail', 'wholesale', 'special'].includes(profile?.accountType)) accountType = profile.accountType;
+          }
+        }
+        const privatePricesRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`);
+        const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
         if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
           return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
@@ -208,7 +247,9 @@ export default {
             return errorResponse(`OUT_OF_STOCK_${item.id}`, 400);
           }
 
-          const livePrice = Number(liveProd.price) || 0;
+          const privatePrice = privatePrices[item.id] || {};
+          const requestedPrice = accountType === 'wholesale' ? privatePrice.wholesale_price : accountType === 'special' ? privatePrice.special_price : null;
+          const livePrice = Number(requestedPrice ?? liveProd.price) || 0;
           subtotal += (livePrice * item.qty);
           verifiedItems.push({
             id: item.id,
@@ -226,9 +267,13 @@ export default {
           orderNumber,
           customerName: String(customer.name),
           customerPhone: String(customer.phone),
-          governorate: String(customer.gov || ''),
-          city: String(customer.city || ''),
-          address: String(customer.address || ''),
+          governorate: String(customer.governorate || customer.gov || ''),
+          city: String(customer.district || customer.city || ''),
+          district: String(customer.district || ''),
+          subdistrict: String(customer.subdistrict || ''),
+          neighborhood: String(customer.neighborhood || ''),
+          address: String(customer.addressDetails || customer.address || ''),
+          addressDetails: String(customer.addressDetails || customer.address || ''),
           notes: String(customer.notes || ''),
           subtotal,
           deliveryFee,

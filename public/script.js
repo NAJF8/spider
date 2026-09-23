@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged, signInWithPopup, signInWithPhoneNumber, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 
 const firebaseConfig = {
@@ -37,7 +37,9 @@ const state = {
   upgrade: {},
   builderCatalog: { part: '', category: '', brand: '', search: '' },
   upgradeCatalog: { category: '', brand: '', search: '' },
-  availabilityProductId: ''
+  availabilityProductId: '',
+  accountProfile: null,
+  privatePrices: {}
 };
 
 const LANGUAGE_STORAGE_KEY = 'spider.language.v1';
@@ -117,7 +119,7 @@ const DIRECT_TRANSLATIONS = {
   'اختر مواصفة واحدة على الأقل لبدء الاقتراح.': ['Choose at least one specification to start suggestions.', 'اختر مواصفة واحدة على الأقل لبدء الاقتراح.'],
   'سيُحفظ الطلب على جهازك فقط ما لم تُفعّل خدمة إرسال من الأدمن.': ['The request is saved on your device unless an admin sending service is enabled.', 'سيُحفظ الطلب على جهازك فقط ما لم تُفعّل خدمة إرسال من الأدمن.'],
   'البحث في منتجات المقارنة': ['Search comparison products', 'البحث في منتجات المقارنة'], 'إرسال': ['Send', 'إرسال'], 'فتح مساعد سبايدر': ['Open Spider assistant', 'فتح مساعد سبايدر'],
-  'تبديل اللغة': ['Switch language', 'تبديل اللغة'], 'النجف': ['Najaf', 'النجف'], 'بغداد': ['Baghdad', 'بغداد'], 'كربلاء': ['Karbala', 'كربلاء'], 'بابل': ['Babylon', 'بابل'], 'البصرة': ['Basra', 'البصرة'], 'أربيل': ['Erbil', 'أربيل'], 'أخرى': ['Other', 'أخرى']
+  'تبديل اللغة': ['Switch language', 'تبديل اللغة'], 'جميع الأقسام': ['All Categories', 'جميع الأقسام'], 'النجف': ['Najaf', 'النجف'], 'بغداد': ['Baghdad', 'بغداد'], 'كربلاء': ['Karbala', 'كربلاء'], 'بابل': ['Babylon', 'بابل'], 'البصرة': ['Basra', 'البصرة'], 'أربيل': ['Erbil', 'أربيل'], 'أخرى': ['Other', 'أخرى']
 };
 
 function localizeDom() {
@@ -191,6 +193,10 @@ function bindAppearanceEvents() {
 let deliveryFee = 0;
 let lowStockThreshold = 3;
 let authUser = null;
+let phoneConfirmation = null;
+let phoneRecaptcha = null;
+let scrollLockDepth = 0;
+let lockedScrollY = 0;
 
 // ===== Utilities =====
 const $ = (id) => document.getElementById(id);
@@ -199,7 +205,16 @@ const englishDigits = (v) => String(v ?? '').replace(/[٠-٩۰-۹]/g, (digit) =>
   return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
 });
 const esc = (v) => englishDigits(v).replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+const getEffectivePrice = (product, profile = null) => {
+  const type = profile?.accountType || 'retail';
+  const privatePrice = state.privatePrices?.[product?.id] || {};
+  const candidate = type === 'wholesale' ? (privatePrice.wholesale_price ?? product?.wholesale_price) : type === 'special' ? (privatePrice.special_price ?? product?.special_price) : product?.retail_price;
+  const fallback = product?.retail_price ?? product?.price;
+  const value = Number(candidate ?? fallback);
+  return Number.isFinite(value) && value >= 0 ? value : 0;
+};
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
+const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
@@ -210,7 +225,29 @@ const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id ===
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
 const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = englishDigits(msg); t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
-const modal = (id, open) => $(id)?.classList.toggle('open', open);
+function setScrollLock(locked) {
+  if (locked) {
+    if (scrollLockDepth++ > 0) return;
+    lockedScrollY = window.scrollY;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
+    document.body.classList.add('overlay-open');
+    document.body.style.top = `-${lockedScrollY}px`;
+    return;
+  }
+  if (scrollLockDepth === 0 || --scrollLockDepth > 0) return;
+  document.body.classList.remove('overlay-open');
+  document.body.style.top = '';
+  window.scrollTo(0, lockedScrollY);
+}
+const modal = (id, open) => {
+  const element = $(id);
+  if (!element) return;
+  const wasOpen = element.classList.contains('open');
+  element.classList.toggle('open', open);
+  if (open && !wasOpen) setScrollLock(true);
+  if (!open && wasOpen) setScrollLock(false);
+};
 
 // ===== Category fallbacks =====
 // Firebase keeps any valid custom image URL. These local GitHub-hosted assets
@@ -398,7 +435,7 @@ function productCard(p) {
       <div class="product-model">${esc(p.model || p.subcategory || '')}</div>
       <div>${availabilityMarkup(p)}</div>
       <div class="price-row">
-        <strong class="product-price">${formatPrice(p.price)}</strong>
+        <strong class="product-price">${formatPrice(productPrice(p))}</strong>
         ${p.originalPrice ? `<span class="old-price">${formatPrice(p.originalPrice)}</span>` : ''}
       </div>
       <div class="product-actions">
@@ -493,7 +530,7 @@ function renderSuggestions(query) {
   if (!val) { box.classList.add('hidden'); return; }
   const matches = state.products.filter((p) => productText(p).includes(val)).slice(0, 5);
   box.innerHTML = matches.length
-    ? matches.map((p) => `<button class="suggestion" type="button" data-suggestion="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')} · ${stockLabel(p)[0]}</small></div><b>${formatPrice(p.price)}</b></button>`).join('')
+    ? matches.map((p) => `<button class="suggestion" type="button" data-suggestion="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')} · ${stockLabel(p)[0]}</small></div><b>${formatPrice(productPrice(p))}</b></button>`).join('')
     : `<div class="suggestion"><div><strong>${t('noResults')}</strong><small>${t('tryAnother')}</small></div></div>`;
   box.classList.remove('hidden');
   box.querySelectorAll('[data-suggestion]').forEach((b) => b.addEventListener('click', () => {
@@ -564,7 +601,7 @@ function renderComparePickerGrid() {
       <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg'">
       <strong>${esc(productName(p))}</strong>
       <span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>
-      <b>${formatPrice(p.price)}</b>
+      <b>${formatPrice(productPrice(p))}</b>
       <small class="stock ${tone}">${esc(availability)}</small>
     </button>`;
   }).join('') : `<div class="empty-state">${t('noProducts')}</div>`;
@@ -590,7 +627,7 @@ function previewCompare(id, previewId) {
       <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}">
       <div class="cpc-name">${esc(productName(p))}</div>
       <div class="cpc-model">${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</div>
-      <div class="cpc-price">${formatPrice(p.price)}</div>
+      <div class="cpc-price">${formatPrice(productPrice(p))}</div>
       <div class="cpc-stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</div>
       <div class="cpc-actions">
         <button class="btn btn-outline" type="button" data-compare-change="${esc(previewId)}">${t('change')}</button>
@@ -643,7 +680,7 @@ function updateCompareView() {
       <div class="compare-card">
         <img src="${esc(imageFor(first))}" alt="${esc(productName(first))}">
         <h3>${esc(productName(first))}</h3>
-        <strong>${formatPrice(first.price)}</strong>
+        <strong>${formatPrice(productPrice(first))}</strong>
         <div class="compare-result-actions">
           <button class="btn btn-primary" type="button" data-add="${esc(first.id)}">${t('addToCart')}</button>
           <button class="btn btn-outline" type="button" data-details="${esc(first.id)}">${t('details')}</button>
@@ -652,7 +689,7 @@ function updateCompareView() {
       <div class="compare-card">
         <img src="${esc(imageFor(second))}" alt="${esc(productName(second))}">
         <h3>${esc(productName(second))}</h3>
-        <strong>${formatPrice(second.price)}</strong>
+        <strong>${formatPrice(productPrice(second))}</strong>
         <div class="compare-result-actions">
           <button class="btn btn-primary" type="button" data-add="${esc(second.id)}">${t('addToCart')}</button>
           <button class="btn btn-outline" type="button" data-details="${esc(second.id)}">${t('details')}</button>
@@ -757,7 +794,7 @@ function renderBuilderCatalog() {
     const specs = topSpecs(product);
     return `<article class="builder-product-card ${selected ? 'is-selected' : ''}">
       <div class="builder-product-image"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg'"></div>
-      <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta"><strong>${formatPrice(product.price)}</strong>${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
+      <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta"><strong>${formatPrice(productPrice(product))}</strong>${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
     </article>`;
   }).join('') : `<div class="empty-state builder-empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-product]').forEach((button) => button.addEventListener('click', () => {
@@ -785,7 +822,7 @@ function renderBuilderPickerGrid() {
   const part = builderParts.find((item) => item.id === state.builderPickerPart);
   const query = String($('builderPickerSearch')?.value || '').trim().toLowerCase();
   const products = (part ? productsForPart(part) : []).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(p.price)}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-pick]').forEach((button) => button.addEventListener('click', () => {
     state.builder[state.builderPickerPart] = button.dataset.builderPick;
     saveBuilder(); renderBuilder(); modal('builderPickerModal', false);
@@ -811,7 +848,7 @@ function renderBuilder() {
     </article>`;
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
-      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(product.price)}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>
       <div class="builder-part-actions"><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
     </article>`;
   }).join('');
@@ -890,7 +927,7 @@ function compatibilityStatus(selected) {
 function updateBuilder() {
   if (!$('builderTotal')) return;
   const selected = selectedBuilderProducts();
-  const total = selected.reduce((sum, p) => sum + Number(p.price || 0), 0);
+  const total = selected.reduce((sum, p) => sum + productPrice(p), 0);
   $('builderTotal').textContent = formatPrice(total);
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
@@ -900,14 +937,14 @@ function updateBuilder() {
 }
 
 function quoteLines(products) {
-  return products.map((p) => `<div class="quote-line"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(p.price)}</strong></div></div>`).join('');
+  return products.map((p) => `<div class="quote-line"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(productPrice(p))}</strong></div></div>`).join('');
 }
 
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
-  const total = products.reduce((sum, p) => sum + Number(p.price || 0), 0);
+  const total = products.reduce((sum, p) => sum + productPrice(p), 0);
   $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(total)}</span></div>`;
-  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(p.price)}`).join('\n') + `\n${t('total')}: ${formatPrice(total)}`;
+  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(productPrice(p))}`).join('\n') + `\n${t('total')}: ${formatPrice(total)}`;
   modal('quoteModal', true);
 }
 
@@ -973,7 +1010,7 @@ function renderUpgradePickerGrid() {
   if (!grid || !field) return;
   const query = String($('upgradePickerSearch')?.value || '').trim().toLowerCase();
   const products = upgradeProductsFor(field).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(p.price)}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
   grid.querySelectorAll('[data-upgrade-pick]').forEach((button) => button.addEventListener('click', () => {
     state.upgrade[state.upgradePickerField] = button.dataset.upgradePick;
     saveUpgrade();
@@ -1003,7 +1040,7 @@ function renderUpgradeSelectionPreviews() {
       return;
     }
     const specs = topSpecs(product);
-    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(product.price)}</b><div class="upgrade-preview-actions"><button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions"><button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
     preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
     preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; saveUpgrade(); renderUpgrade(); });
   });
@@ -1056,10 +1093,10 @@ function renderCart() {
   const rows = state.cart.map((item, idx) => {
     const p = cartProduct(item);
     if (!p) return '';
-    total += Number(p.price || 0) * item.qty;
+    total += productPrice(p) * item.qty;
     return `<div class="cart-item"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div>
       <div class="cart-item-title">${esc(productName(p))}</div>
-      <div class="cart-item-price">${formatPrice(Number(p.price || 0) * item.qty)}</div>
+      <div class="cart-item-price">${formatPrice(productPrice(p) * item.qty)}</div>
       <div class="cart-item-actions">
         <button class="qty-btn" type="button" data-qty="${idx}:1">+</button>
         <span>${item.qty}</span>
@@ -1082,8 +1119,8 @@ function renderCart() {
   }));
 }
 
-function openCart() { $('cartSidebar').classList.add('open'); $('cartOverlay').classList.add('open'); }
-function closeCart() { $('cartSidebar').classList.remove('open'); $('cartOverlay').classList.remove('open'); }
+function openCart() { const wasOpen = $('cartSidebar')?.classList.contains('open'); $('cartSidebar').classList.add('open'); $('cartOverlay').classList.add('open'); if (!wasOpen) setScrollLock(true); }
+function closeCart() { const wasOpen = $('cartSidebar')?.classList.contains('open'); $('cartSidebar').classList.remove('open'); $('cartOverlay').classList.remove('open'); if (wasOpen) setScrollLock(false); }
 
 // ===== Product Details Modal =====
 function openProductDetails(id) {
@@ -1096,7 +1133,7 @@ function openProductDetails(id) {
     <div>
       <h3>${esc(productName(p))}</h3>
       <div class="detail-meta">${esc(p.brand || '')} ${p.model ? `· ${esc(p.model)}` : ''}</div>
-      <div class="detail-price">${formatPrice(p.price)}</div>
+      <div class="detail-price">${formatPrice(productPrice(p))}</div>
       ${availabilityMarkup(p)}
       <p class="detail-meta">${esc(localizedAttribute(p.description) || t('noDescription'))}</p>
       <div class="spec-list">${specs.length ? specs.map(([k, v]) => `<div><strong>${esc(localizedAttribute(k))}</strong><span>${esc(localizedAttribute(v))}</span></div>`).join('') : `<div>${language === 'en' ? 'No additional published specifications' : 'لا توجد مواصفات إضافية منشورة'}</div>`}</div>
@@ -1157,18 +1194,22 @@ function renderAccount() {
     box.innerHTML = `<div class="favorite-row"><img src="${esc(authUser.photoURL || 'assets/spider-bot.png')}" alt=""><div>${esc(authUser.displayName || authUser.email || (language === 'en' ? 'Google account' : 'حساب Google'))}<small>${esc(authUser.email || '')}</small></div><button class="btn btn-outline" id="logoutBtn" type="button">${t('logout')}</button></div>`;
     $('logoutBtn').addEventListener('click', () => signOut(auth));
   } else {
-    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><button class="btn btn-outline" id="phoneSignInBtn" type="button">${t('phoneOtp')}</button><small>${language === 'en' ? 'Phone sign-in requires Phone Auth and reCAPTCHA in Firebase; no fake code will be used.' : 'تسجيل الهاتف يحتاج تفعيل Phone Auth وreCAPTCHA في Firebase؛ لن نستخدم رمزاً وهمياً.'}</small>`;
+    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><div class="phone-auth-form"><input id="phoneNumberInput" type="tel" dir="ltr" inputmode="tel" placeholder="+96478XXXXXXX"><button class="btn btn-outline" id="phoneSignInBtn" type="button">${language === 'en' ? 'Send code' : 'إرسال الرمز'}</button><input id="phoneCodeInput" class="hidden" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" placeholder="OTP"><button class="btn btn-primary hidden" id="phoneVerifyBtn" type="button">${language === 'en' ? 'Verify' : 'تحقق'}</button><div id="phoneRecaptcha"></div></div><small>${language === 'en' ? 'Phone sign-in uses Firebase Phone Auth and reCAPTCHA. No fake code is used.' : 'تسجيل الهاتف يستخدم Firebase Phone Auth وreCAPTCHA. لا نستخدم رمزاً وهمياً.'}</small>`;
     $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`${language === 'en' ? 'Google sign-in failed' : 'تعذر تسجيل Google'}: ${e.code || 'AUTH_ERROR'}`); } });
-    $('phoneSignInBtn').addEventListener('click', () => showToast(language === 'en' ? 'Phone sign-in requires Phone Auth and reCAPTCHA in Firebase.' : 'تسجيل الهاتف يحتاج تفعيل Phone Auth وreCAPTCHA في Firebase.'));
+    $('phoneSignInBtn').addEventListener('click', startPhoneAuth);
+    $('phoneVerifyBtn')?.addEventListener('click', async () => {
+      try { await phoneConfirmation?.confirm($('phoneCodeInput').value.trim()); }
+      catch (e) { showToast(language === 'en' ? `OTP verification failed: ${e.code || 'AUTH_ERROR'}` : `فشل التحقق من الرمز: ${e.code || 'AUTH_ERROR'}`); }
+    });
   }
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
-  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(p.price)}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
+  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(productPrice(p))}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
   $('favoritesList').querySelectorAll('[data-favorite-open]').forEach((btn) => btn.addEventListener('click', () => { modal('accountModal', false); openProductDetails(btn.dataset.favoriteOpen); }));
 }
 
 // ===== Chatbot =====
-function openChat() { $('chatbotContainer').classList.remove('hidden'); }
-function closeChat() { $('chatbotContainer').classList.add('hidden'); }
+function openChat() { if ($('chatbotContainer').classList.contains('hidden')) { $('chatbotContainer').classList.remove('hidden'); setScrollLock(true); } }
+function closeChat() { if (!$('chatbotContainer').classList.contains('hidden')) { $('chatbotContainer').classList.add('hidden'); setScrollLock(false); } }
 
 function appendChat(text, user = false, products = []) {
   const msg = document.createElement('div');
@@ -1177,7 +1218,7 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    card.innerHTML = `<img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(p.price)}</span></div>`;
+    card.innerHTML = `<img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(productPrice(p))}</span></div>`;
     card.addEventListener('click', () => openProductDetails(p.id));
     msg.append(card);
   });
@@ -1191,7 +1232,7 @@ function respondChat(text) {
   let matches = [];
   let reply = language === 'en' ? 'I can help with published products only. Try a product name or choose a suggested question.' : 'أكدر أساعدك من المنتجات المنشورة فقط. جرّب اسم منتج أو اختر سؤالاً جاهزاً.';
   if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? (language === 'en' ? 'Here are currently published laptops:' : 'هذه لابتوبات منشورة حالياً:') : (language === 'en' ? 'No matching published laptops are available.' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'); }
-  else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
+  else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => productPrice(a) - productPrice(b)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
   else if (/حاسبة|تجميع|ألعاب|gaming|build/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
   else if (/طوّر|ترقية|upgrade/.test(query)) { window.location.href = 'upgrade.html'; reply = language === 'en' ? 'I opened the dedicated PC upgrade page.' : 'فتحت لك صفحة طوّر حاسبتك المستقلة.'; }
   else if (/قارن|مقارنة|compare/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened comparison. Choose two products from the same category.' : 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
@@ -1208,9 +1249,31 @@ function handleChat() {
   respondChat(text);
 }
 
+function normalizeIraqPhone(value) {
+  const digits = englishDigits(value).replace(/[^0-9+]/g, '').replace(/^00/, '+');
+  if (/^07[3-9][0-9]{8}$/.test(digits)) return `+964${digits.slice(1)}`;
+  if (/^\+9647[3-9][0-9]{8}$/.test(digits)) return digits;
+  if (/^9647[3-9][0-9]{8}$/.test(digits)) return `+${digits}`;
+  return '';
+}
+async function startPhoneAuth() {
+  const phone = normalizeIraqPhone($('phoneNumberInput')?.value || '');
+  if (!phone) { showToast(language === 'en' ? 'Enter a valid Iraqi number such as 078XXXXXXXX.' : 'أدخل رقمًا عراقيًا صحيحًا مثل 078XXXXXXXX.'); return; }
+  try {
+    if (!phoneRecaptcha) phoneRecaptcha = new RecaptchaVerifier(auth, 'phoneRecaptcha', { size: 'invisible' });
+    phoneConfirmation = await signInWithPhoneNumber(auth, phone, phoneRecaptcha);
+    $('phoneCodeInput').classList.remove('hidden'); $('phoneVerifyBtn').classList.remove('hidden'); $('phoneSignInBtn').disabled = true;
+    showToast(language === 'en' ? 'The verification code was sent.' : 'تم إرسال رمز التحقق.');
+  } catch (e) {
+    phoneConfirmation = null;
+    showToast(language === 'en' ? `Could not send OTP: ${e.code || 'AUTH_ERROR'}` : `تعذر إرسال الرمز: ${e.code || 'AUTH_ERROR'}`);
+    try { await phoneRecaptcha?.clear(); } catch {} phoneRecaptcha = null;
+  }
+}
+
 // ===== Checkout =====
 function openCheckout() {
-  const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p ? Number(p.price || 0) * item.qty : 0); }, 0);
+  const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p ? productPrice(p) * item.qty : 0); }, 0);
   $('checkoutSubtotal').textContent = formatPrice(total);
   $('checkoutDeliveryFee').textContent = formatPrice(deliveryFee);
   $('checkoutTotal').textContent = formatPrice(total + deliveryFee);
@@ -1224,7 +1287,7 @@ function checkoutPayload(form) {
   const data = new FormData(form);
   const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
-  return { requestId: requestId(), items, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), gov: String(data.get('governorate') || '').trim(), city: String(data.get('city') || '').trim(), address: String(data.get('address') || '').trim(), notes: String(data.get('notes') || '').trim() } };
+  return { requestId: requestId(), items, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
 }
 
 async function submitCheckout(event) {
@@ -1238,7 +1301,7 @@ async function submitCheckout(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) throw new Error(result.error || 'CHECKOUT_FAILED');
     const lines = (result.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
-    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.gov} - ${payload.customer.city} - ${payload.customer.address}`].join('\n');
+    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}`].join('\n');
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942');
     if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
@@ -1254,7 +1317,7 @@ async function submitCheckout(event) {
 }
 
 // ===== Sidebar Close =====
-function closeSidebar() { $('sidebarMenu').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); }
+function closeSidebar() { const wasOpen = $('sidebarMenu')?.classList.contains('open'); $('sidebarMenu').classList.remove('open'); $('sidebarOverlay').classList.remove('open'); if (wasOpen) setScrollLock(false); }
 
 // ===== Bind All Events =====
 function bindBuilderPageEvents() {
@@ -1289,6 +1352,35 @@ function bindUpgradePageEvents() {
   $('upgradeCatalogSearch')?.addEventListener('input', (event) => { state.upgradeCatalog.search = event.target.value; renderUpgradeResults(); });
   $('upgradeCatalogCategory')?.addEventListener('change', (event) => { state.upgradeCatalog.category = event.target.value; renderUpgradeResults(); });
   $('upgradeCatalogBrand')?.addEventListener('change', (event) => { state.upgradeCatalog.brand = event.target.value; renderUpgradeResults(); });
+}
+
+const IRAQ_ADDRESS_DATA = {
+  'النجف': { 'قضاء النجف': ['مركز النجف'], 'الكوفة': ['مركز الكوفة', 'العباسية'], 'المناذرة': ['مركز المناذرة'] },
+  'بغداد': { 'قضاء الرصافة': [], 'قضاء الكرخ': [] }, 'كربلاء': { 'قضاء كربلاء': [], 'الهندية': [] },
+  'بابل': { 'الحلة': [], 'المحاويل': [] }, 'البصرة': { 'البصرة': [], 'الزبير': [] },
+  'نينوى': { 'الموصل': [], 'تلعفر': [] }, 'الأنبار': { 'الرمادي': [], 'الفلوجة': [] },
+  'ديالى': { 'بعقوبة': [], 'الخالص': [] }, 'واسط': { 'الكوت': [], 'الحي': [] },
+  'ذي قار': { 'الناصرية': [], 'الشطرة': [] }, 'ميسان': { 'العمارة': [], 'المجر الكبير': [] },
+  'القادسية': { 'الديوانية': [], 'الشامية': [] }, 'المثنى': { 'السماوة': [], 'الرميثة': [] },
+  'صلاح الدين': { 'تكريت': [], 'سامراء': [] }, 'كركوك': { 'كركوك': [] }, 'أربيل': { 'أربيل': [] },
+  'السليمانية': { 'السليمانية': [] }, 'دهوك': { 'دهوك': [] }
+};
+function fillSelect(select, items, placeholder) {
+  if (!select) return;
+  select.innerHTML = `<option value="">${placeholder}</option>` + items.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('');
+  select.disabled = items.length === 0;
+}
+function bindAddressHierarchy() {
+  const gov = $('orderGov'), district = $('orderDistrict'), subdistrict = $('orderSubdistrict');
+  if (!gov || !district || !subdistrict) return;
+  const govNames = Object.keys(IRAQ_ADDRESS_DATA);
+  fillSelect(gov, govNames, language === 'en' ? 'Choose governorate...' : 'اختر المحافظة...');
+  gov.addEventListener('change', () => {
+    const districts = Object.keys(IRAQ_ADDRESS_DATA[gov.value] || {});
+    fillSelect(district, districts, language === 'en' ? 'Choose district...' : 'اختر القضاء / الناحية...');
+    fillSelect(subdistrict, [], language === 'en' ? 'Use neighborhood field...' : 'استخدم حقل الحي / المنطقة...');
+  });
+  district.addEventListener('change', () => fillSelect(subdistrict, IRAQ_ADDRESS_DATA[gov.value]?.[district.value] || [], language === 'en' ? 'Choose subdistrict...' : 'اختر المنطقة / الناحية...'));
 }
 
 function bindEvents() {
@@ -1339,6 +1431,7 @@ function bindEvents() {
   $('checkoutBtn').addEventListener('click', openCheckout);
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
+  bindAddressHierarchy();
 
   $('closeProductDetailsBtn').addEventListener('click', () => modal('productDetailsModal', false));
   $('closeQuoteBtn').addEventListener('click', () => modal('quoteModal', false));
@@ -1354,7 +1447,7 @@ function bindEvents() {
     showToast(language === 'en' ? 'The alert request was saved on this device. Sending needs an enabled service.' : 'تم حفظ طلب التنبيه على جهازك. الإرسال يحتاج خدمة مفعّلة.');
   });
 
-  $('mobileMenuBtn').addEventListener('click', () => { $('sidebarMenu').classList.add('open'); $('sidebarOverlay').classList.add('open'); });
+  $('mobileMenuBtn').addEventListener('click', () => { const wasOpen = $('sidebarMenu').classList.contains('open'); $('sidebarMenu').classList.add('open'); $('sidebarOverlay').classList.add('open'); if (!wasOpen) setScrollLock(true); });
   $('closeSidebarBtn').addEventListener('click', closeSidebar);
   $('sidebarOverlay').addEventListener('click', closeSidebar);
 
@@ -1416,6 +1509,9 @@ onValue(ref(db, 'settings'), (snapshot) => {
 
 onAuthStateChanged(auth, (user) => {
   authUser = user;
+  state.accountProfile = user ? { uid: user.uid, email: user.email || '', phone: user.phoneNumber || '', accountType: 'retail' } : null;
+  state.privatePrices = {};
+  if (user) user.getIdToken().then((token) => fetch(`${BACKEND_URL}/api/store/prices`, { headers: { Authorization: `Bearer ${token}` } })).then((response) => response.ok ? response.json() : null).then((data) => { if (data?.prices) { state.accountProfile = { ...state.accountProfile, accountType: data.accountType || 'retail' }; state.privatePrices = data.prices; renderProducts(); renderCart(); renderAccount(); } }).catch(() => {});
   loadFavorites();
   updateFavoriteBadge();
   renderProducts();

@@ -4,6 +4,10 @@
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
+    "private_prices": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
     "categories": {
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
@@ -39,6 +43,10 @@
         "customerPhone": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 30" },
         "governorate": { ".validate": "newData.isString() && newData.val().length < 50" },
         "city": { ".validate": "newData.isString() && newData.val().length < 50" },
+        "district": { ".validate": "newData.isString() && newData.val().length < 80" },
+        "subdistrict": { ".validate": "newData.isString() && newData.val().length < 80" },
+        "neighborhood": { ".validate": "newData.isString() && newData.val().length < 120" },
+        "addressDetails": { ".validate": "newData.isString() && newData.val().length < 300" },
         "address": { ".validate": "newData.isString() && newData.val().length < 300" },
         "notes": { ".validate": "newData.isString() && newData.val().length < 1000" },
         "subtotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },

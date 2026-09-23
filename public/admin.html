@@ -500,8 +500,16 @@
                         <input type="text" id="prodModel" placeholder="مثال: TUF Gaming F15">
                     </div>
                     <div class="form-group">
-                        <label>السعر بالدينار العراقي (د.ع) <span class="req">*</span></label>
-                        <input type="number" id="prodPrice" required placeholder="مثال: 1250000">
+                        <label>السعر العام / المفرق (د.ع) <span class="req">*</span></label>
+                        <input type="number" id="prodPrice" required min="0" step="1" placeholder="مثال: 1250000">
+                    </div>
+                    <div class="form-group">
+                        <label>سعر الجملة (اختياري)</label>
+                        <input type="number" id="prodWholesalePrice" min="0" step="1" placeholder="يترك فارغاً للرجوع للسعر العام">
+                    </div>
+                    <div class="form-group">
+                        <label>السعر الخاص (اختياري)</label>
+                        <input type="number" id="prodSpecialPrice" min="0" step="1" placeholder="يترك فارغاً للرجوع للسعر العام">
                     </div>
                     <div class="form-group">
                         <label>السعر السابق (في حال وجود عرض)</label>

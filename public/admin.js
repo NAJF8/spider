@@ -611,6 +611,8 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodBrand').value = prod.brand || '';
             document.getElementById('prodModel').value = prod.model || '';
             document.getElementById('prodPrice').value = prod.price || '';
+            document.getElementById('prodWholesalePrice').value = prod.wholesale_price ?? '';
+            document.getElementById('prodSpecialPrice').value = prod.special_price ?? '';
             document.getElementById('prodOriginalPrice').value = prod.originalPrice || '';
             document.getElementById('prodStock').value = prod.stock || '';
             document.getElementById('prodWarranty').value = prod.warranty || '';
@@ -670,6 +672,10 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         }
         specifications[key] = value;
     }
+    const retailPrice = Number(document.getElementById('prodPrice').value);
+    const wholesaleRaw = document.getElementById('prodWholesalePrice').value;
+    const specialRaw = document.getElementById('prodSpecialPrice').value;
+    if (!Number.isFinite(retailPrice) || retailPrice < 0 || (wholesaleRaw && Number(wholesaleRaw) < 0) || (specialRaw && Number(specialRaw) < 0)) { alert('تحقق من أن الأسعار أرقام غير سالبة.'); return; }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
         category: document.getElementById('prodCategory').value,
@@ -677,7 +683,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         subcategory: document.getElementById('prodSubcategory').value.trim(),
         brand: document.getElementById('prodBrand').value.trim(),
         model: document.getElementById('prodModel').value.trim(),
-        price: Number(document.getElementById('prodPrice').value),
+        price: retailPrice,
         originalPrice: document.getElementById('prodOriginalPrice').value ? Number(document.getElementById('prodOriginalPrice').value) : null,
         stock: document.getElementById('prodStock').value ? Number(document.getElementById('prodStock').value) : null,
         warranty: document.getElementById('prodWarranty').value.trim(),
@@ -688,6 +694,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
     };
+    const privatePrices = { wholesale_price: wholesaleRaw ? Number(wholesaleRaw) : null, special_price: specialRaw ? Number(specialRaw) : null, updatedAt: Date.now() };
     
     if (isDemoMode) {
         if (id) {
@@ -709,10 +716,13 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     try {
         if (id) {
             await update(ref(db, 'products/' + id), prodData);
+            await update(ref(db, 'private_prices/' + id), privatePrices);
             alert('تم تحديث المنتج بنجاح!');
         } else {
             prodData.createdAt = Date.now();
-            await set(push(ref(db, 'products')), prodData);
+            const productRef = push(ref(db, 'products'));
+            await set(productRef, prodData);
+            await set(ref(db, 'private_prices/' + productRef.key), privatePrices);
             alert('تمت إضافة المنتج الجديد بنجاح!');
         }
         closeProductModal();

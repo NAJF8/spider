@@ -118,6 +118,7 @@
 
     <!-- 3. CATEGORIES — Always visible circular row -->
     <section class="section-pad categories-section" aria-label="أقسام المتجر">
+      <div class="section-heading categories-heading"><div class="section-title-bar"><h2 id="categoriesSectionTitle">جميع الأقسام</h2></div></div>
       <div class="categories-row" id="categoriesRow">
         <div class="loading-state">جاري تحميل الأقسام...</div>
       </div>
@@ -319,11 +320,11 @@
         <input name="customerPhone" id="orderPhone" required type="tel" placeholder="رقم الهاتف (07XXXXXXXXX)">
         <select name="governorate" id="orderGov" required>
           <option value="">اختر المحافظة...</option>
-          <option>النجف</option><option>بغداد</option><option>كربلاء</option>
-          <option>بابل</option><option>البصرة</option><option>أربيل</option><option>أخرى</option>
         </select>
-        <input name="city" id="orderCity" required placeholder="المدينة / المنطقة">
-        <textarea name="address" id="orderAddress" required placeholder="العنوان التفصيلي"></textarea>
+        <select name="district" id="orderDistrict" required disabled><option value="">اختر القضاء / الناحية...</option></select>
+        <select name="subdistrict" id="orderSubdistrict" disabled><option value="">اختر المنطقة / الناحية...</option></select>
+        <input name="neighborhood" id="orderNeighborhood" placeholder="الحي / المنطقة">
+        <textarea name="addressDetails" id="orderAddress" required placeholder="العنوان التفصيلي"></textarea>
         <textarea name="notes" id="orderNotes" placeholder="ملاحظات إضافية (اختياري)"></textarea>
         <div class="order-summary">
           <span>المجموع <b id="checkoutSubtotal">0 د.ع</b></span>
