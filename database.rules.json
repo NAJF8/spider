@@ -24,6 +24,14 @@
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
+    "profiles": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "auditLogs": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
     "reports": {
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"

@@ -786,6 +786,7 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
 .chat-product img{width:34px;height:34px;object-fit:contain}
 .chat-product strong{font-size:9px;display:block}
 .chat-product span{font-size:9px;color:var(--red);font-weight:800}
+.chat-product small{display:block;font-size:9px;color:var(--muted);margin-top:2px}.chat-product-actions{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}.chat-product-actions button{font-size:9px;border:1px solid #ffc3c6;border-radius:5px;padding:3px 5px;color:var(--red);background:transparent;cursor:pointer}
 .chat-quick-replies{display:flex;gap:5px;padding:7px;overflow:auto;border-top:1px solid var(--line);scrollbar-width:none}
 .chat-quick-replies button{white-space:nowrap;border:1px solid #ffc3c6;border-radius:99px;padding:5px 8px;color:var(--red);font-size:9px;transition:.15s}
 .chat-quick-replies button:hover{background:var(--red-soft)}

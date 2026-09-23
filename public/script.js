@@ -1211,6 +1211,10 @@ function renderAccount() {
 function openChat() { if ($('chatbotContainer').classList.contains('hidden')) { $('chatbotContainer').classList.remove('hidden'); setScrollLock(true); } }
 function closeChat() { if (!$('chatbotContainer').classList.contains('hidden')) { $('chatbotContainer').classList.add('hidden'); setScrollLock(false); } }
 
+const CHAT_STATE_KEY = 'spider.chat.state.v1';
+let chatState = (() => { try { return JSON.parse(localStorage.getItem(CHAT_STATE_KEY) || '{}'); } catch { return {}; } })();
+function saveChatState() { try { localStorage.setItem(CHAT_STATE_KEY, JSON.stringify(chatState)); } catch {} }
+
 function appendChat(text, user = false, products = []) {
   const msg = document.createElement('div');
   msg.className = `message ${user ? 'user-message' : 'bot-message'}`;
@@ -1218,7 +1222,10 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    card.innerHTML = `<img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(productPrice(p))}</span></div>`;
+    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.model || '')}</small><span>${formatPrice(Number(p.price ?? productPrice(p)))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button><button type="button" data-chat-cart>أضف للسلة</button><button type="button" data-chat-compare>قارن</button></div></div>`;
+    card.querySelector('[data-chat-open]').addEventListener('click', (e) => { e.stopPropagation(); openProductDetails(p.id); });
+    card.querySelector('[data-chat-cart]').addEventListener('click', (e) => { e.stopPropagation(); if (p.available) { addToCart(p.id); showToast(t('added')); } });
+    card.querySelector('[data-chat-compare]').addEventListener('click', (e) => { e.stopPropagation(); openComparePicker(p.id); });
     card.addEventListener('click', () => openProductDetails(p.id));
     msg.append(card);
   });
@@ -1226,18 +1233,19 @@ function appendChat(text, user = false, products = []) {
   $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
 }
 
-function respondChat(text) {
-  const query = text.toLowerCase();
-  const published = state.products.filter(product => product.status === 'published');
-  let matches = [];
-  let reply = language === 'en' ? 'I can help with published products only. Try a product name or choose a suggested question.' : 'أكدر أساعدك من المنتجات المنشورة فقط. جرّب اسم منتج أو اختر سؤالاً جاهزاً.';
-  if (/لابتوب|laptop/.test(query)) { matches = published.filter((p) => /لابتوب|laptop/i.test(productText(p))).slice(0, 3); reply = matches.length ? (language === 'en' ? 'Here are currently published laptops:' : 'هذه لابتوبات منشورة حالياً:') : (language === 'en' ? 'No matching published laptops are available.' : 'لا توجد لابتوبات منشورة مطابقة حالياً.'); }
-  else if (/ميزان|budget|سعر|بشكد|price/.test(query)) { matches = published.filter(isAvailable).sort((a, b) => productPrice(a) - productPrice(b)).slice(0, 3); reply = language === 'en' ? 'These available options are sorted from the lowest price:' : 'هذه خيارات متوفرة مرتبة من الأقل سعراً:'; }
-  else if (/حاسبة|تجميع|ألعاب|gaming|build/.test(query)) { window.location.href = 'builder.html'; reply = language === 'en' ? 'I opened the dedicated PC builder.' : 'فتحت لك صفحة ابنِ تجميعتك المستقلة.'; }
-  else if (/طوّر|ترقية|upgrade/.test(query)) { window.location.href = 'upgrade.html'; reply = language === 'en' ? 'I opened the dedicated PC upgrade page.' : 'فتحت لك صفحة طوّر حاسبتك المستقلة.'; }
-  else if (/قارن|مقارنة|compare/.test(query)) { document.querySelector('#compareSection').scrollIntoView({ behavior: 'smooth' }); reply = language === 'en' ? 'I opened comparison. Choose two products from the same category.' : 'فتحت قسم المقارنة. اختر منتجين من نفس القسم.'; }
-  else { matches = published.filter((p) => productText(p).includes(query)).slice(0, 3); if (matches.length) reply = language === 'en' ? 'I found these published products:' : 'وجدت هذه المنتجات المنشورة:'; }
-  setTimeout(() => appendChat(reply, false, matches), 250);
+async function respondChat(text) {
+  const body = { message: text.slice(0, 600), language, state: chatState, history: [...document.querySelectorAll('#chatMessages .message')].slice(-6).map((m) => ({ role: m.classList.contains('user-message') ? 'user' : 'assistant', content: m.textContent.slice(0, 500) })) };
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
+    const response = await fetch(`${BACKEND_URL}/api/store/chat`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'CHAT_UNAVAILABLE');
+    chatState = data.state || chatState; saveChatState();
+    appendChat(data.reply || (language === 'en' ? 'Please try again.' : 'جرّب مرة ثانية.'), false, Array.isArray(data.products) ? data.products : []);
+  } catch {
+    appendChat(language === 'en' ? 'The assistant is temporarily busy. Please try again shortly.' : 'صار ضغط مؤقت على المساعد، جرّب مرة ثانية بعد شوي.');
+  }
 }
 
 function handleChat() {

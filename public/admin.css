@@ -697,6 +697,7 @@ ul { list-style: none; }
 
 /* Form Styles */
 .form-group { margin-bottom: 18px; }
+.customers-table select{min-width:120px}.customers-table td{vertical-align:middle}.admin-search-input{border:1px solid var(--border);border-radius:8px;padding:10px 12px;min-width:240px}.customer-uid{font-family:monospace;direction:ltr}.customer-audit-note{font-size:.75rem;color:var(--gray)}
 .form-group label { display: block; margin-bottom: 6px; font-weight: 800; font-size: 0.9rem; color: #333; }
 .form-group .req { color: var(--primary); }
 .form-group input[type="text"],

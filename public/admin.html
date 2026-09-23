@@ -58,7 +58,7 @@
                 <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span></a></li>
                 <li class="nav-divider"></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة العملاء"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-customers"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="counter-badge" id="navCustomersCount">0</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المحتوى"><i class="fa-solid fa-image"></i> <span>المحتوى</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="التقارير والإحصائيات"><i class="fa-solid fa-chart-line"></i> <span>التقارير</span> <span class="badge-sub">قريباً</span></a></li>
@@ -226,7 +226,7 @@
                             <button class="quick-link-tile" onclick="switchView('view-products')"><i class="fa-solid fa-box"></i><span>إدارة المنتجات</span></button>
                             <button class="quick-link-tile" onclick="switchView('view-categories')"><i class="fa-solid fa-border-all"></i><span>إدارة الأقسام</span></button>
                             <button class="quick-link-tile" onclick="switchView('view-orders')"><i class="fa-solid fa-cart-shopping"></i><span>الطلبات</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'إدارة العملاء')"><i class="fa-solid fa-users"></i><span>العملاء</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-customers')"><i class="fa-solid fa-users"></i><span>العملاء</span></button>
                             <button class="quick-link-tile" onclick="switchView('view-placeholder', 'الخصومات والعروض')"><i class="fa-solid fa-tags"></i><span>الخصومات</span></button>
                             <button class="quick-link-tile" onclick="switchView('view-placeholder', 'إعدادات المتجر')"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></button>
                         </div>
@@ -450,6 +450,11 @@
             </section>
 
             <!-- ================= VIEW: PLACEHOLDER (COMING SOON) ================= -->
+            <section id="view-customers" class="admin-view">
+                <div class="view-header"><div><h2>إدارة العملاء</h2><p>النوع يحدده المشرف فقط من خلال ملف UID الموثوق.</p></div><div class="view-header-actions"><input id="customerSearch" class="admin-search-input" placeholder="ابحث بالاسم أو البريد أو UID..."></div></div>
+                <div class="box"><div class="table-responsive"><table class="modern-table customers-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>UID</th><th>نوع الحساب</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead><tbody id="customersTableBody"><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+            </section>
+
             <section id="view-placeholder" class="admin-view">
                 <div class="placeholder-box box">
                     <div class="placeholder-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
@@ -620,6 +625,6 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=2"></script>
+    <script type="module" src="admin.js?v=3"></script>
 </body>
 </html>

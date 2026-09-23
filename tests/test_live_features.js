@@ -30,7 +30,10 @@ assert(scriptJs.includes('ORDER_BACKEND_NOT_CONFIGURED'), 'يجب عرض عائ�
 assert(scriptJs.includes('window.addToCart = addToCart'), 'يجب كشف معالج الإضافة للبطاقات التي تستخدم onclick');
 assert(scriptJs.includes("const CART_STORAGE_KEY = 'spider.cart.v1'"), 'يجب حفظ السلة محلياً بعد تحديث الصفحة');
 assert(scriptJs.includes('window.filterProductsByCategory = filterProductsByCategory'), 'يجب أن تعمل روابط الأقسام مع ES module');
-assert(scriptJs.includes('products.filter(product =>'), 'يجب أن يجيب الشات من المنتجات المنشورة فعلياً');
+assert(scriptJs.includes("/api/store/chat"), 'يجب أن يمر الشات عبر Worker الآمن');
+const workerJs = fs.readFileSync('cloudflare-worker/src/index.js', 'utf8');
+assert(workerJs.includes("url.pathname === '/api/store/chat'"), 'يجب أن يملك Worker مسار الشات');
+assert(workerJs.includes('retrieveChatProducts'), 'يجب أن يطبّق Worker retrieval على المنتجات المنشورة');
 const indexHtml = fs.readFileSync('public/index.html', 'utf8');
 assert(indexHtml.includes('name="customerName"'), 'يجب ربط اسم العميل بحمولة الطلب');
 assert(indexHtml.includes('name="customerPhone"'), 'يجب ربط هاتف العميل بحمولة الطلب');

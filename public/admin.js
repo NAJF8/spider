@@ -41,10 +41,13 @@ let currentProcessedImageName = null;
 let isUploadingImage = false;
 let salesChart = null;
 let categoriesChart = null;
+let currentAdminUser = null;
+let customers = [];
 
 // ================= AUTHENTICATION =================
 onAuthStateChanged(auth, (user) => {
     if (user) {
+        currentAdminUser = user;
         if (user.uid === SUPER_ADMIN_UID) {
             isDemoMode = false;
             const banner = document.getElementById('adminDemoBanner');
@@ -68,6 +71,7 @@ onAuthStateChanged(auth, (user) => {
             errorMsg.classList.remove('hidden');
         }
     } else {
+        currentAdminUser = null;
         if (!isDemoMode) {
             loginScreen.classList.remove('hidden');
             adminScreen.classList.add('hidden');
@@ -305,7 +309,58 @@ function loadDashboardData() {
         orders.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         updateAllDashboardViews();
     });
+
+    onValue(ref(db, 'profiles'), (snapshot) => {
+        if (isDemoMode) return;
+        customers = [];
+        if (snapshot.exists()) snapshot.forEach((child) => customers.push({ uid: child.key, ...child.val() }));
+        renderCustomers();
+    });
 }
+
+function customerDate(value) {
+    const date = value ? new Date(value) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleString('ar-IQ') : 'غير متوفر';
+}
+
+function renderCustomers() {
+    const body = document.getElementById('customersTableBody');
+    if (!body) return;
+    const query = String(document.getElementById('customerSearch')?.value || '').trim().toLowerCase();
+    const filtered = customers.filter((customer) => `${customer.name || ''} ${customer.displayName || ''} ${customer.email || ''} ${customer.phone || customer.phoneNumber || ''} ${customer.uid}`.toLowerCase().includes(query));
+    const count = document.getElementById('navCustomersCount');
+    const stat = document.getElementById('statCustomers');
+    if (count) count.textContent = customers.length;
+    if (stat) stat.textContent = customers.length;
+    body.innerHTML = filtered.length ? filtered.map((customer) => {
+        const type = ['retail', 'wholesale', 'special'].includes(customer.accountType) ? customer.accountType : 'retail';
+        return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td class="customer-uid" title="${escapeHtml(customer.uid)}">${escapeHtml(customer.uid.slice(0, 8))}…</td><td><select data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td>${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</td><td><button class="btn btn-primary" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button></td></tr>`;
+    }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
+    body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
+}
+
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+
+async function updateCustomerType(uid) {
+    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    const customer = customers.find((item) => item.uid === uid);
+    const select = document.querySelector(`[data-customer-type="${CSS.escape(uid)}"]`);
+    const nextType = select?.value;
+    if (!customer || !['retail', 'wholesale', 'special'].includes(nextType) || nextType === (customer.accountType || 'retail')) return;
+    const previousType = customer.accountType || 'retail';
+    const now = Date.now();
+    const auditKey = push(ref(db, 'auditLogs')).key;
+    await update(ref(db), {
+        [`profiles/${uid}/accountType`]: nextType,
+        [`profiles/${uid}/accountTypeUpdatedAt`]: now,
+        [`profiles/${uid}/accountTypeUpdatedBy`]: currentAdminUser.uid,
+        [`auditLogs/${auditKey}`]: { action: 'account_type_changed', targetUid: uid, actorUid: currentAdminUser.uid, actorEmail: currentAdminUser.email || '', previousType, nextType, timestamp: now }
+    });
+    customer.accountType = nextType;
+    renderCustomers();
+}
+window.updateCustomerType = updateCustomerType;
+document.getElementById('customerSearch')?.addEventListener('input', renderCustomers);
 
 function updateCategorySelects() {
     const prodSelect = document.getElementById('prodCategory');
