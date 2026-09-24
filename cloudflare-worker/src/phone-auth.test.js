@@ -13,6 +13,7 @@ test('validates four-digit PINs and verifies PBKDF2 credentials without exposing
   assert.equal(validatePin('12345'), false);
   const credential = await hashPin('1234');
   assert.equal(credential.algorithm, 'PBKDF2-SHA256');
+  assert.equal(credential.iterations, 100000);
   assert.equal(typeof credential.salt, 'string');
   assert.equal(typeof credential.hash, 'string');
   assert.equal(await verifyPin('1234', credential), true);

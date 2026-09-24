@@ -45,7 +45,9 @@ function fromBase64(value) {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
-async function hashPin(pin, salt = randomBytes(16), iterations = 210000) {
+// Cloudflare Workers rejects PBKDF2 iteration counts above 100000.
+// Keep the value explicit so credentials remain verifiable across deployments.
+async function hashPin(pin, salt = randomBytes(16), iterations = 100000) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), { name: 'PBKDF2' }, false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
   return { algorithm: 'PBKDF2-SHA256', iterations, salt: base64Url(salt), hash: base64Url(new Uint8Array(bits)) };
@@ -53,7 +55,7 @@ async function hashPin(pin, salt = randomBytes(16), iterations = 210000) {
 
 async function verifyPin(pin, credential) {
   if (!credential?.salt || !credential?.hash || !validatePin(pin)) return false;
-  const computed = await hashPin(pin, fromBase64(credential.salt), Number(credential.iterations) || 210000);
+  const computed = await hashPin(pin, fromBase64(credential.salt), Number(credential.iterations) || 100000);
   const expected = fromBase64(credential.hash);
   const actual = fromBase64(computed.hash);
   if (expected.length !== actual.length) return false;
@@ -119,7 +121,10 @@ async function readDatabase(env, path) {
 
 async function writeDatabase(env, path, value, method = 'PUT') {
   const response = await fetch(authDatabaseUrl(env, path), { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
-  if (!response.ok) throw new Error('AUTH_DATABASE_ERROR');
+  if (!response.ok) {
+    console.error(JSON.stringify({ code: 'AUTH_DATABASE_WRITE_FAILED', status: response.status }));
+    throw new Error('AUTH_DATABASE_ERROR');
+  }
   return response;
 }
 
