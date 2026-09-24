@@ -420,7 +420,7 @@ async function readProviderResponse(response) {
     choicesType: Array.isArray(body?.choices) ? 'array' : typeof body?.choices,
     firstChoiceKeys: objectKeys(firstChoice),
     messageType: typeof firstChoice?.message,
-    contentType: Array.isArray(content) ? 'array' : typeof content,
+    contentValueType: Array.isArray(content) ? 'array' : typeof content,
     errorMessage: safeProviderMessage(safeError)
   }));
   return { body };
