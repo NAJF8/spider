@@ -35,7 +35,7 @@ img{max-width:100%;display:block}
 
 /* ===== HEADER ===== */
 .site-header{
-  position:sticky;top:0;z-index:80;
+  position:static;
   background:#fff;
   border-bottom:1px solid var(--line);
   box-shadow:0 1px 8px rgba(0,0,0,.06);
