@@ -7,12 +7,28 @@ export default {
   }
 };
 
-export { normalizePricingTier, resolveProductPrice, normalizeIraqPhone, validatePin, hashPin, verifyPin };
+export {
+  normalizePricingTier,
+  resolveProductPrice,
+  normalizeIraqPhone,
+  validatePin,
+  hashPin,
+  verifyPin,
+  parseServiceAccount,
+  createGoogleOAuthAssertion,
+  getFirebaseDatabaseAccessToken,
+  writeServiceDatabase
+};
 
 const PHONE_LOGIN_LIMIT = 6;
 const PHONE_LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const PHONE_LOGIN_COOLDOWN_MS = 15 * 60 * 1000;
 const phoneLoginAttempts = new Map();
+const GOOGLE_OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const FIREBASE_DATABASE_SCOPE = 'https://www.googleapis.com/auth/firebase.database';
+const GOOGLE_USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email';
+let firebaseAccessTokenCache = null;
+let firebaseAccessTokenPromise = null;
 
 function normalizeIraqPhone(value) {
   const digits = String(value || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[^0-9+]/g, '').replace(/^00/, '+');
@@ -64,16 +80,80 @@ async function verifyPin(pin, credential) {
   return difference === 0;
 }
 
-function serviceAccount(env) {
+function parseServiceAccount(raw) {
   try {
-    const raw = String(env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+    const value = typeof raw === 'string' ? raw.trim() : raw;
+    const account = typeof value === 'string' ? (value ? JSON.parse(value) : null) : value;
+    return account?.client_email && account?.private_key && account?.project_id ? account : null;
+  } catch {
+    return null;
+  }
+}
+
+function serviceAccount(env) {
+  return parseServiceAccount(env.FIREBASE_SERVICE_ACCOUNT_JSON);
+}
+
+function privateKeyBytes(privateKey) {
+  const pem = String(privateKey || '')
+    .replace(/\\n/g, '\n')
+    .replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
+  return fromBase64(pem);
+}
+
+async function signRs256(input, privateKey) {
+  const key = await crypto.subtle.importKey(
+    'pkcs8',
+    privateKeyBytes(privateKey),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(input));
+  return base64Url(new Uint8Array(signature));
+}
+
+async function createGoogleOAuthAssertion(account, now = Math.floor(Date.now() / 1000)) {
+  const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const payload = base64Url(JSON.stringify({
+    iss: account.client_email,
+    scope: `${FIREBASE_DATABASE_SCOPE} ${GOOGLE_USERINFO_EMAIL_SCOPE}`,
+    aud: GOOGLE_OAUTH_TOKEN_URL,
+    iat: now,
+    exp: now + 3600
+  }));
+  return `${header}.${payload}.${await signRs256(`${header}.${payload}`, account.private_key)}`;
+}
+
+async function requestFirebaseDatabaseAccessToken(env) {
+  const account = serviceAccount(env);
+  if (!account) throw new Error('AUTH_SERVICE_ACCOUNT_ERROR');
+  const now = Math.floor(Date.now() / 1000);
+  if (firebaseAccessTokenCache && firebaseAccessTokenCache.clientEmail === account.client_email && firebaseAccessTokenCache.expiresAt > now + 60) {
+    return firebaseAccessTokenCache.token;
+  }
+  const assertion = await createGoogleOAuthAssertion(account, now);
+  const response = await fetch(GOOGLE_OAUTH_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }).toString()
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.access_token) throw new Error('AUTH_SERVICE_ACCOUNT_ERROR');
+  const expiresIn = Math.max(60, Number(data.expires_in) || 3600);
+  firebaseAccessTokenCache = { clientEmail: account.client_email, token: String(data.access_token), expiresAt: now + expiresIn };
+  return firebaseAccessTokenCache.token;
+}
+
+async function getFirebaseDatabaseAccessToken(env) {
+  if (firebaseAccessTokenPromise) return firebaseAccessTokenPromise;
+  firebaseAccessTokenPromise = requestFirebaseDatabaseAccessToken(env).finally(() => { firebaseAccessTokenPromise = null; });
+  return firebaseAccessTokenPromise;
 }
 
 async function firebaseCustomToken(uid, env) {
   const account = serviceAccount(env);
-  if (!account?.client_email || !account?.private_key) throw new Error('AUTH_BACKEND_NOT_CONFIGURED');
+  if (!account?.client_email || !account?.private_key) throw new Error('AUTH_SERVICE_ACCOUNT_ERROR');
   try {
     const now = Math.floor(Date.now() / 1000);
     const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
@@ -85,10 +165,7 @@ async function firebaseCustomToken(uid, env) {
       exp: now + 3600,
       uid: String(uid)
     }));
-    const pem = account.private_key.replace(/\\n/g, '\n').replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
-    const key = await crypto.subtle.importKey('pkcs8', fromBase64(pem), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
-    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${payload}`));
-    return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
+    return `${header}.${payload}.${await signRs256(`${header}.${payload}`, account.private_key)}`;
   } catch {
     throw new Error('AUTH_TOKEN_SIGNING_ERROR');
   }
@@ -128,8 +205,50 @@ async function writeDatabase(env, path, value, method = 'PUT') {
   return response;
 }
 
-async function findProfileUidByPhone(env, phone) {
-  const profiles = await readDatabase(env, 'profiles.json');
+function databasePathCategory(path) {
+  const value = String(path || '');
+  if (!value) return 'registration_bundle';
+  if (value.startsWith('phone_index/')) return 'phone_index';
+  if (value.startsWith('profiles/')) return 'profiles';
+  if (value.startsWith('profile_credentials/')) return 'profile_credentials';
+  return 'other';
+}
+
+async function serviceDatabaseResponse(env, path, options = {}) {
+  let token;
+  try {
+    token = await getFirebaseDatabaseAccessToken(env);
+  } catch {
+    throw new Error('AUTH_SERVICE_ACCOUNT_ERROR');
+  }
+  const headers = new Headers(options.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(firebaseBaseUrl(env, path), { ...options, headers });
+  if (!response.ok) {
+    const data = await response.clone().json().catch(() => ({}));
+    const raw = typeof data?.error === 'string' ? data.error : data?.error?.message || data?.error?.status || 'RTDB_REQUEST_FAILED';
+    const safeMessage = String(raw).replace(/[\r\n]/g, ' ').slice(0, 160);
+    console.error(JSON.stringify({ code: 'AUTH_DATABASE_ERROR', status: response.status, firebase: safeMessage, pathCategory: databasePathCategory(path) }));
+    throw new Error('AUTH_DATABASE_ERROR');
+  }
+  return response;
+}
+
+async function readServiceDatabase(env, path) {
+  const response = await serviceDatabaseResponse(env, path);
+  return response.json();
+}
+
+async function writeServiceDatabase(env, path, value, method = 'PUT') {
+  return serviceDatabaseResponse(env, path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(value)
+  });
+}
+
+async function findProfileUidByPhone(env, phone, serviceAuth = false) {
+  const profiles = serviceAuth ? await readServiceDatabase(env, 'profiles.json') : await readDatabase(env, 'profiles.json');
   if (!profiles || typeof profiles !== 'object') return null;
   for (const [uid, profile] of Object.entries(profiles)) {
     if (normalizeIraqPhone(profile?.phone) === phone) return uid;
@@ -169,28 +288,29 @@ async function handlePhoneAuth(request, env, url) {
 
   if (url.pathname === '/api/auth/phone/register') {
     const authenticated = await verifyFirebaseIdToken(authToken(request), env);
-    const existingProfile = authenticated ? await readDatabase(env, `profiles/${encodeURIComponent(authenticated.uid)}.json`) : null;
+    const existingProfile = authenticated ? await readServiceDatabase(env, `profiles/${encodeURIComponent(authenticated.uid)}.json`) : null;
     const name = String(body.name || existingProfile?.name || authenticated?.displayName || '').trim().slice(0, 100);
     if (!name) return errorResponse('NAME_REQUIRED', 400);
     if (String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))) !== pin) return errorResponse('PIN_CONFIRMATION_MISMATCH', 400);
-    const existingUid = await readDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`) || await findProfileUidByPhone(env, phone);
+    const existingUid = await readServiceDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`) || await findProfileUidByPhone(env, phone, true);
     if (existingUid && (!authenticated || existingUid !== authenticated.uid)) return errorResponse('PHONE_ALREADY_REGISTERED', 409);
     const uid = authenticated?.uid || existingUid || `phone-${crypto.randomUUID()}`;
     const credential = await hashPin(pin);
     const profile = { uid, name, phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
-    await writeDatabase(env, '', {
+    const customToken = await firebaseCustomToken(uid, env);
+    await writeServiceDatabase(env, '', {
       [`phone_index/${phone}`]: uid,
-      [`profiles/${uid}`]: { ...(await readDatabase(env, `profiles/${uid}.json`)) || {}, ...profile },
+      [`profiles/${uid}`]: { ...(await readServiceDatabase(env, `profiles/${uid}.json`)) || {}, ...profile },
       [`profile_credentials/${uid}`]: credential
     }, 'PATCH');
-    return new Response(JSON.stringify({ success: true, uid, customToken: await firebaseCustomToken(uid, env) }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, uid, customToken }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
 
   if (url.pathname === '/api/auth/phone/login') {
     const rate = checkLoginRateLimit(request, phone);
     if (!rate.allowed) return errorResponse('AUTH_RATE_LIMITED', 429);
-    const uid = await readDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`);
-    const credential = uid ? await readDatabase(env, `profile_credentials/${encodeURIComponent(uid)}.json`) : null;
+    const uid = await readServiceDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`);
+    const credential = uid ? await readServiceDatabase(env, `profile_credentials/${encodeURIComponent(uid)}.json`) : null;
     const valid = Boolean(uid && credential && await verifyPin(pin, credential));
     if (!valid) { recordFailedLogin(rate); return errorResponse('AUTH_INVALID_CREDENTIALS', 401); }
     clearFailedLogin(rate);
@@ -199,11 +319,11 @@ async function handlePhoneAuth(request, env, url) {
 
   const user = await verifyFirebaseIdToken(authToken(request), env);
   if (!user) return errorResponse('AUTH_REQUIRED', 401);
-  const current = await readDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`);
+  const current = await readServiceDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`);
   const newPin = String(body.newPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
   const confirmedPin = String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
   if (!await verifyPin(pin, current) || !validatePin(newPin) || newPin !== confirmedPin) return errorResponse('AUTH_INVALID_CREDENTIALS', 401);
-  await writeDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`, await hashPin(newPin));
+  await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`, await hashPin(newPin));
   return jsonResponse({ success: true });
 }
 
@@ -232,7 +352,7 @@ async function handleRequest(request, env) {
       try { return await handlePhoneAuth(request, env, url); }
       catch (error) {
         const code = String(error?.message || 'AUTH_ERROR');
-        const status = code === 'AUTH_BACKEND_NOT_CONFIGURED' || code === 'AUTH_DATABASE_ERROR' || code === 'AUTH_TOKEN_SIGNING_ERROR' ? 503 : 500;
+        const status = code === 'AUTH_BACKEND_NOT_CONFIGURED' || code === 'AUTH_SERVICE_ACCOUNT_ERROR' || code === 'AUTH_DATABASE_ERROR' || code === 'AUTH_TOKEN_SIGNING_ERROR' ? 503 : 500;
         console.error(JSON.stringify({ code, location: 'phone-auth' }));
         return errorResponse(status === 503 ? code : 'AUTH_ERROR', status);
       }
@@ -633,7 +753,11 @@ async function handleRequest(request, env) {
 const chatInFlight = new Map();
 
 function firebaseUrl(env, path, secret) {
-  return `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/${path}${path.includes('?') ? '&' : '?'}auth=${encodeURIComponent(secret)}`;
+  return `${firebaseBaseUrl(env, path)}${path.includes('?') ? '&' : '?'}auth=${encodeURIComponent(secret)}`;
+}
+
+function firebaseBaseUrl(env, path) {
+  return `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/${path}`;
 }
 
 function normalizeChatState(value) {
