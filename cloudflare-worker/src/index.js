@@ -1,14 +1,13 @@
 export default {
   async fetch(request, env) {
+    if (request.method === 'OPTIONS') {
+      return preflightResponse(request);
+    }
     return withCors(await handleRequest(request, env), request);
   }
 };
 
 async function handleRequest(request, env) {
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204 });
-    }
-
     const url = new URL(request.url);
 
     if (url.pathname === '/api/store/prices' && request.method === 'GET') {
@@ -425,8 +424,12 @@ function jsonResponse(payload, status = 200) {
 
 const ALLOWED_ORIGINS = new Set([
   'https://spider-aaa19.web.app',
-  'https://spider-aaa19.firebaseapp.com'
+  'https://spider-aaa19.firebaseapp.com',
+  'https://spidernajaf.com',
+  'https://www.spidernajaf.com'
 ]);
+
+const WORKER_BUILD = 'spider-store-cors-2026-09-24';
 
 function corsHeaders(request) {
   const origin = request.headers?.get?.('Origin') || '';
@@ -434,17 +437,26 @@ function corsHeaders(request) {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Request-Id',
     'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin'
+    'Vary': 'Origin',
+    'X-Worker-Build': WORKER_BUILD
   });
-  if (ALLOWED_ORIGINS.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+  if (ALLOWED_ORIGINS.has(origin)) {
     headers.set('Access-Control-Allow-Origin', origin);
   }
   return headers;
 }
 
 function withCors(response, request) {
-  const headers = corsHeaders(request);
+  const headers = new Headers();
   if (typeof response.headers?.forEach === 'function') response.headers.forEach((value, key) => headers.set(key, value));
   else for (const [key, value] of Object.entries(response.headers || {})) headers.set(key, value);
+  const cors = corsHeaders(request);
+  cors.forEach((value, key) => headers.set(key, value));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+function preflightResponse(request) {
+  const origin = request.headers?.get?.('Origin') || '';
+  const status = origin && !ALLOWED_ORIGINS.has(origin) ? 403 : 204;
+  return new Response(null, { status, headers: corsHeaders(request) });
 }
