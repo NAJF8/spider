@@ -1,13 +1,12 @@
 export default {
   async fetch(request, env) {
+    return withCors(await handleRequest(request, env), request);
+  }
+};
+
+async function handleRequest(request, env) {
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        }
-      });
+      return new Response(null, { status: 204 });
     }
 
     const url = new URL(request.url);
@@ -366,9 +365,8 @@ export default {
       }
     }
 
-    return new Response('Not Found', { status: 404 });
-  }
-};
+    return errorResponse('NOT_FOUND', 404);
+}
 
 const chatInFlight = new Map();
 
@@ -411,8 +409,7 @@ function errorResponse(code, status) {
   return new Response(JSON.stringify({ error: code }), {
     status: status,
     headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      'Content-Type': 'application/json'
     }
   });
 }
@@ -421,8 +418,33 @@ function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
+      'Content-Type': 'application/json'
     }
   });
+}
+
+const ALLOWED_ORIGINS = new Set([
+  'https://spider-aaa19.web.app',
+  'https://spider-aaa19.firebaseapp.com'
+]);
+
+function corsHeaders(request) {
+  const origin = request.headers?.get?.('Origin') || '';
+  const headers = new Headers({
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Request-Id',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin'
+  });
+  if (ALLOWED_ORIGINS.has(origin) || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin);
+  }
+  return headers;
+}
+
+function withCors(response, request) {
+  const headers = corsHeaders(request);
+  if (typeof response.headers?.forEach === 'function') response.headers.forEach((value, key) => headers.set(key, value));
+  else for (const [key, value] of Object.entries(response.headers || {})) headers.set(key, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }

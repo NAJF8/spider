@@ -57,6 +57,7 @@
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-ai-settings"><i class="fa-solid fa-robot"></i> <span>إعدادات المساعد الذكي</span></a></li>
                 <li class="nav-divider"></li>
                 <li><a href="#" class="nav-item" data-view="view-customers"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="counter-badge" id="navCustomersCount">0</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
@@ -255,6 +256,29 @@
                             <p>إدارة أسهل، مبيعات أكثر، وعملاء سعداء</p>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <section id="view-ai-settings" class="admin-view">
+                <div class="view-header"><div><h2><i class="fa-solid fa-robot"></i> إعدادات المساعد الذكي</h2><p>تحكم برسائل المساعد وأحجام الخطوط العامة من Firebase.</p></div></div>
+                <div class="box">
+                    <form id="chatbotSettingsForm">
+                        <div class="form-grid">
+                            <div class="form-group"><label>رسالة الترحيب AR</label><textarea id="chatWelcomeAr" rows="3"></textarea></div>
+                            <div class="form-group"><label>Welcome Message EN</label><textarea id="chatWelcomeEn" rows="3" dir="ltr"></textarea></div>
+                            <div class="form-group"><label>الاقتراح الأول AR</label><input id="chatSuggestion1Ar"></div><div class="form-group"><label>Suggestion 1 EN</label><input id="chatSuggestion1En" dir="ltr"></div>
+                            <div class="form-group"><label>الاقتراح الثاني AR</label><input id="chatSuggestion2Ar"></div><div class="form-group"><label>Suggestion 2 EN</label><input id="chatSuggestion2En" dir="ltr"></div>
+                            <div class="form-group"><label>الاقتراح الثالث AR</label><input id="chatSuggestion3Ar"></div><div class="form-group"><label>Suggestion 3 EN</label><input id="chatSuggestion3En" dir="ltr"></div>
+                            <div class="form-group"><label>رسالة تعطل AI AR</label><textarea id="chatUnavailableAr" rows="2"></textarea></div><div class="form-group"><label>AI Unavailable EN</label><textarea id="chatUnavailableEn" rows="2" dir="ltr"></textarea></div>
+                            <div class="form-group"><label>رسالة عدم وجود معلومة AR</label><textarea id="chatNoInfoAr" rows="2"></textarea></div><div class="form-group"><label>No Information EN</label><textarea id="chatNoInfoEn" rows="2" dir="ltr"></textarea></div>
+                            <div class="form-group"><label>حجم خط رسائل البوت (14–22px)</label><input type="number" id="chatBotFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>حجم خط رسائل المستخدم (14–22px)</label><input type="number" id="chatUserFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>حجم خط الاقتراحات (14–22px)</label><input type="number" id="chatSuggestionFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>حجم خط حقل الإدخال (14–22px)</label><input type="number" id="chatInputFontSize" min="14" max="22" required></div>
+                        </div>
+                        <div class="chat-admin-preview"><h3>Preview</h3><div class="chat-preview-window"><div class="message bot-message" id="chatPreviewWelcome"></div><div class="chat-quick-replies"><button type="button" id="chatPreviewSuggestion">اقتراح سريع</button></div><input id="chatPreviewInput" value="اكتب سؤالك..." readonly></div></div>
+                        <div class="header-controls-group"><button type="button" class="btn btn-outline" id="resetChatbotSettingsBtn">استعادة الإعدادات الافتراضية</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ إعدادات المساعد</button></div>
+                    </form>
                 </div>
             </section>
 

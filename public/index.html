@@ -301,6 +301,7 @@
         <span>المجموع الكلي</span>
         <strong id="cartTotalValue">0 د.ع</strong>
       </div>
+      <button class="btn btn-outline cart-clear-btn" id="clearCartBtn" type="button" disabled>مسح جميع محتويات السلة</button>
       <button class="btn btn-primary" id="checkoutBtn" type="button" disabled>إتمام الطلب</button>
     </div>
   </aside>
@@ -411,6 +412,22 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="clearCartModal" aria-hidden="true">
+    <div class="modal-content clear-cart-modal">
+      <div class="modal-head">
+        <h2 id="clearCartTitle">مسح السلة</h2>
+        <button class="icon-btn" id="closeClearCartBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="clearCartMessage">هل تريد مسح جميع المنتجات من السلة؟</p>
+        <div class="modal-actions">
+          <button class="btn btn-outline" id="cancelClearCartBtn" type="button">إلغاء</button>
+          <button class="btn btn-primary" id="confirmClearCartBtn" type="button">مسح السلة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== CHATBOT ===== -->
   <div class="chatbot-window hidden" id="chatbotContainer">
     <div class="chat-head">
@@ -420,12 +437,13 @@
       </button>
     </div>
     <div class="chat-messages" id="chatMessages">
-      <div class="message bot-message" id="chatWelcome">هلا بيك في سبايدر 👋<br>شلون أگدر أساعدك اليوم؟</div>
+      <div class="message bot-message" id="chatWelcome">هلا بيك في سبايدر 👋
+شلون أگدر أساعدك اليوم؟</div>
     </div>
     <div class="chat-quick-replies" id="chatQuickReplies">
-      <button type="button" data-chat="أريد أبني تجميعة">أريد أبني تجميعة</button>
-      <button type="button" data-chat="أبحث عن منتج">أبحث عن منتج</button>
-      <button type="button" data-chat="أريد أطوّر حاسبتي">أريد أطوّر حاسبتي</button>
+      <button type="button" data-chat-key="suggestion1" data-chat="أريد أبني تجميعة">أريد أبني تجميعة</button>
+      <button type="button" data-chat-key="suggestion2" data-chat="أبحث عن منتج">أبحث عن منتج</button>
+      <button type="button" data-chat-key="suggestion3" data-chat="أريد أطوّر حاسبتي">أريد أطوّر حاسبتي</button>
     </div>
     <div class="chat-input">
       <input id="chatInput" placeholder="اكتب سؤالك...">

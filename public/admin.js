@@ -1635,7 +1635,22 @@ window.updateAllDashboardViews = function() {
 };
 
 // ================= SETTINGS MANAGEMENT =================
-let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true };
+const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: 'ما لكيت هذه المعلومة ضمن المنتجات المنشورة حالياً.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
+let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+
+function chatbotFormValues() {
+    const get = (id) => document.getElementById(id)?.value || '';
+    const number = (id) => Math.min(22, Math.max(14, Number(document.getElementById(id)?.value || 16)));
+    return { welcomeMessageAr: get('chatWelcomeAr').trim(), welcomeMessageEn: get('chatWelcomeEn').trim(), suggestion1Ar: get('chatSuggestion1Ar').trim(), suggestion1En: get('chatSuggestion1En').trim(), suggestion2Ar: get('chatSuggestion2Ar').trim(), suggestion2En: get('chatSuggestion2En').trim(), suggestion3Ar: get('chatSuggestion3Ar').trim(), suggestion3En: get('chatSuggestion3En').trim(), aiUnavailableAr: get('chatUnavailableAr').trim(), aiUnavailableEn: get('chatUnavailableEn').trim(), noInfoAr: get('chatNoInfoAr').trim(), noInfoEn: get('chatNoInfoEn').trim(), botFontSize: number('chatBotFontSize'), userFontSize: number('chatUserFontSize'), suggestionFontSize: number('chatSuggestionFontSize'), inputFontSize: number('chatInputFontSize') };
+}
+function renderChatbotPreview(settings) {
+    const s = { ...DEFAULT_CHATBOT_SETTINGS, ...settings };
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.value = value ?? ''; };
+    Object.entries({ chatWelcomeAr: s.welcomeMessageAr, chatWelcomeEn: s.welcomeMessageEn, chatSuggestion1Ar: s.suggestion1Ar, chatSuggestion1En: s.suggestion1En, chatSuggestion2Ar: s.suggestion2Ar, chatSuggestion2En: s.suggestion2En, chatSuggestion3Ar: s.suggestion3Ar, chatSuggestion3En: s.suggestion3En, chatUnavailableAr: s.aiUnavailableAr, chatUnavailableEn: s.aiUnavailableEn, chatNoInfoAr: s.noInfoAr, chatNoInfoEn: s.noInfoEn, chatBotFontSize: s.botFontSize, chatUserFontSize: s.userFontSize, chatSuggestionFontSize: s.suggestionFontSize, chatInputFontSize: s.inputFontSize }).forEach(([id, value]) => set(id, value));
+    const welcome = document.getElementById('chatPreviewWelcome'); if (welcome) { welcome.textContent = s.welcomeMessageAr; welcome.style.fontSize = `${s.botFontSize}px`; }
+    const suggestion = document.getElementById('chatPreviewSuggestion'); if (suggestion) { suggestion.textContent = s.suggestion1Ar; suggestion.style.fontSize = `${s.suggestionFontSize}px`; }
+    const input = document.getElementById('chatPreviewInput'); if (input) input.style.fontSize = `${s.inputFontSize}px`;
+}
 
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
@@ -1668,6 +1683,15 @@ onValue(ref(db, 'settings'), (snapshot) => {
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
+    renderChatbotPreview(storeSettings.chatbotSettings || DEFAULT_CHATBOT_SETTINGS);
+});
+
+document.getElementById('chatbotSettingsForm')?.addEventListener('input', () => renderChatbotPreview(chatbotFormValues()));
+document.getElementById('resetChatbotSettingsBtn')?.addEventListener('click', () => renderChatbotPreview(DEFAULT_CHATBOT_SETTINGS));
+document.getElementById('chatbotSettingsForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (isDemoMode) { alert('لا يمكن حفظ الإعدادات في وضع المعاينة.'); return; }
+    try { await update(ref(db, 'settings/chatbotSettings'), chatbotFormValues()); alert('تم حفظ إعدادات المساعد بنجاح.'); } catch (err) { alert('فشل حفظ إعدادات المساعد: ' + err.message); }
 });
 
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {

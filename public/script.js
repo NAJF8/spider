@@ -55,7 +55,7 @@ const I18N = {
     category: 'القسم', brand: 'العلامة التجارية', allCategories: 'كل الأقسام', allBrands: 'كل العلامات', firstProduct: 'المنتج الأول', secondProduct: 'المنتج الثاني', chooseProduct: 'اختر منتجاً', compareNow: 'قارن الآن',
     upgrade: 'طوّر حاسبتك', chooseSpec: 'اختر مواصفة واحدة على الأقل لبدء الاقتراح.',
     footerPride: 'نعتز بثقتكم', whatsapp: 'واتساب', instagram: 'إنستغرام', map: 'الموقع الجغرافي', facebook: 'فيسبوك',
-    cart: 'سلة المشتريات', emptyCart: 'السلة فارغة', total: 'المجموع الكلي', checkout: 'إتمام الطلب', close: 'إغلاق',
+    cart: 'سلة المشتريات', emptyCart: 'السلة فارغة', total: 'المجموع الكلي', checkout: 'إتمام الطلب', clearCart: 'مسح جميع محتويات السلة', clearCartTitle: 'مسح السلة', clearCartMessage: 'هل تريد مسح جميع المنتجات من السلة؟', cancel: 'إلغاء', close: 'إغلاق',
     checkoutTitle: 'إتمام الطلب', fullName: 'الاسم الكامل', phone: 'رقم الهاتف (07XXXXXXXXX)', chooseGovernorate: 'اختر المحافظة...', city: 'المدينة / المنطقة', address: 'العنوان التفصيلي', notes: 'ملاحظات إضافية (اختياري)', confirmOrder: 'تأكيد وحفظ الطلب ثم فتح واتساب', orderNote: 'لن تُفرغ السلة إذا فشل التحقق أو حفظ الطلب.',
     details: 'التفاصيل', addToCart: 'أضف للسلة', notify: 'نبّهني عند التوفر', available: 'متوفر', limited: 'كمية محدودة', unavailable: 'غير متوفر',
     account: 'حسابي والمفضلة', loginHint: 'سجّل دخولك لحفظ المفضلة على هذا الجهاز باسم حسابك.', google: 'متابعة عبر Google', phoneOtp: 'متابعة برقم الهاتف OTP',
@@ -76,7 +76,7 @@ const I18N = {
     latestProducts: 'Latest products', productResults: 'Product results', showAll: 'View all', brands: 'Brands', searchFilter: 'Search', brandFilter: 'Brand', categoryFilter: 'Category', show: 'Show', hide: 'Hide', clearFilter: 'Clear filter',
     compare: 'Compare products', clearCompare: 'Clear comparison', category: 'Category', brand: 'Brand', allCategories: 'All categories', allBrands: 'All brands', firstProduct: 'First product', secondProduct: 'Second product', chooseProduct: 'Choose a product', compareNow: 'Compare now',
     upgrade: 'Upgrade your PC', chooseSpec: 'Choose at least one specification to start suggestions.', footerPride: 'We value your trust', whatsapp: 'WhatsApp', instagram: 'Instagram', map: 'Location', facebook: 'Facebook',
-    cart: 'Shopping cart', emptyCart: 'Your cart is empty', total: 'Total', checkout: 'Checkout', close: 'Close', checkoutTitle: 'Checkout', fullName: 'Full name', phone: 'Phone number (07XXXXXXXXX)', chooseGovernorate: 'Choose governorate...', city: 'City / area', address: 'Detailed address', notes: 'Additional notes (optional)', confirmOrder: 'Confirm order, save, then open WhatsApp', orderNote: 'Your cart will stay intact if validation or saving fails.',
+    cart: 'Shopping cart', emptyCart: 'Your cart is empty', total: 'Total', checkout: 'Checkout', clearCart: 'Clear Cart', clearCartTitle: 'Clear Cart', clearCartMessage: 'Do you want to clear all products from the cart?', cancel: 'Cancel', close: 'Close', checkoutTitle: 'Checkout', fullName: 'Full name', phone: 'Phone number (07XXXXXXXXX)', chooseGovernorate: 'Choose governorate...', city: 'City / area', address: 'Detailed address', notes: 'Additional notes (optional)', confirmOrder: 'Confirm order, save, then open WhatsApp', orderNote: 'Your cart will stay intact if validation or saving fails.',
     details: 'Details', addToCart: 'Add to cart', notify: 'Notify me when available', available: 'Available', limited: 'Limited quantity', unavailable: 'Unavailable', account: 'Account & favorites', loginHint: 'Sign in to save favorites on this device.', google: 'Continue with Google', phoneOtp: 'Continue with phone OTP', favorites: 'Favorites', open: 'Open', noFavorites: 'You have not added any favorites yet.', logout: 'Sign out',
     builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', chooseProductNumber: 'Choose product', comparisonSameCategory: 'Choose two products from the same category for a fair comparison.', noSpecs: 'No published specifications for comparison.', notAvailable: 'Not available', showBrands: 'Show brands', hideBrands: 'Hide brands', builderCatalogTitle: 'Build products', builderSearch: 'Search by name or model', builderCategory: 'Category', builderBrand: 'Brand', chooseForBuild: 'Choose for this build', selectedForBuild: 'Selected', allParts: 'All parts', builderSummary: 'Build summary', builderHint: 'Your selected parts', productCount: 'products', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to the cart.', sameProduct: 'The same product cannot be selected twice.'
   }
@@ -320,8 +320,22 @@ function applySettings(settings = {}) {
   if (settings.logoUrl && safeUrl(settings.logoUrl) && $('brandLogo')) $('brandLogo').src = settings.logoUrl;
   // The approved storefront hero copy is intentionally not overwritten by
   // optional admin settings. Product, category, image, and store data remain live.
-  const welcome = language === 'en' ? (settings.welcomeMessageEn || settings.welcomeMessage) : (settings.welcomeMessageAr || settings.welcomeMessage);
-  if (welcome && $('chatWelcome')) $('chatWelcome').textContent = englishDigits(welcome);
+  const chat = settings.chatbotSettings || settings;
+  const defaults = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
+  const chatSettings = { ...defaults, ...chat };
+  if ($('clearCartBtn')) $('clearCartBtn').textContent = t('clearCart');
+  if ($('clearCartTitle')) $('clearCartTitle').textContent = t('clearCartTitle');
+  if ($('clearCartMessage')) $('clearCartMessage').textContent = t('clearCartMessage');
+  if ($('cancelClearCartBtn')) $('cancelClearCartBtn').textContent = t('cancel');
+  if ($('confirmClearCartBtn')) $('confirmClearCartBtn').textContent = t('clearCart');
+  const welcome = language === 'en' ? chatSettings.welcomeMessageEn : chatSettings.welcomeMessageAr;
+  if ($('chatWelcome')) $('chatWelcome').textContent = englishDigits(welcome || defaults.welcomeMessageAr);
+  ['suggestion1', 'suggestion2', 'suggestion3'].forEach((key) => { const button = document.querySelector(`[data-chat-key="${key}"]`); const value = language === 'en' ? chatSettings[`${key}En`] : chatSettings[`${key}Ar`]; if (button && value) { button.textContent = englishDigits(value); button.dataset.chat = value; } });
+  const clampFont = (value) => Math.min(22, Math.max(14, Number(value) || 16));
+  document.documentElement.style.setProperty('--chat-bot-size', `${clampFont(chatSettings.botFontSize)}px`);
+  document.documentElement.style.setProperty('--chat-user-size', `${clampFont(chatSettings.userFontSize)}px`);
+  document.documentElement.style.setProperty('--chat-suggestion-size', `${clampFont(chatSettings.suggestionFontSize)}px`);
+  document.documentElement.style.setProperty('--chat-input-size', `${clampFont(chatSettings.inputFontSize)}px`);
 
   // Hero CTA button
   if ($('heroBuilderBtn')) {
@@ -1107,6 +1121,7 @@ function renderCart() {
   $('cartItemsList').innerHTML = rows.length ? rows.join('') : `<div class="empty-state">${t('emptyCart')}</div>`;
   $('cartTotalValue').textContent = formatPrice(total);
   $('checkoutBtn').disabled = !rows.length;
+  if ($('clearCartBtn')) { $('clearCartBtn').disabled = !rows.length; $('clearCartBtn').classList.toggle('hidden', !rows.length); }
   $('cartItemsList').querySelectorAll('[data-qty]').forEach((btn) => btn.addEventListener('click', () => {
     const [idx, delta] = btn.dataset.qty.split(':').map(Number);
     state.cart[idx].qty += delta;
@@ -1118,6 +1133,9 @@ function renderCart() {
     renderCart();
   }));
 }
+
+function openClearCartConfirm() { if (state.cart.length) { closeCart(); modal('clearCartModal', true); } }
+function clearCart() { state.cart = []; saveCart(); renderCart(); modal('clearCartModal', false); }
 
 function openCart() { const wasOpen = $('cartSidebar')?.classList.contains('open'); $('cartSidebar').classList.add('open'); $('cartOverlay').classList.add('open'); if (!wasOpen) setScrollLock(true); }
 function closeCart() { const wasOpen = $('cartSidebar')?.classList.contains('open'); $('cartSidebar').classList.remove('open'); $('cartOverlay').classList.remove('open'); if (wasOpen) setScrollLock(false); }
@@ -1243,8 +1261,11 @@ async function respondChat(text) {
     if (!response.ok) throw new Error(data.error || 'CHAT_UNAVAILABLE');
     chatState = data.state || chatState; saveChatState();
     appendChat(data.reply || (language === 'en' ? 'Please try again.' : 'جرّب مرة ثانية.'), false, Array.isArray(data.products) ? data.products : []);
-  } catch {
-    appendChat(language === 'en' ? 'The assistant is temporarily busy. Please try again shortly.' : 'صار ضغط مؤقت على المساعد، جرّب مرة ثانية بعد شوي.');
+  } catch (error) {
+    const chat = state.settings.chatbotSettings || state.settings;
+    const unavailable = language === 'en' ? (chat.aiUnavailableEn || 'The assistant is currently unavailable. Please try again later.') : (chat.aiUnavailableAr || 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.');
+    const lastMessage = [...document.querySelectorAll('#chatMessages .bot-message')].at(-1);
+    if (!lastMessage || !lastMessage.textContent.includes(unavailable)) appendChat(unavailable);
   }
 }
 
@@ -1436,6 +1457,11 @@ function bindEvents() {
   $('openCartBtn').addEventListener('click', openCart);
   $('closeCartBtn').addEventListener('click', closeCart);
   $('cartOverlay').addEventListener('click', closeCart);
+  $('clearCartBtn')?.addEventListener('click', openClearCartConfirm);
+  $('closeClearCartBtn')?.addEventListener('click', () => modal('clearCartModal', false));
+  $('cancelClearCartBtn')?.addEventListener('click', () => modal('clearCartModal', false));
+  $('confirmClearCartBtn')?.addEventListener('click', clearCart);
+  $('clearCartModal')?.addEventListener('click', (event) => { if (event.target === $('clearCartModal')) modal('clearCartModal', false); });
   $('checkoutBtn').addEventListener('click', openCheckout);
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
