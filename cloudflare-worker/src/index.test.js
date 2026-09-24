@@ -185,6 +185,21 @@ test('chat maps KIE error response without exposing provider body', async () => 
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('chat reports KIE application-level rejection clearly', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ code: 200, msg: 'The API key is not authorized to use this model.', data: {} });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'CHAT_PROVIDER_REJECTED' });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('chat maps malformed provider response to empty-content error', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {

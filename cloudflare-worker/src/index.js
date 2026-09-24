@@ -73,6 +73,7 @@ async function handleRequest(request, env) {
         if (kieRes.status === 429 || kieRes.status === 402) return errorResponse('CHAT_CREDITS_BUSY', 429);
         const kieData = await readProviderResponse(kieRes);
         if (!kieRes.ok) return errorResponse('CHAT_PROVIDER_ERROR', 502);
+        if (providerRejected(kieData.body)) return errorResponse('CHAT_PROVIDER_REJECTED', 502);
         const reply = extractProviderReply(kieData.body);
         if (!reply) return errorResponse('CHAT_PROVIDER_EMPTY_CONTENT', 502);
         return jsonResponse({ success: true, reply, products: candidates, state: updateChatState(state, message) });
@@ -459,6 +460,11 @@ function objectKeys(value) {
 function safeProviderMessage(value) {
   if (typeof value !== 'string') return undefined;
   return value.replace(/[\r\n\t]+/g, ' ').replace(/Bearer\s+[^\s]+/gi, 'Bearer [redacted]').slice(0, 200) || undefined;
+}
+
+function providerRejected(data) {
+  const message = String(data?.msg || '').toLowerCase();
+  return Boolean(message && data?.data && typeof data.data === 'object' && !Array.isArray(data.data) && Object.keys(data.data).length === 0 && !/^(ok|success|succeed|completed?)$/.test(message));
 }
 
 function errorResponse(code, status) {
