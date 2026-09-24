@@ -14,14 +14,16 @@
   --shadow: 0 4px 20px rgba(24,32,45,.10);
   --shadow-card: 0 2px 12px rgba(24,32,45,.08);
   --radius: 16px;
-  --bottom-bar-height: 84px;
+  /* The desktop footer renders at about 95px with its current content and padding. */
+  --site-footer-height: 96px;
+  --site-footer-gap: 16px;
 }
 
 /* ===== Reset ===== */
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;overflow-x:clip}
 html{scrollbar-gutter:stable}
-body{font-family:Cairo,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.55;overflow-x:clip;padding-bottom:var(--bottom-bar-height)}
+body{font-family:Cairo,Arial,sans-serif;color:var(--ink);background:#fff;line-height:1.55;overflow-x:clip;padding-bottom:calc(var(--site-footer-height) + env(safe-area-inset-bottom))}
 body.overlay-open{position:fixed;inset-inline:0;width:100%;overflow:hidden;padding-inline-end:var(--scrollbar-width,0px)}
 button,input,select,textarea{font:inherit}
 button{border:0;background:none;cursor:pointer}
@@ -628,7 +630,7 @@ img{max-width:100%;display:block}
 .site-footer{position:fixed;z-index:90;left:0;right:0;bottom:0;background:#1F2A44;color:#f4f7fb;border-top:1px solid #405071;box-shadow:0 -5px 18px rgba(13,22,40,.24);margin-top:24px;padding-bottom:env(safe-area-inset-bottom)}
 .footer-inner{
   width:min(1440px,100%);margin:auto;
-  min-height:var(--bottom-bar-height);padding:12px clamp(14px,3vw,48px);
+  min-height:calc(var(--site-footer-height) - 1px);padding:12px clamp(14px,3vw,48px);
   display:flex;align-items:center;justify-content:space-between;
   gap:20px;flex-wrap:wrap;
 }
@@ -648,7 +650,7 @@ img{max-width:100%;display:block}
 .floating-cart{
   position:fixed;z-index:95;
   left:max(16px,env(safe-area-inset-left));
-  bottom:max(20px,env(safe-area-inset-bottom));
+  bottom:calc(var(--site-footer-height) + env(safe-area-inset-bottom) + var(--site-footer-gap));
   width:52px;height:52px;border-radius:50%;
   background:var(--red);color:#fff;
   box-shadow:0 8px 22px rgba(237,28,36,.35);
@@ -665,7 +667,7 @@ img{max-width:100%;display:block}
 .chatbot-fab{
   position:fixed;z-index:96;
   right:max(16px,env(safe-area-inset-right));
-  bottom:max(20px,env(safe-area-inset-bottom));
+  bottom:calc(var(--site-footer-height) + env(safe-area-inset-bottom) + var(--site-footer-gap));
   width:54px;height:54px;border-radius:50%;
   padding:2px;background:var(--red);
   border:3px solid #fff;
@@ -677,6 +679,7 @@ img{max-width:100%;display:block}
 
 body:has(.cart-drawer.open) .chatbot-fab{opacity:0;pointer-events:none}
 body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:none}
+body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:none}
 
 /* ===== CART DRAWER ===== */
 .cart-drawer{
@@ -772,9 +775,9 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
 .chatbot-window{
   position:fixed;z-index:150;
   right:max(16px,env(safe-area-inset-right));
-  bottom:84px;
+  bottom:calc(var(--site-footer-height) + env(safe-area-inset-bottom) + var(--site-footer-gap));
   width:min(360px,calc(100vw - 32px));
-  height:min(580px,calc(100vh - 116px));
+  height:min(580px,calc(100dvh - var(--site-footer-height) - env(safe-area-inset-bottom) - 32px));
   background:#fff;border:1px solid var(--line);border-radius:16px;
   box-shadow:0 18px 50px rgba(0,0,0,.2);
   display:flex;flex-direction:column;overflow:hidden;
@@ -800,7 +803,7 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
 
 /* ===== TOAST ===== */
 .toast{
-  position:fixed;z-index:200;left:50%;bottom:20px;
+  position:fixed;z-index:200;left:50%;bottom:calc(var(--site-footer-height) + env(safe-area-inset-bottom) + var(--site-footer-gap));
   transform:translate(-50%,18px);opacity:0;pointer-events:none;
   background:#17191d;color:#fff;border-radius:9px;
   padding:9px 14px;font-size:12px;transition:.2s;
@@ -904,11 +907,9 @@ body:has(.chatbot-window:not(.hidden)) .chatbot-fab{opacity:0;pointer-events:non
   .product-detail{grid-template-columns:1fr}
   .product-detail>img{height:190px}
   .modal-content{max-height:91vh}
-  .chatbot-window{bottom:84px}
-
-  /* Floating buttons */
-  .floating-cart{left:14px;bottom:16px}
-  .chatbot-fab{right:14px;bottom:16px}
+  /* Floating buttons use the footer clearance defined above. */
+  .floating-cart{left:max(14px,env(safe-area-inset-left))}
+  .chatbot-fab{right:max(14px,env(safe-area-inset-right))}
 
   /* Section heading */
   .section-heading h2{font-size:16px}
@@ -1085,8 +1086,8 @@ html[data-theme="dark"] .site-footer .footer-brand p{color:#ff8d92}
 html[data-theme="dark"] .site-footer .footer-links a{color:#f4f7fb;border-color:#71809e}
 
 @media (max-width:600px){
-  :root{--bottom-bar-height:84px}
-  .footer-inner{min-height:var(--bottom-bar-height);padding:8px 14px;gap:8px;flex-direction:row;flex-wrap:nowrap}
+  :root{--site-footer-height:85px}
+  .footer-inner{min-height:calc(var(--site-footer-height) - 1px);padding:8px 14px;gap:8px;flex-direction:row;flex-wrap:nowrap}
   .footer-brand{width:auto;display:flex;align-items:flex-start}
   .footer-brand .brand-lockup img{width:32px;height:32px}
   .footer-brand .brand-copy strong{font-size:15px}
@@ -1094,7 +1095,6 @@ html[data-theme="dark"] .site-footer .footer-links a{color:#f4f7fb;border-color:
   .footer-brand p{display:none}
   .footer-links{gap:4px;flex-wrap:nowrap;margin-top:0}
   .footer-links a{width:32px;height:32px;font-size:15px}
-  .floating-cart,.chatbot-fab{bottom:calc(var(--bottom-bar-height) + 10px)}
 }
 html[dir="ltr"] .header-row,
 html[dir="ltr"] .brand-side,
