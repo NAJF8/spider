@@ -55,6 +55,8 @@ ul { list-style: none; }
 .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
 .btn-outline:hover { background: #f8f9fa; border-color: var(--primary); color: var(--primary); }
 .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; }
+.pricing-input { width: 120px; min-width: 92px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: #fff; color: var(--text); }
+.pricing-input:focus { outline: 2px solid rgba(230,57,70,.2); border-color: var(--primary); }
 .w-100 { width: 100%; }
 .text-center { text-align: center; }
 .hidden { display: none !important; }

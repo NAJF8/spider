@@ -53,6 +53,7 @@
             <ul class="nav-links">
                 <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>إدارة الأسعار</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
@@ -60,6 +61,7 @@
                 <li><a href="#" class="nav-item" data-view="view-ai-settings"><i class="fa-solid fa-robot"></i> <span>إعدادات المساعد الذكي</span></a></li>
                 <li class="nav-divider"></li>
                 <li><a href="#" class="nav-item" data-view="view-customers"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="counter-badge" id="navCustomersCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-pricing-customers"><i class="fa-solid fa-user-tag"></i> <span>فئات العملاء</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المحتوى"><i class="fa-solid fa-image"></i> <span>المحتوى</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="التقارير والإحصائيات"><i class="fa-solid fa-chart-line"></i> <span>التقارير</span> <span class="badge-sub">قريباً</span></a></li>
@@ -257,6 +259,12 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section id="view-pricing" class="admin-view">
+                <div class="view-header"><div><h2><i class="fa-solid fa-money-bill-trend-up"></i> إدارة الأسعار</h2><p>السعر العام محفوظ مع المنتج، والأسعار الخاصة والجملة محفوظة في المسار المحمي.</p></div></div>
+                <div class="filter-bar box"><div class="search-input-group"><i class="fa-solid fa-search"></i><input id="pricingSearch" placeholder="بحث بالاسم أو الموديل..."></div><select id="pricingCategoryFilter" class="filter-select"><option value="">كل الأقسام</option></select><select id="pricingStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="published">نشط</option><option value="draft">مسودة</option><option value="hidden">مخفي</option></select></div>
+                <div class="box table-box"><div class="table-responsive"><table class="data-table"><thead><tr><th>الصورة</th><th>المنتج</th><th>القسم</th><th>السعر العام</th><th>السعر الخاص</th><th>سعر الجملة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="pricingManagementBody"><tr><td colspan="8" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
             </section>
 
             <section id="view-ai-settings" class="admin-view">
@@ -477,6 +485,12 @@
             <section id="view-customers" class="admin-view">
                 <div class="view-header"><div><h2>إدارة العملاء</h2><p>النوع يحدده المشرف فقط من خلال ملف UID الموثوق.</p></div><div class="view-header-actions"><input id="customerSearch" class="admin-search-input" placeholder="ابحث بالاسم أو البريد أو UID..."></div></div>
                 <div class="box"><div class="table-responsive"><table class="modern-table customers-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>UID</th><th>نوع الحساب</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead><tbody id="customersTableBody"><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+            </section>
+
+            <section id="view-pricing-customers" class="admin-view">
+                <div class="view-header"><div><h2><i class="fa-solid fa-user-tag"></i> فئات العملاء</h2><p>تعديل التصنيف الموثوق للعملاء المسجلين، أو إنشاء هوية سعر معلقة قبل التسجيل.</p></div></div>
+                <div class="box" style="padding:18px;margin-bottom:18px"><form id="pendingPricingForm" class="filter-bar"><input id="pendingPricingIdentity" required placeholder="UID أو البريد أو رقم الهاتف"><select id="pendingPricingTier"><option value="special">Special / سعر خاص</option><option value="wholesale">Wholesale / سعر جملة</option><option value="public">Public / عام</option></select><input id="pendingPricingNotes" placeholder="ملاحظات اختيارية"><button class="btn btn-primary" type="submit">حفظ التصنيف</button></form></div>
+                <div class="box"><div class="table-responsive"><table class="modern-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>UID</th><th>نوع السعر</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="pricingCustomersTableBody"><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
             </section>
 
             <section id="view-placeholder" class="admin-view">

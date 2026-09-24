@@ -7,6 +7,26 @@ export default {
   }
 };
 
+export { normalizePricingTier, resolveProductPrice };
+
+function normalizePricingTier(profile) {
+  const tier = String(profile?.pricing_tier || profile?.accountType || 'public').toLowerCase();
+  return tier === 'wholesale' || tier === 'special' ? tier : 'public';
+}
+
+function positivePrice(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function resolveProductPrice(product, privatePrice = {}, tier = 'public') {
+  const publicPrice = positivePrice(product?.public_price ?? product?.retail_price ?? product?.price);
+  const tierPrice = tier === 'wholesale'
+    ? positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice)
+    : tier === 'special' ? positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice) : null;
+  return tierPrice ?? publicPrice ?? 0;
+}
+
 async function handleRequest(request, env) {
     const url = new URL(request.url);
 
@@ -26,10 +46,10 @@ async function handleRequest(request, env) {
           fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${query}`)
         ]);
         const profile = profileRes.ok ? await profileRes.json() : null;
-        const accountType = ['retail', 'wholesale', 'special'].includes(profile?.accountType) ? profile.accountType : 'retail';
+        const accountType = normalizePricingTier(profile);
         const allPrices = pricesRes.ok ? ((await pricesRes.json()) || {}) : {};
-        const prices = accountType === 'retail' ? {} : Object.fromEntries(Object.entries(allPrices).map(([id, value]) => [id, accountType === 'wholesale' ? { wholesale_price: value?.wholesale_price } : { special_price: value?.special_price }]));
-        return jsonResponse({ success: true, accountType, prices });
+        const prices = accountType === 'public' ? {} : Object.fromEntries(Object.entries(allPrices).map(([id, value]) => [id, accountType === 'wholesale' ? { wholesale_price: value?.wholesale_price } : { special_price: value?.special_price }]));
+        return jsonResponse({ success: true, accountType, pricing_tier: accountType, prices });
       } catch { return errorResponse('PRICE_LOOKUP_FAILED', 500); }
     }
 
@@ -46,7 +66,7 @@ async function handleRequest(request, env) {
         const language = body?.language === 'en' ? 'en' : 'ar';
         const state = normalizeChatState(body?.state);
         const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-        let accountType = 'retail';
+        let accountType = 'public';
         if (token) {
           const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
           const verifyData = await verifyRes.json();
@@ -56,14 +76,14 @@ async function handleRequest(request, env) {
           if (!secret) return errorResponse('CHAT_DATABASE_NOT_CONFIGURED', 503);
           const profileRes = await fetch(firebaseUrl(env, `profiles/${encodeURIComponent(uid)}.json`, secret));
           const profile = profileRes.ok ? await profileRes.json() : null;
-          if (['retail', 'wholesale', 'special'].includes(profile?.accountType)) accountType = profile.accountType;
+          accountType = normalizePricingTier(profile);
         }
         const secret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!secret) return errorResponse('CHAT_DATABASE_NOT_CONFIGURED', 503);
         const productsRes = await fetch(firebaseUrl(env, 'products.json', secret));
         if (!productsRes.ok) return errorResponse('CHAT_DATABASE_ERROR', 500);
         const productsObj = await productsRes.json() || {};
-        const pricesRes = accountType === 'retail' ? null : await fetch(firebaseUrl(env, 'private_prices.json', secret));
+        const pricesRes = accountType === 'public' ? null : await fetch(firebaseUrl(env, 'private_prices.json', secret));
         const privatePrices = pricesRes?.ok ? ((await pricesRes.json()) || {}) : {};
         const nextState = updateChatState(state, message);
         const budget = detectChatBudget(message, nextState.budget);
@@ -282,7 +302,7 @@ async function handleRequest(request, env) {
 
         const productsObj = await productsRes.json() || {};
         const settingsObj = await settingsRes.json() || {};
-        let accountType = 'retail';
+        let accountType = 'public';
         const authHeader = request.headers?.get?.('Authorization') || '';
         const token = authHeader.replace(/^Bearer\s+/i, '').trim();
         if (token) {
@@ -293,7 +313,7 @@ async function handleRequest(request, env) {
           const profileRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/profiles/${encodeURIComponent(uid)}.json${databaseQuery}`);
           if (profileRes.ok) {
             const profile = await profileRes.json();
-            if (['retail', 'wholesale', 'special'].includes(profile?.accountType)) accountType = profile.accountType;
+            accountType = normalizePricingTier(profile);
           }
         }
         const privatePricesRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`);
@@ -318,13 +338,22 @@ async function handleRequest(request, env) {
           }
 
           const privatePrice = privatePrices[item.id] || {};
-          const requestedPrice = accountType === 'wholesale' ? privatePrice.wholesale_price : accountType === 'special' ? privatePrice.special_price : null;
-          const livePrice = Number(requestedPrice ?? liveProd.price) || 0;
+          const livePrice = resolveProductPrice(liveProd, privatePrice, accountType);
+          if (livePrice <= 0) return errorResponse(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
           subtotal += (livePrice * item.qty);
           verifiedItems.push({
             id: item.id,
+            product_id: item.id,
             name: liveProd.name,
+            product_name: liveProd.name,
             price: livePrice,
+            unit_price: livePrice,
+            pricing_tier_applied: accountType,
+            public_price_snapshot: positivePrice(liveProd?.public_price ?? liveProd?.retail_price ?? liveProd?.price),
+            special_price_snapshot: positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice),
+            wholesale_price_snapshot: positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice),
+            line_total: livePrice * item.qty,
+            qty: item.qty,
             quantity: item.qty
           });
         }
@@ -350,6 +379,7 @@ async function handleRequest(request, env) {
           grandTotal,
           timestamp: Date.now(),
           status: 'pending',
+          customer_pricing_tier: accountType,
           items: verifiedItems,
         };
 
@@ -537,7 +567,7 @@ function retrieveChatProducts(productsObj, privatePrices, message, accountType, 
   const direct = chatDirectProductQuery(message);
   const all = Object.entries(productsObj).filter(([, product]) => product && product.status === 'published' && !product.isHidden).map(([id, product]) => {
     const privatePrice = privatePrices[id] || {};
-    const price = accountType === 'wholesale' ? (privatePrice.wholesale_price ?? product.wholesale_price ?? product.price) : accountType === 'special' ? (privatePrice.special_price ?? product.special_price ?? product.price) : product.retail_price ?? product.price;
+    const price = resolveProductPrice(product, privatePrice, accountType);
     const stock = product.stockQuantity ?? product.stock;
     const text = `${product.name || ''} ${product.nameAr || ''} ${product.brand || ''} ${product.model || ''} ${product.category || ''} ${product.categoryId || ''} ${JSON.stringify(product.specifications || product.specs || {})}`.toLowerCase();
     return { id, name: product.name, nameAr: product.nameAr, brand: product.brand, model: product.model, category: product.category || product.categoryId, image: product.image || product.imageUrl || '', price: Number.isFinite(Number(price)) ? Number(price) : null, available: stock === undefined || stock === null ? true : Number(stock) > 0, specifications: product.specifications || product.specs || {} , _text: text };

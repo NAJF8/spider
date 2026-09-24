@@ -205,13 +205,22 @@ const englishDigits = (v) => String(v ?? '').replace(/[٠-٩۰-۹]/g, (digit) =>
   return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
 });
 const esc = (v) => englishDigits(v).replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+const normalizePricingTier = (profile) => {
+  const tier = String(profile?.pricing_tier || profile?.accountType || 'public').toLowerCase();
+  return tier === 'wholesale' || tier === 'special' ? tier : 'public';
+};
+const validPrice = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+};
 const getEffectivePrice = (product, profile = null) => {
-  const type = profile?.accountType || 'retail';
+  const tier = normalizePricingTier(profile);
   const privatePrice = state.privatePrices?.[product?.id] || {};
-  const candidate = type === 'wholesale' ? (privatePrice.wholesale_price ?? product?.wholesale_price) : type === 'special' ? (privatePrice.special_price ?? product?.special_price) : product?.retail_price;
-  const fallback = product?.retail_price ?? product?.price;
-  const value = Number(candidate ?? fallback);
-  return Number.isFinite(value) && value >= 0 ? value : 0;
+  const publicPrice = validPrice(product?.public_price ?? product?.retail_price ?? product?.price);
+  const tierPrice = tier === 'wholesale'
+    ? validPrice(privatePrice.wholesale_price ?? privatePrice.wholesalePrice)
+    : tier === 'special' ? validPrice(privatePrice.special_price ?? privatePrice.specialPrice) : null;
+  return tierPrice ?? publicPrice ?? 0;
 };
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
@@ -1087,7 +1096,7 @@ function cartProduct(item) { return state.products.find((p) => p.id === item.id)
 function addToCart(productId) {
   const product = state.products.find((p) => p.id === productId);
   if (!product) return;
-  if (!isAvailable(product)) { openAvailability(productId); return; }
+  if (!isAvailable(product) || productPrice(product) <= 0) { openAvailability(productId); return; }
   const item = state.cart.find((e) => e.id === productId);
   if (item) item.qty = Math.min(100, item.qty + 1);
   else state.cart.push({ id: productId, qty: 1 });
@@ -1104,13 +1113,20 @@ function renderCart() {
   $('cartBadge').textContent = count;
   $('floatingCartBadge').textContent = count;
   let total = 0;
+  const tier = normalizePricingTier(state.accountProfile);
   const rows = state.cart.map((item, idx) => {
     const p = cartProduct(item);
     if (!p) return '';
-    total += productPrice(p) * item.qty;
+    const appliedPrice = productPrice(p);
+    item.applied_price = appliedPrice;
+    item.pricing_tier = tier;
+    item.public_price_snapshot = validPrice(p.public_price ?? p.retail_price ?? p.price);
+    item.special_price_snapshot = validPrice(state.privatePrices?.[p.id]?.special_price);
+    item.wholesale_price_snapshot = validPrice(state.privatePrices?.[p.id]?.wholesale_price);
+    total += appliedPrice * item.qty;
     return `<div class="cart-item"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div>
       <div class="cart-item-title">${esc(productName(p))}</div>
-      <div class="cart-item-price">${formatPrice(productPrice(p) * item.qty)}</div>
+      <div class="cart-item-price">${formatPrice(appliedPrice * item.qty)}</div>
       <div class="cart-item-actions">
         <button class="qty-btn" type="button" data-qty="${idx}:1">+</button>
         <span>${item.qty}</span>
@@ -1240,7 +1256,7 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(Number(p.price ?? productPrice(p)))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button><button type="button" data-chat-cart>أضف للسلة</button></div></div>`;
+    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(validPrice(p.price) ?? productPrice(p))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button><button type="button" data-chat-cart>أضف للسلة</button></div></div>`;
     card.querySelector('[data-chat-open]').addEventListener('click', (e) => { e.stopPropagation(); openProductDetails(p.id); });
     card.querySelector('[data-chat-cart]').addEventListener('click', (e) => { e.stopPropagation(); if (p.available) { addToCart(p.id); showToast(t('added')); } });
     card.addEventListener('click', () => openProductDetails(p.id));
@@ -1350,7 +1366,7 @@ function checkoutPayload(form) {
   const data = new FormData(form);
   const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
-  return { requestId: requestId(), items, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
+  return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
 }
 
 async function submitCheckout(event) {
@@ -1360,7 +1376,9 @@ async function submitCheckout(event) {
   try {
     const payload = checkoutPayload(event.currentTarget);
     submit.disabled = true; submit.textContent = language === 'en' ? 'Validating and saving...' : 'جارٍ التحقق والحفظ...';
-    const response = await fetch(`${BACKEND_URL}/api/store/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Request-Id': payload.requestId }, body: JSON.stringify(payload) });
+    const headers = { 'Content-Type': 'application/json', 'X-Request-Id': payload.requestId };
+    if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
+    const response = await fetch(`${BACKEND_URL}/api/store/checkout`, { method: 'POST', headers, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) throw new Error(result.error || 'CHECKOUT_FAILED');
     const lines = (result.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
@@ -1577,9 +1595,9 @@ onValue(ref(db, 'settings'), (snapshot) => {
 
 onAuthStateChanged(auth, (user) => {
   authUser = user;
-  state.accountProfile = user ? { uid: user.uid, email: user.email || '', phone: user.phoneNumber || '', accountType: 'retail' } : null;
+  state.accountProfile = user ? { uid: user.uid, email: user.email || '', phone: user.phoneNumber || '', pricing_tier: 'public', accountType: 'public' } : null;
   state.privatePrices = {};
-  if (user) user.getIdToken().then((token) => fetch(`${BACKEND_URL}/api/store/prices`, { headers: { Authorization: `Bearer ${token}` } })).then((response) => response.ok ? response.json() : null).then((data) => { if (data?.prices) { state.accountProfile = { ...state.accountProfile, accountType: data.accountType || 'retail' }; state.privatePrices = data.prices; renderProducts(); renderCart(); renderAccount(); } }).catch(() => {});
+  if (user) user.getIdToken().then((token) => fetch(`${BACKEND_URL}/api/store/prices`, { headers: { Authorization: `Bearer ${token}` } })).then((response) => response.ok ? response.json() : null).then((data) => { if (data?.prices) { const tier = data.pricing_tier || data.accountType || 'public'; state.accountProfile = { ...state.accountProfile, pricing_tier: tier, accountType: tier }; state.privatePrices = data.prices; renderProducts(); renderCart(); renderAccount(); } }).catch(() => {});
   loadFavorites();
   updateFavoriteBadge();
   renderProducts();

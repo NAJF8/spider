@@ -28,6 +28,10 @@
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
     },
+    "pricing_identities": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
     "auditLogs": {
       ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
@@ -64,14 +68,24 @@
         "status": { 
           ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'cancelled')" 
         },
+        "customer_pricing_tier": { ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')" },
         
         "items": {
           "$itemIndex": {
              ".validate": "newData.hasChildren(['id', 'name', 'price', 'quantity'])",
              "id": { ".validate": "newData.isString() && newData.val().length < 100" },
+             "product_id": { ".validate": "newData.isString() && newData.val().length < 100" },
              "name": { ".validate": "newData.isString() && newData.val().length < 200" },
+             "product_name": { ".validate": "newData.isString() && newData.val().length < 200" },
              "price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
              "quantity": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100" },
+             "qty": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100" },
+             "unit_price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+             "pricing_tier_applied": { ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')" },
+             "line_total": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+             "public_price_snapshot": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+             "special_price_snapshot": { ".validate": "newData.isNumber() || newData.val() == null" },
+             "wholesale_price_snapshot": { ".validate": "newData.isNumber() || newData.val() == null" },
              "$other": { ".validate": "false" }
           }
         },

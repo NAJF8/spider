@@ -43,6 +43,8 @@ let salesChart = null;
 let categoriesChart = null;
 let currentAdminUser = null;
 let customers = [];
+let privatePricesByProduct = {};
+let pendingPricingIdentities = {};
 
 // ================= AUTHENTICATION =================
 onAuthStateChanged(auth, (user) => {
@@ -267,6 +269,8 @@ function updateAllDashboardViews() {
     renderDashboardCharts();
     renderCategoryDistribution();
     renderProductsManagementTable();
+    renderPricingManagementTable();
+    renderPricingCustomers();
     renderCategoriesManagementTable();
     renderOrdersManagementTable();
 }
@@ -316,6 +320,17 @@ function loadDashboardData() {
         if (snapshot.exists()) snapshot.forEach((child) => customers.push({ uid: child.key, ...child.val() }));
         renderCustomers();
     });
+
+    onValue(ref(db, 'private_prices'), (snapshot) => {
+        if (isDemoMode) return;
+        privatePricesByProduct = snapshot.exists() ? snapshot.val() || {} : {};
+        renderPricingManagementTable();
+    });
+    onValue(ref(db, 'pricing_identities'), (snapshot) => {
+        if (isDemoMode) return;
+        pendingPricingIdentities = snapshot.exists() ? snapshot.val() || {} : {};
+        renderPricingCustomers();
+    });
 }
 
 function customerDate(value) {
@@ -337,6 +352,20 @@ function renderCustomers() {
         return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td class="customer-uid" title="${escapeHtml(customer.uid)}">${escapeHtml(customer.uid.slice(0, 8))}…</td><td><select data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td>${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</td><td><button class="btn btn-primary" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button></td></tr>`;
     }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
     body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
+    renderPricingCustomers();
+}
+
+function renderPricingCustomers() {
+    const body = document.getElementById('pricingCustomersTableBody');
+    if (!body) return;
+    const rows = customers.map((customer) => {
+        const type = ['public', 'special', 'wholesale'].includes(customer.pricing_tier) ? customer.pricing_tier : (customer.accountType === 'retail' ? 'public' : (customer.accountType || 'public'));
+        return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td>${escapeHtml(customer.uid)}</td><td><span class="visibility-badge ${type === 'public' ? 'visible' : 'limited'}">${type}</span></td><td>${customerDate(customer.createdAt || customer.creationTime)}</td><td><button class="btn btn-outline btn-sm" data-pricing-customer="${escapeHtml(customer.uid)}">تعديل من جدول العملاء</button></td></tr>`;
+    });
+    Object.entries(pendingPricingIdentities).forEach(([key, item]) => rows.push(`<tr><td>معلق</td><td dir="ltr">${escapeHtml(item.email || item.identity || '')}</td><td dir="ltr">${escapeHtml(item.phone || '')}</td><td>${escapeHtml(item.uid || 'pending')}</td><td><span class="visibility-badge limited">${escapeHtml(item.pricing_tier || 'public')} / pending</span></td><td>${customerDate(item.createdAt)}</td><td><button class="btn btn-outline btn-sm" data-delete-pending="${escapeHtml(key)}">حذف التصنيف</button></td></tr>`));
+    body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" class="text-center">لا توجد فئات عملاء.</td></tr>';
+    body.querySelectorAll('[data-pricing-customer]').forEach((button) => button.addEventListener('click', () => switchView('view-customers')));
+    body.querySelectorAll('[data-delete-pending]').forEach((button) => button.addEventListener('click', async () => { if (confirm('حذف التصنيف المعلق؟')) await remove(ref(db, `pricing_identities/${button.dataset.deletePending}`)); }));
 }
 
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
@@ -347,24 +376,47 @@ async function updateCustomerType(uid) {
     const select = document.querySelector(`[data-customer-type="${CSS.escape(uid)}"]`);
     const nextType = select?.value;
     if (!customer || !['retail', 'wholesale', 'special'].includes(nextType) || nextType === (customer.accountType || 'retail')) return;
-    const previousType = customer.accountType || 'retail';
+    const previousType = customer.pricing_tier || customer.accountType || 'retail';
+    const pricingTier = nextType === 'retail' ? 'public' : nextType;
     const now = Date.now();
     const auditKey = push(ref(db, 'auditLogs')).key;
     await update(ref(db), {
         [`profiles/${uid}/accountType`]: nextType,
+        [`profiles/${uid}/pricing_tier`]: pricingTier,
         [`profiles/${uid}/accountTypeUpdatedAt`]: now,
         [`profiles/${uid}/accountTypeUpdatedBy`]: currentAdminUser.uid,
         [`auditLogs/${auditKey}`]: { action: 'account_type_changed', targetUid: uid, actorUid: currentAdminUser.uid, actorEmail: currentAdminUser.email || '', previousType, nextType, timestamp: now }
     });
     customer.accountType = nextType;
+    customer.pricing_tier = pricingTier;
     renderCustomers();
 }
 window.updateCustomerType = updateCustomerType;
 document.getElementById('customerSearch')?.addEventListener('input', renderCustomers);
+document.getElementById('pendingPricingForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    const identity = document.getElementById('pendingPricingIdentity').value.trim();
+    const tier = document.getElementById('pendingPricingTier').value;
+    const notes = document.getElementById('pendingPricingNotes').value.trim();
+    if (!identity || !['public', 'special', 'wholesale'].includes(tier)) return;
+    const matched = customers.find((customer) => customer.uid === identity || customer.email?.toLowerCase() === identity.toLowerCase() || customer.phone === identity);
+    const now = Date.now();
+    if (matched) {
+        const auditKey = push(ref(db, 'auditLogs')).key;
+        await update(ref(db), { [`profiles/${matched.uid}/pricing_tier`]: tier, [`profiles/${matched.uid}/accountType`]: tier === 'public' ? 'retail' : tier, [`profiles/${matched.uid}/pricing_tier_updated_at`]: now, [`auditLogs/${auditKey}`]: { action: 'pricing_tier_changed', targetUid: matched.uid, nextTier: tier, actorUid: currentAdminUser.uid, timestamp: now } });
+    } else {
+        const key = encodeURIComponent(identity).replace(/\./g, '%2E');
+        await set(ref(db, `pricing_identities/${key}`), { identity, pricing_tier: tier, notes, createdAt: now, createdBy: currentAdminUser.uid });
+    }
+    event.target.reset();
+    alert('تم حفظ تصنيف السعر.');
+});
 
 function updateCategorySelects() {
     const prodSelect = document.getElementById('prodCategory');
     const filterSelect = document.getElementById('productCategoryFilter');
+    const pricingFilterSelect = document.getElementById('pricingCategoryFilter');
 
     if (prodSelect) {
         prodSelect.innerHTML = '<option value="">اختر القسم المناسب...</option>';
@@ -387,7 +439,57 @@ function updateCategorySelects() {
         });
         filterSelect.value = currentVal;
     }
+    if (pricingFilterSelect) {
+        const currentVal = pricingFilterSelect.value;
+        pricingFilterSelect.innerHTML = '<option value="">كل الأقسام</option>';
+        categories.forEach(cat => { const opt = document.createElement('option'); opt.value = cat.id; opt.textContent = cat.name; pricingFilterSelect.appendChild(opt); });
+        pricingFilterSelect.value = currentVal;
+    }
 }
+
+function renderPricingManagementTable() {
+    const tbody = document.getElementById('pricingManagementBody');
+    if (!tbody) return;
+    const query = String(document.getElementById('pricingSearch')?.value || '').trim().toLowerCase();
+    const category = document.getElementById('pricingCategoryFilter')?.value || '';
+    const status = document.getElementById('pricingStatusFilter')?.value || '';
+    const filtered = products.filter((p) => {
+        const text = `${p.name || ''} ${p.brand || ''} ${p.model || ''}`.toLowerCase();
+        return (!query || text.includes(query)) && (!category || (p.categoryId || p.category) === category) && (!status || (p.status || (p.isHidden ? 'hidden' : 'published')) === status);
+    });
+    tbody.innerHTML = filtered.length ? filtered.map((p) => {
+        const prices = privatePricesByProduct[p.id] || {};
+        return `<tr><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '')}</td><td><input class="pricing-input" type="number" min="1" step="1" data-public-price="${escapeHtml(p.id)}" value="${Number(p.public_price ?? p.price) || ''}"></td><td><input class="pricing-input" type="number" min="1" step="1" data-special-price="${escapeHtml(p.id)}" value="${prices.special_price || ''}" placeholder="fallback"></td><td><input class="pricing-input" type="number" min="1" step="1" data-wholesale-price="${escapeHtml(p.id)}" value="${prices.wholesale_price || ''}" placeholder="fallback"></td><td><span class="visibility-badge ${p.isHidden ? 'hidden' : 'visible'}">${p.isHidden ? 'مخفي' : 'نشط'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">حفظ</button></td></tr>`;
+    }).join('') : '<tr><td colspan="8" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
+    tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => saveProductPricing(button.dataset.savePricing)));
+}
+
+async function saveProductPricing(id) {
+    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    const product = products.find((p) => p.id === id);
+    const publicInput = document.querySelector(`[data-public-price="${CSS.escape(id)}"]`);
+    const specialInput = document.querySelector(`[data-special-price="${CSS.escape(id)}"]`);
+    const wholesaleInput = document.querySelector(`[data-wholesale-price="${CSS.escape(id)}"]`);
+    const publicPrice = Number(publicInput?.value);
+    const specialPrice = specialInput?.value === '' ? null : Number(specialInput.value);
+    const wholesalePrice = wholesaleInput?.value === '' ? null : Number(wholesaleInput.value);
+    if (!product || !Number.isFinite(publicPrice) || publicPrice <= 0 || (specialPrice !== null && (!Number.isFinite(specialPrice) || specialPrice <= 0)) || (wholesalePrice !== null && (!Number.isFinite(wholesalePrice) || wholesalePrice <= 0))) {
+        alert('السعر العام موجب، والخاص/الجملة إما فارغ أو رقم موجب.');
+        return;
+    }
+    const now = Date.now();
+    await update(ref(db), {
+        [`products/${id}/price`]: publicPrice,
+        [`products/${id}/public_price`]: publicPrice,
+        [`private_prices/${id}`]: { special_price: specialPrice, wholesale_price: wholesalePrice, updatedAt: now, updatedBy: currentAdminUser.uid },
+        [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice, specialPrice, wholesalePrice, timestamp: now }
+    });
+    alert('تم حفظ مستويات السعر وتسجيل التعديل.');
+}
+window.saveProductPricing = saveProductPricing;
+document.getElementById('pricingSearch')?.addEventListener('input', renderPricingManagementTable);
+document.getElementById('pricingCategoryFilter')?.addEventListener('change', renderPricingManagementTable);
+document.getElementById('pricingStatusFilter')?.addEventListener('change', renderPricingManagementTable);
 
 // ================= DASHBOARD RENDERING =================
 function renderRecentOrders() {
@@ -666,8 +768,9 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodBrand').value = prod.brand || '';
             document.getElementById('prodModel').value = prod.model || '';
             document.getElementById('prodPrice').value = prod.price || '';
-            document.getElementById('prodWholesalePrice').value = prod.wholesale_price ?? '';
-            document.getElementById('prodSpecialPrice').value = prod.special_price ?? '';
+            const privatePrice = privatePricesByProduct[id] || {};
+            document.getElementById('prodWholesalePrice').value = privatePrice.wholesale_price ?? prod.wholesale_price ?? '';
+            document.getElementById('prodSpecialPrice').value = privatePrice.special_price ?? prod.special_price ?? '';
             document.getElementById('prodOriginalPrice').value = prod.originalPrice || '';
             document.getElementById('prodStock').value = prod.stock || '';
             document.getElementById('prodWarranty').value = prod.warranty || '';
@@ -730,7 +833,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     const retailPrice = Number(document.getElementById('prodPrice').value);
     const wholesaleRaw = document.getElementById('prodWholesalePrice').value;
     const specialRaw = document.getElementById('prodSpecialPrice').value;
-    if (!Number.isFinite(retailPrice) || retailPrice < 0 || (wholesaleRaw && Number(wholesaleRaw) < 0) || (specialRaw && Number(specialRaw) < 0)) { alert('تحقق من أن الأسعار أرقام غير سالبة.'); return; }
+    if (!Number.isFinite(retailPrice) || retailPrice <= 0 || (wholesaleRaw && (!Number.isFinite(Number(wholesaleRaw)) || Number(wholesaleRaw) <= 0)) || (specialRaw && (!Number.isFinite(Number(specialRaw)) || Number(specialRaw) <= 0))) { alert('السعر العام يجب أن يكون رقمًا موجبًا. اترك الخاص/الجملة فارغًا أو أدخل رقمًا موجبًا.'); return; }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
         category: document.getElementById('prodCategory').value,
@@ -739,6 +842,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         brand: document.getElementById('prodBrand').value.trim(),
         model: document.getElementById('prodModel').value.trim(),
         price: retailPrice,
+        public_price: retailPrice,
         originalPrice: document.getElementById('prodOriginalPrice').value ? Number(document.getElementById('prodOriginalPrice').value) : null,
         stock: document.getElementById('prodStock').value ? Number(document.getElementById('prodStock').value) : null,
         warranty: document.getElementById('prodWarranty').value.trim(),
@@ -749,7 +853,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
     };
-    const privatePrices = { wholesale_price: wholesaleRaw ? Number(wholesaleRaw) : null, special_price: specialRaw ? Number(specialRaw) : null, updatedAt: Date.now() };
+    const privatePrices = { wholesale_price: wholesaleRaw ? Number(wholesaleRaw) : null, special_price: specialRaw ? Number(specialRaw) : null, updatedAt: Date.now(), updatedBy: currentAdminUser?.uid || null };
     
     if (isDemoMode) {
         if (id) {
@@ -772,12 +876,14 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         if (id) {
             await update(ref(db, 'products/' + id), prodData);
             await update(ref(db, 'private_prices/' + id), privatePrices);
+            await set(ref(db, `auditLogs/${push(ref(db, 'auditLogs')).key}`), { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice: retailPrice, specialPrice: privatePrices.special_price, wholesalePrice: privatePrices.wholesale_price, timestamp: Date.now() });
             alert('تم تحديث المنتج بنجاح!');
         } else {
             prodData.createdAt = Date.now();
             const productRef = push(ref(db, 'products'));
             await set(productRef, prodData);
             await set(ref(db, 'private_prices/' + productRef.key), privatePrices);
+            await set(ref(db, `auditLogs/${push(ref(db, 'auditLogs')).key}`), { action: 'product_pricing_created', productId: productRef.key, actorUid: currentAdminUser.uid, publicPrice: retailPrice, specialPrice: privatePrices.special_price, wholesalePrice: privatePrices.wholesale_price, timestamp: Date.now() });
             alert('تمت إضافة المنتج الجديد بنجاح!');
         }
         closeProductModal();
