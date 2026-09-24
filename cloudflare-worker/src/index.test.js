@@ -88,6 +88,28 @@ test('chat provider/server failure retains CORS headers and hides secrets', asyn
   }
 });
 
+test('chat accepts KIE text-part content without exposing provider payload', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ choices: [{ message: { content: [{ type: 'text', text: 'مرحبا من KIE' }] } }] });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'مرحبا' })
+    }), baseEnv);
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).reply, 'مرحبا من KIE');
+    assertCors(response);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('all requested production origins are allowlisted', async () => {
   for (const origin of [
     'https://spider-aaa19.web.app',

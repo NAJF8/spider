@@ -73,7 +73,7 @@ async function handleRequest(request, env) {
         if (kieRes.status === 429 || kieRes.status === 402) return errorResponse('CHAT_CREDITS_BUSY', 429);
         if (!kieRes.ok) return errorResponse('CHAT_PROVIDER_ERROR', 502);
         const kieData = await kieRes.json();
-        const reply = String(kieData?.choices?.[0]?.message?.content || '').replace(/\s+/g, ' ').trim().slice(0, 1600);
+        const reply = extractProviderReply(kieData);
         if (!reply) return errorResponse('CHAT_EMPTY_RESPONSE', 502);
         return jsonResponse({ success: true, reply, products: candidates, state: updateChatState(state, message) });
       } catch { return errorResponse('CHAT_ERROR', 500); }
@@ -402,6 +402,14 @@ function retrieveChatProducts(productsObj, privatePrices, message, accountType) 
     const text = `${product.name || ''} ${product.nameAr || ''} ${product.brand || ''} ${product.model || ''} ${product.category || ''} ${product.categoryId || ''}`.toLowerCase();
     return { id, name: product.name, nameAr: product.nameAr, brand: product.brand, model: product.model, category: product.category || product.categoryId, image: product.image || product.imageUrl || '', price: Number.isFinite(Number(price)) ? Number(price) : null, available: stock === undefined || stock === null ? true : Number(stock) > 0, specifications: product.specifications || product.specs || {} , _text: text };
   }).filter((product) => (!brandMatch || product._text.includes(brandMatch[1].toLowerCase())) && (!categoryMatch || product._text.includes(categoryMatch))).sort((a, b) => Number(a.price ?? Number.MAX_SAFE_INTEGER) - Number(b.price ?? Number.MAX_SAFE_INTEGER)).slice(0, 12).map(({ _text, ...product }) => product);
+}
+
+function extractProviderReply(data) {
+  const content = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? data?.output_text ?? '';
+  const text = Array.isArray(content)
+    ? content.map((part) => typeof part === 'string' ? part : String(part?.text || part?.content || '')).join(' ')
+    : String(content);
+  return text.replace(/\s+/g, ' ').trim().slice(0, 1600);
 }
 
 function errorResponse(code, status) {
