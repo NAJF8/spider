@@ -110,6 +110,81 @@ test('chat accepts KIE text-part content without exposing provider payload', asy
   }
 });
 
+test('chat accepts documented string content', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ choices: [{ message: { content: 'نص KIE' } }] });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).reply, 'نص KIE');
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('chat accepts nested KIE parts content', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ choices: [{ message: { content: [{ parts: [{ text: 'جزء أول' }, { content: 'جزء ثان' }] }] } }] });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).reply, 'جزء أول جزء ثان');
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('chat reports provider success without usable content clearly', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ choices: [{ message: { content: '' } }] });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'CHAT_PROVIDER_EMPTY_CONTENT' });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('chat maps KIE error response without exposing provider body', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ error: { message: 'provider-safe-error' } }, { status: 500 });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'CHAT_PROVIDER_ERROR' });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('chat maps malformed provider response to empty-content error', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return new Response('{not-json', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 502);
+    assert.deepEqual(await response.json(), { error: 'CHAT_PROVIDER_EMPTY_CONTENT' });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('all requested production origins are allowlisted', async () => {
   for (const origin of [
     'https://spider-aaa19.web.app',
