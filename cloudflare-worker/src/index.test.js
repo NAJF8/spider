@@ -125,6 +125,21 @@ test('chat accepts documented string content', async () => {
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test('chat accepts KIE response envelope with data choices', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('firebasedatabase.app/products.json')) return new Response('{}', { status: 200 });
+    if (url.includes('api.kie.ai')) return Response.json({ code: 200, msg: 'success', data: { choices: [{ message: { content: 'نص داخل data' } }] } });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'مرحبا' }) }), baseEnv);
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).reply, 'نص داخل data');
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('chat accepts nested KIE parts content', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {

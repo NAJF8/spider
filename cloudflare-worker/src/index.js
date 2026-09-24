@@ -421,15 +421,25 @@ async function readProviderResponse(response) {
     firstChoiceKeys: objectKeys(firstChoice),
     messageType: typeof firstChoice?.message,
     contentValueType: Array.isArray(content) ? 'array' : typeof content,
-    errorMessage: safeProviderMessage(safeError)
+    dataType: Array.isArray(body?.data) ? 'array' : typeof body?.data,
+    dataKeys: objectKeys(body?.data),
+    dataChoicesType: Array.isArray(body?.data?.choices) ? 'array' : typeof body?.data?.choices,
+    message: safeProviderMessage(body?.msg ?? safeError)
   }));
   return { body };
 }
 
 function extractProviderReply(data) {
-  const content = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? data?.output_text ?? '';
+  const payload = unwrapProviderPayload(data);
+  const content = payload?.choices?.[0]?.message?.content ?? payload?.choices?.[0]?.text ?? payload?.output_text ?? payload?.content ?? '';
   const text = extractProviderText(content);
   return text.replace(/\s+/g, ' ').trim().slice(0, 1600);
+}
+
+function unwrapProviderPayload(data) {
+  const wrapped = data?.data ?? data;
+  if (typeof wrapped !== 'string') return wrapped;
+  try { return JSON.parse(wrapped); } catch { return wrapped; }
 }
 
 function extractProviderText(value) {
