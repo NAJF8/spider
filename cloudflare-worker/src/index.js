@@ -72,20 +72,24 @@ function serviceAccount(env) {
 async function firebaseCustomToken(uid, env) {
   const account = serviceAccount(env);
   if (!account?.client_email || !account?.private_key) throw new Error('AUTH_BACKEND_NOT_CONFIGURED');
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({
-    iss: account.client_email,
-    sub: account.client_email,
-    aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit',
-    iat: now,
-    exp: now + 3600,
-    uid: String(uid)
-  }));
-  const pem = account.private_key.replace(/\\n/g, '\n').replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
-  const key = await crypto.subtle.importKey('pkcs8', fromBase64(pem), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
-  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${payload}`));
-  return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+    const payload = base64Url(JSON.stringify({
+      iss: account.client_email,
+      sub: account.client_email,
+      aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit',
+      iat: now,
+      exp: now + 3600,
+      uid: String(uid)
+    }));
+    const pem = account.private_key.replace(/\\n/g, '\n').replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
+    const key = await crypto.subtle.importKey('pkcs8', fromBase64(pem), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${payload}`));
+    return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
+  } catch {
+    throw new Error('AUTH_TOKEN_SIGNING_ERROR');
+  }
 }
 
 function authToken(request) {
@@ -169,9 +173,12 @@ async function handlePhoneAuth(request, env, url) {
     const uid = authenticated?.uid || existingUid || `phone-${crypto.randomUUID()}`;
     const credential = await hashPin(pin);
     const profile = { uid, name, phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
-    await writeDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`, uid);
-    await writeDatabase(env, '', { [`profiles/${uid}`]: { ...(await readDatabase(env, `profiles/${uid}.json`)) || {}, ...profile }, [`profile_credentials/${uid}`]: credential }, 'PATCH');
-    return jsonResponse({ success: true, uid, customToken: await firebaseCustomToken(uid, env) });
+    await writeDatabase(env, '', {
+      [`phone_index/${phone}`]: uid,
+      [`profiles/${uid}`]: { ...(await readDatabase(env, `profiles/${uid}.json`)) || {}, ...profile },
+      [`profile_credentials/${uid}`]: credential
+    }, 'PATCH');
+    return new Response(JSON.stringify({ success: true, uid, customToken: await firebaseCustomToken(uid, env) }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
 
   if (url.pathname === '/api/auth/phone/login') {
@@ -218,7 +225,12 @@ async function handleRequest(request, env) {
 
     if (request.method === 'POST' && ['/api/auth/phone/register', '/api/auth/phone/login', '/api/auth/phone/change-pin'].includes(url.pathname)) {
       try { return await handlePhoneAuth(request, env, url); }
-      catch (error) { return error?.message === 'AUTH_BACKEND_NOT_CONFIGURED' ? errorResponse('AUTH_BACKEND_NOT_CONFIGURED', 503) : errorResponse('AUTH_ERROR', 500); }
+      catch (error) {
+        const code = String(error?.message || 'AUTH_ERROR');
+        const status = code === 'AUTH_BACKEND_NOT_CONFIGURED' || code === 'AUTH_DATABASE_ERROR' || code === 'AUTH_TOKEN_SIGNING_ERROR' ? 503 : 500;
+        console.error(JSON.stringify({ code, location: 'phone-auth' }));
+        return errorResponse(status === 503 ? code : 'AUTH_ERROR', status);
+      }
     }
 
     if (url.pathname === '/api/store/prices' && request.method === 'GET') {

@@ -756,10 +756,27 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
 .detail-actions{display:flex;gap:7px}
 .detail-actions .btn{flex:1}
 .account-body{display:block}
-.account-body>div:first-child{text-align:center;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.account-body p{font-size:12px;color:var(--muted)}
-.account-body small{display:block;margin-top:8px}
-.favorites-list{display:grid;gap:7px;margin-top:12px}
+.account-body>div:first-child{text-align:initial;padding:0 0 20px;border-bottom:1px solid var(--line)}
+.account-body p{font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.7}
+.account-body small{display:block;margin-top:10px;text-align:center}
+.account-body .btn-google{width:100%;min-height:46px;font-size:14px}
+.account-divider{display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:var(--muted);font-size:11px}
+.account-divider::before,.account-divider::after{content:"";height:1px;background:var(--line);flex:1}
+.account-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--soft);border-radius:12px;margin:0 0 18px}
+.account-tab{min-height:38px;border-radius:9px;color:var(--muted);font-size:12px;font-weight:800}
+.account-tab.active{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(24,32,45,.08)}
+.phone-auth-form{display:grid;gap:7px;text-align:initial}
+.phone-auth-form label,.pin-field-group>label{font-size:12px;font-weight:800;color:var(--ink);margin-top:3px}
+.phone-auth-form input{width:100%;min-height:44px;font-size:14px}
+.phone-auth-form .btn-primary{width:100%;min-height:46px;margin-top:8px;font-size:14px}
+.phone-auth-form .btn-outline{width:100%;min-height:42px}
+.pin-field-group{display:grid;gap:7px;margin-top:3px}
+.pin-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pin-cell{width:100%!important;min-height:48px!important;text-align:center;font-size:20px!important;font-weight:800}
+.field-error{min-height:0;color:var(--red-dark);font-size:11px;line-height:1.4}
+.input-error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(237,28,36,.1)!important}
+.favorites-list{display:grid;gap:7px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+.favorites-list h3{font-size:14px;margin-bottom:2px;color:var(--ink)}
 .favorite-row{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:7px}
 .favorite-row img{width:40px;height:40px;object-fit:contain}
 .favorite-row div{flex:1;font-size:11px;font-weight:800}
@@ -896,7 +913,7 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
   /* Modals */
   .product-detail{grid-template-columns:1fr}
   .product-detail>img{height:190px}
-  .modal-content{max-height:91vh}
+  .modal-content{width:93vw;max-height:91vh}
   /* Floating buttons use the footer clearance defined above. */
   .floating-cart{left:max(14px,env(safe-area-inset-left))}
   .chatbot-fab{right:max(14px,env(safe-area-inset-right))}
@@ -911,6 +928,12 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
   .compare-picker-option{padding:8px}.compare-picker-option img{height:90px}.compare-picker-option strong{font-size:12px}.compare-picker-option b{font-size:13px}
   .builder-page-head{padding-top:24px}.builder-page-head h1{font-size:30px}.builder-page-head>p:last-child{font-size:14px}
 }
+
+html[data-theme="dark"] .account-tabs{background:#1b2b48}
+html[data-theme="dark"] .account-tab.active{background:#385075;color:#fff}
+html[data-theme="dark"] .account-body .btn-outline{background:transparent}
+html[data-theme="dark"] .phone-auth-form label,html[data-theme="dark"] .pin-field-group>label,html[data-theme="dark"] .favorites-list h3{color:#fff}
+html[data-theme="dark"] .field-error{color:#ff9a9e}
 
 @media (max-width:380px) {
   .products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

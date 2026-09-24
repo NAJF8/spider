@@ -1219,7 +1219,7 @@ function loadFavorites() {
   catch { state.favorites = []; }
 }
 
-function renderAccount() {
+function renderAccount(accountMode = 'login') {
   if (!$('accountState') || !$('favoritesList')) return;
   const box = $('accountState');
   if (authUser) {
@@ -1228,10 +1228,10 @@ function renderAccount() {
     $('phoneLinkForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'register', true));
     $('changePinForm')?.addEventListener('submit', submitChangePin);
   } else {
-    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><div class="account-divider"><span>${language === 'en' ? 'or' : 'أو'}</span></div><form class="phone-auth-form" id="phoneLoginForm"><label for="phoneNumberInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneNumberInput" required type="tel" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXXX"><label for="phonePinInput">PIN</label><input id="phonePinInput" required type="password" dir="ltr" inputmode="numeric" autocomplete="current-password" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><button class="btn btn-primary" type="submit">${language === 'en' ? 'Sign in' : 'تسجيل الدخول'}</button></form><button class="btn btn-outline" id="phoneRegisterBtn" type="button">${language === 'en' ? 'Create a new account' : 'إنشاء حساب جديد'}</button><small>${language === 'en' ? 'No SMS, OTP, or reCAPTCHA is used.' : 'لا نستخدم SMS أو OTP أو reCAPTCHA.'}</small>`;
+    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><div class="account-divider"><span>${language === 'en' ? 'or' : 'أو'}</span></div><div class="account-tabs" role="tablist"><button class="account-tab active" type="button" aria-selected="true">${language === 'en' ? 'Sign in' : 'تسجيل الدخول'}</button><button class="account-tab" id="phoneRegisterBtn" type="button" aria-selected="false">${language === 'en' ? 'Create account' : 'إنشاء حساب'}</button></div><form class="phone-auth-form" id="phoneLoginForm" novalidate><label for="phoneNumberInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneNumberInput" required type="tel" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXXX"><div class="field-error" data-error-for="phoneNumberInput"></div>${pinFields('loginPin', language === 'en' ? 'PIN' : 'PIN', 'phonePinInput')}<div class="field-error" data-error-for="phonePinInput"></div><button class="btn btn-primary" type="submit">${language === 'en' ? 'Sign in' : 'تسجيل الدخول'}</button></form><small>${language === 'en' ? 'No SMS, OTP, or reCAPTCHA is used.' : 'لا نستخدم SMS أو OTP أو reCAPTCHA.'}</small>`;
     $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`${language === 'en' ? 'Google sign-in failed' : 'تعذر تسجيل Google'}: ${e.code || 'AUTH_ERROR'}`); } });
     $('phoneLoginForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'login', false));
-    $('phoneRegisterBtn').addEventListener('click', () => renderPhoneRegistration());
+    bindPinInputs(box); $('phoneRegisterBtn').addEventListener('click', () => renderPhoneRegistration());
   }
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
   $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(productPrice(p))}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
@@ -1240,10 +1240,15 @@ function renderAccount() {
 
 function renderPhoneRegistration() {
   const box = $('accountState');
-  box.innerHTML = `<form class="phone-auth-form" id="phoneRegisterForm"><h3>${language === 'en' ? 'Create a new account' : 'إنشاء حساب جديد'}</h3><label for="phoneNameInput">${language === 'en' ? 'Name' : 'الاسم'}</label><input id="phoneNameInput" required type="text" autocomplete="name"><label for="phoneRegisterInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneRegisterInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><label for="phoneRegisterPin">PIN</label><input id="phoneRegisterPin" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><label for="phoneRegisterConfirm">${language === 'en' ? 'Confirm PIN' : 'تأكيد PIN'}</label><input id="phoneRegisterConfirm" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><button class="btn btn-primary" type="submit">${language === 'en' ? 'Create account' : 'إنشاء الحساب'}</button><button class="btn btn-outline" id="backToPhoneLogin" type="button">${language === 'en' ? 'Back' : 'رجوع'}</button></form>`;
+  box.innerHTML = `<p>${language === 'en' ? 'Create your SPIDER account with phone and PIN.' : 'أنشئ حسابك في SPIDER برقم الهاتف وPIN.'}</p><div class="account-tabs" role="tablist"><button class="account-tab" id="phoneLoginTab" type="button" aria-selected="false">${language === 'en' ? 'Sign in' : 'تسجيل الدخول'}</button><button class="account-tab active" type="button" aria-selected="true">${language === 'en' ? 'Create account' : 'إنشاء حساب'}</button></div><form class="phone-auth-form" id="phoneRegisterForm" novalidate><label for="phoneNameInput">${language === 'en' ? 'Name' : 'الاسم'}</label><input id="phoneNameInput" required type="text" autocomplete="name"><div class="field-error" data-error-for="phoneNameInput"></div><label for="phoneRegisterInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneRegisterInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><div class="field-error" data-error-for="phoneRegisterInput"></div>${pinFields('registerPin', language === 'en' ? 'Choose PIN' : 'اختر PIN', 'phoneRegisterPin')}<div class="field-error" data-error-for="phoneRegisterPin"></div>${pinFields('confirmPin', language === 'en' ? 'Confirm PIN' : 'تأكيد PIN', 'phoneRegisterConfirm')}<div class="field-error" data-error-for="phoneRegisterConfirm"></div><button class="btn btn-primary" type="submit">${language === 'en' ? 'Create account' : 'إنشاء الحساب'}</button><button class="btn btn-outline" id="backToPhoneLogin" type="button">${language === 'en' ? 'Back to sign in' : 'رجوع لتسجيل الدخول'}</button></form>`;
   $('phoneRegisterForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'register', false));
-  $('backToPhoneLogin').addEventListener('click', renderAccount);
+  bindPinInputs(box); $('phoneLoginTab').addEventListener('click', renderAccount); $('backToPhoneLogin').addEventListener('click', renderAccount);
 }
+
+function pinFields(group, label, firstId) { return `<div class="pin-field-group"><label>${label}</label><div class="pin-fields" data-pin-group="${group}" data-pin-input="${firstId}" dir="ltr">${[0,1,2,3].map((index) => `<input id="${index === 0 ? firstId : `${firstId}-${index}`}" class="pin-cell" data-pin-index="${index}" type="password" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="${label} ${index + 1}">`).join('')}</div></div>`; }
+function bindPinInputs(root) { root.querySelectorAll('[data-pin-group]').forEach((group) => { const cells = [...group.querySelectorAll('.pin-cell')]; cells.forEach((cell, index) => { cell.addEventListener('input', () => { cell.value = englishDigits(cell.value).replace(/\D/g, '').slice(-1); if (cell.value && cells[index + 1]) cells[index + 1].focus(); }); cell.addEventListener('keydown', (event) => { if (event.key === 'Backspace' && !cell.value && cells[index - 1]) cells[index - 1].focus(); }); cell.addEventListener('paste', (event) => { const digits = englishDigits(event.clipboardData.getData('text')).replace(/\D/g, '').slice(0, 4); if (!digits) return; event.preventDefault(); cells.forEach((input, i) => { input.value = digits[i] || ''; }); cells[Math.min(digits.length, 4) - 1]?.focus(); }); }); }); }
+function readPin(firstId) { const first = $(firstId); const group = first?.closest('[data-pin-group]'); return group ? [...group.querySelectorAll('.pin-cell')].map((input) => input.value).join('') : ''; }
+function setFieldError(form, id, message = '') { const target = form.querySelector(`[data-error-for="${id}"]`); if (target) target.textContent = message; form.querySelector(`#${id}`)?.classList.toggle('input-error', Boolean(message)); }
 
 async function submitPhoneAuth(event, mode, linkExisting) {
   event.preventDefault();
@@ -1252,26 +1257,27 @@ async function submitPhoneAuth(event, mode, linkExisting) {
   if (submit.disabled) return;
   const isLink = Boolean(linkExisting);
   const phone = $(isLink ? 'phoneLinkInput' : mode === 'login' ? 'phoneNumberInput' : 'phoneRegisterInput')?.value.trim();
-  const pin = $(isLink ? 'phoneLinkPin' : mode === 'login' ? 'phonePinInput' : 'phoneRegisterPin')?.value.trim();
-  const confirmPin = $(isLink ? 'phoneLinkConfirm' : 'phoneRegisterConfirm')?.value.trim();
-  if (!/^07[3-9][0-9]{8}$/.test(englishDigits(phone).replace(/\s/g, '')) || !/^\d{4}$/.test(englishDigits(pin)) || (mode === 'register' && pin !== confirmPin)) {
-    showToast(language === 'en' ? 'Enter a valid phone number and matching 4-digit PIN.' : 'أدخل رقم هاتف صحيح وPIN من 4 أرقام متطابق.'); return;
-  }
-  submit.disabled = true;
+  const pin = englishDigits(isLink ? $('phoneLinkPin')?.value.trim() : readPin(mode === 'login' ? 'phonePinInput' : 'phoneRegisterPin'));
+  const confirmPin = englishDigits(isLink ? $('phoneLinkConfirm')?.value.trim() : readPin('phoneRegisterConfirm'));
+  const name = mode === 'register' && !isLink ? $('phoneNameInput')?.value.trim() : '';
+  const errors = !isLink && mode === 'register' && !name ? ['phoneNameInput', language === 'en' ? 'Name is required.' : 'الاسم مطلوب.'] : !/^07[3-9][0-9]{8}$/.test(englishDigits(phone).replace(/\s/g, '')) ? [isLink ? 'phoneLinkInput' : mode === 'login' ? 'phoneNumberInput' : 'phoneRegisterInput', language === 'en' ? 'Enter a valid Iraqi phone number.' : 'أدخل رقم هاتف عراقي صحيح.'] : !/^\d{4}$/.test(pin) ? [isLink ? 'phoneLinkPin' : mode === 'login' ? 'phonePinInput' : 'phoneRegisterPin', language === 'en' ? 'PIN must contain 4 digits.' : 'PIN يجب أن يتكون من 4 أرقام.'] : mode === 'register' && pin !== confirmPin ? ['phoneRegisterConfirm', language === 'en' ? 'PINs do not match.' : 'الرمزان غير متطابقين.'] : null;
+  if (errors) { setFieldError(form, errors[0], errors[1]); return; }
+  submit.disabled = true; const originalLabel = submit.textContent; submit.textContent = mode === 'login' ? (language === 'en' ? 'Signing in...' : 'جاري تسجيل الدخول...') : (language === 'en' ? 'Creating account...' : 'جاري إنشاء الحساب...');
   try {
     const headers = { 'Content-Type': 'application/json' };
     if (isLink && authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
     const payload = { phone, pin };
-    if (mode === 'register') { payload.name = isLink ? (authUser?.displayName || authUser?.email || 'Customer') : $('phoneNameInput')?.value.trim(); payload.confirmPin = confirmPin; }
+    if (mode === 'register') { payload.name = isLink ? (authUser?.displayName || authUser?.email || 'Customer') : name; payload.confirmPin = confirmPin; }
     const response = await fetch(`${BACKEND_URL}/api/auth/phone/${mode}`, { method: 'POST', headers, body: JSON.stringify(payload) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'AUTH_ERROR');
     if (data.customToken) await signInWithCustomToken(auth, data.customToken);
     showToast(language === 'en' ? (mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.') : (mode === 'login' ? 'تم تسجيل الدخول بنجاح.' : 'تم إنشاء الحساب بنجاح.'));
   } catch (error) {
-    const messages = { PHONE_ALREADY_REGISTERED: 'رقم الهاتف مستخدم مسبقاً', AUTH_INVALID_CREDENTIALS: 'رقم الهاتف أو الرمز غير صحيح', AUTH_RATE_LIMITED: 'محاولات كثيرة. حاول لاحقاً.', AUTH_BACKEND_NOT_CONFIGURED: 'تسجيل الهاتف غير مهيأ على الخادم.' };
-    showToast(language === 'en' ? (error.message === 'AUTH_INVALID_CREDENTIALS' ? 'Phone number or PIN is incorrect.' : `Could not complete sign-in: ${error.message}`) : (messages[error.message] || 'تعذر إكمال تسجيل الدخول.'));
-  } finally { submit.disabled = false; }
+    const messages = { NAME_REQUIRED: 'الاسم مطلوب.', PIN_CONFIRMATION_MISMATCH: 'الرمزان غير متطابقين.', INVALID_PHONE_OR_PIN: 'تحقق من رقم الهاتف وPIN.', PHONE_ALREADY_REGISTERED: 'رقم الهاتف مستخدم مسبقاً', AUTH_INVALID_CREDENTIALS: 'رقم الهاتف أو الرمز غير صحيح', AUTH_RATE_LIMITED: 'محاولات كثيرة. حاول لاحقاً.', AUTH_BACKEND_NOT_CONFIGURED: 'تسجيل الهاتف غير مهيأ على الخادم.', AUTH_DATABASE_ERROR: 'تعذر حفظ الحساب حالياً.', AUTH_TOKEN_SIGNING_ERROR: 'تعذر إكمال تسجيل الدخول حالياً.' };
+    const field = error.message === 'NAME_REQUIRED' ? 'phoneNameInput' : error.message === 'PIN_CONFIRMATION_MISMATCH' ? 'phoneRegisterConfirm' : error.message === 'INVALID_PHONE_OR_PIN' ? (mode === 'login' ? 'phoneNumberInput' : 'phoneRegisterInput') : null;
+    if (field) setFieldError(form, field, language === 'en' ? (error.message === 'NAME_REQUIRED' ? 'Name is required.' : error.message === 'PIN_CONFIRMATION_MISMATCH' ? 'PINs do not match.' : 'Check the phone number and PIN.') : messages[error.message]); else showToast(language === 'en' ? 'Could not complete the request.' : (messages[error.message] || 'تعذر إكمال الطلب.'));
+  } finally { submit.disabled = false; submit.textContent = originalLabel; }
 }
 
 async function submitChangePin(event) {
