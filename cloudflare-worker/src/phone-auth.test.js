@@ -95,9 +95,10 @@ test('uses Bearer authorization for successful RTDB writes without a legacy secr
     return Response.json({ ok: true });
   };
   try {
-    await writeServiceDatabase({ ...env, FIREBASE_DATABASE_SECRET: undefined }, 'phone_index/test', { uid: 'test' });
+    await writeServiceDatabase({ ...env, FIREBASE_DATABASE_SECRET: undefined }, '', { phone_index: { test: 'uid' } }, 'PATCH');
     assert.equal(databaseRequest.options.headers.get('Authorization'), 'Bearer test-access-token');
     assert.equal(databaseRequest.url.includes('?auth='), false);
+    assert.match(databaseRequest.url, /default-rtdb\.asia-southeast1\.firebasedatabase\.app\/\.json$/);
   } finally {
     globalThis.fetch = originalFetch;
   }

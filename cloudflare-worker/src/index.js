@@ -757,7 +757,8 @@ function firebaseUrl(env, path, secret) {
 }
 
 function firebaseBaseUrl(env, path) {
-  return `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/${path}`;
+  const normalizedPath = String(path || '').replace(/^\/+/, '') || '.json';
+  return `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/${normalizedPath}`;
 }
 
 function normalizeChatState(value) {
