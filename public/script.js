@@ -1240,15 +1240,41 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.model || '')}</small><span>${formatPrice(Number(p.price ?? productPrice(p)))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button><button type="button" data-chat-cart>أضف للسلة</button><button type="button" data-chat-compare>قارن</button></div></div>`;
+    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${formatPrice(Number(p.price ?? productPrice(p)))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button><button type="button" data-chat-cart>أضف للسلة</button></div></div>`;
     card.querySelector('[data-chat-open]').addEventListener('click', (e) => { e.stopPropagation(); openProductDetails(p.id); });
     card.querySelector('[data-chat-cart]').addEventListener('click', (e) => { e.stopPropagation(); if (p.available) { addToCart(p.id); showToast(t('added')); } });
-    card.querySelector('[data-chat-compare]').addEventListener('click', (e) => { e.stopPropagation(); openComparePicker(p.id); });
     card.addEventListener('click', () => openProductDetails(p.id));
     msg.append(card);
   });
   $('chatMessages').append(msg);
   $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+}
+
+function setChatBusy(busy) {
+  $('sendChatBtn').disabled = busy;
+  $('chatInput').disabled = busy;
+  $('chatQuickReplies').querySelectorAll('button').forEach((button) => { button.disabled = busy; });
+}
+
+function appendTyping() {
+  const msg = document.createElement('div');
+  msg.className = 'message bot-message chat-typing';
+  msg.id = 'chatTyping';
+  msg.innerHTML = `<span>${language === 'en' ? 'Thinking' : 'جاري التفكير'}</span><i></i><i></i><i></i>`;
+  $('chatMessages').append(msg);
+  $('chatMessages').scrollTop = $('chatMessages').scrollHeight;
+}
+
+function chatAllowsOverBudget(text) { return /(ممكن\s*(أزيد|ازيد)|زيدلي|أقرب\s*شي\s*فوق|حتى\s*لو\s*أغلى|حتى\s*لو\s*اغلى|over\s*budget|more\s*expensive)/i.test(englishDigits(text)); }
+function chatBudgetFromText(text) {
+  const value = englishDigits(text).match(/(?:ميزانيتي|حدودي|عندي|تحت|لا\s*يتجاوز|ما\s*أريد\s*أتجاوز|ما\s*اريد\s*اتجاوز)\s*(\d[\d,. ]*|خمسين|مئة|مائه|عشرين|ثلاثين|أربعين|خمسين|ستين|سبعين|ثمانين|تسعين)\s*(ألف|الف|آلاف|k)?/i);
+  if (!value) return null;
+  const words = { خمسين: 50, مئة: 100, مائه: 100, عشرين: 20, ثلاثين: 30, أربعين: 40, اربعين: 40, ستين: 60, سبعين: 70, ثمانين: 80, تسعين: 90 };
+  const raw = Number(value[1].replace(/[^0-9]/g, '')) || words[value[1]];
+  let budget = Number.isFinite(raw) ? raw * (value[2] || raw < 1000 ? 1000 : 1) : null;
+  const increase = englishDigits(text).match(/(?:زيدلي|أزيد|ازيد)\s*(\d[\d,. ]*)\s*(ألف|الف|آلاف|k)?/i);
+  if (increase && budget) { const extra = Number(increase[1].replace(/[^0-9]/g, '')); budget += extra * (increase[2] || extra < 1000 ? 1000 : 1); }
+  return budget;
 }
 
 async function respondChat(text) {
@@ -1260,12 +1286,18 @@ async function respondChat(text) {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'CHAT_UNAVAILABLE');
     chatState = data.state || chatState; saveChatState();
-    appendChat(data.reply || (language === 'en' ? 'Please try again.' : 'جرّب مرة ثانية.'), false, Array.isArray(data.products) ? data.products : []);
+    const budget = chatBudgetFromText(text);
+    const hasNumericIncrease = /(?:زيدلي|أزيد|ازيد)\s*\d/i.test(englishDigits(text));
+    const products = Array.isArray(data.products) ? data.products.filter((product) => !budget || (!hasNumericIncrease && chatAllowsOverBudget(text)) || Number(product.price) <= budget) : [];
+    appendChat(data.reply || (language === 'en' ? 'Please try again.' : 'جرّب مرة ثانية.'), false, products.slice(0, 3));
   } catch (error) {
     const chat = state.settings.chatbotSettings || state.settings;
     const unavailable = language === 'en' ? (chat.aiUnavailableEn || 'The assistant is currently unavailable. Please try again later.') : (chat.aiUnavailableAr || 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.');
-    const lastMessage = [...document.querySelectorAll('#chatMessages .bot-message')].at(-1);
-    if (!lastMessage || !lastMessage.textContent.includes(unavailable)) appendChat(unavailable);
+    appendChat(language === 'en' ? 'Something went wrong. Please try again.' : 'صار خلل بسيط، جرّب مرة ثانية.');
+  } finally {
+    $('chatTyping')?.remove();
+    setChatBusy(false);
+    $('chatInput').focus();
   }
 }
 
@@ -1275,6 +1307,8 @@ function handleChat() {
   if (!text) return;
   appendChat(text, true);
   input.value = '';
+  appendTyping();
+  setChatBusy(true);
   respondChat(text);
 }
 
