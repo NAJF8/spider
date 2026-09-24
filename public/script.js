@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { getAuth, GoogleAuthProvider, RecaptchaVerifier, onAuthStateChanged, signInWithPopup, signInWithPhoneNumber, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 
 const firebaseConfig = {
@@ -58,7 +58,7 @@ const I18N = {
     cart: 'سلة المشتريات', emptyCart: 'السلة فارغة', total: 'المجموع الكلي', checkout: 'إتمام الطلب', clearCart: 'مسح جميع محتويات السلة', clearCartTitle: 'مسح السلة', clearCartMessage: 'هل تريد مسح جميع المنتجات من السلة؟', cancel: 'إلغاء', close: 'إغلاق',
     checkoutTitle: 'إتمام الطلب', fullName: 'الاسم الكامل', phone: 'رقم الهاتف (07XXXXXXXXX)', chooseGovernorate: 'اختر المحافظة...', city: 'المدينة / المنطقة', address: 'العنوان التفصيلي', notes: 'ملاحظات إضافية (اختياري)', confirmOrder: 'تأكيد وحفظ الطلب ثم فتح واتساب', orderNote: 'لن تُفرغ السلة إذا فشل التحقق أو حفظ الطلب.',
     details: 'التفاصيل', addToCart: 'أضف للسلة', notify: 'نبّهني عند التوفر', available: 'متوفر', limited: 'كمية محدودة', unavailable: 'غير متوفر',
-    account: 'حسابي والمفضلة', loginHint: 'سجّل دخولك لحفظ المفضلة على هذا الجهاز باسم حسابك.', google: 'متابعة عبر Google', phoneOtp: 'متابعة برقم الهاتف OTP',
+    account: 'حسابي والمفضلة', loginHint: 'سجّل دخولك لحفظ المفضلة على هذا الجهاز باسم حسابك.', google: 'متابعة عبر Google', phoneOtp: 'تسجيل الدخول برقم الهاتف',
     favorites: 'المفضلة', open: 'فتح', noFavorites: 'لم تضف منتجات إلى المفضلة بعد.', logout: 'خروج',
     builderTitle: 'ابنِ تجميعتك', builderIntro: 'اختر القطع المنشورة فعلياً، وشاهد الإجمالي وفحص التوافق قبل إضافة التجميعة إلى السلة.', parts: 'قطع التجميعة', savedBuild: 'اختياراتك محفوظة عند الرجوع إلى المتجر.', buildTotal: 'إجمالي التجميعة', addBuild: 'أضف التجميعة إلى السلة', quote: 'اطلب عرض سعر', backStore: 'العودة إلى المتجر',
     choosePart: 'اختر القطعة', searchPart: 'ابحث بالاسم أو الموديل', quoteTitle: 'عرض سعر للتجميعة', copyQuote: 'نسخ العرض', shareWhatsApp: 'مشاركة عبر واتساب', quoteNote: 'هذا عرض سعر قابل للتغير، وليس طلب شراء مؤكداً.',
@@ -77,7 +77,7 @@ const I18N = {
     compare: 'Compare products', clearCompare: 'Clear comparison', category: 'Category', brand: 'Brand', allCategories: 'All categories', allBrands: 'All brands', firstProduct: 'First product', secondProduct: 'Second product', chooseProduct: 'Choose a product', compareNow: 'Compare now',
     upgrade: 'Upgrade your PC', chooseSpec: 'Choose at least one specification to start suggestions.', footerPride: 'We value your trust', whatsapp: 'WhatsApp', instagram: 'Instagram', map: 'Location', facebook: 'Facebook',
     cart: 'Shopping cart', emptyCart: 'Your cart is empty', total: 'Total', checkout: 'Checkout', clearCart: 'Clear Cart', clearCartTitle: 'Clear Cart', clearCartMessage: 'Do you want to clear all products from the cart?', cancel: 'Cancel', close: 'Close', checkoutTitle: 'Checkout', fullName: 'Full name', phone: 'Phone number (07XXXXXXXXX)', chooseGovernorate: 'Choose governorate...', city: 'City / area', address: 'Detailed address', notes: 'Additional notes (optional)', confirmOrder: 'Confirm order, save, then open WhatsApp', orderNote: 'Your cart will stay intact if validation or saving fails.',
-    details: 'Details', addToCart: 'Add to cart', notify: 'Notify me when available', available: 'Available', limited: 'Limited quantity', unavailable: 'Unavailable', account: 'Account & favorites', loginHint: 'Sign in to save favorites on this device.', google: 'Continue with Google', phoneOtp: 'Continue with phone OTP', favorites: 'Favorites', open: 'Open', noFavorites: 'You have not added any favorites yet.', logout: 'Sign out',
+    details: 'Details', addToCart: 'Add to cart', notify: 'Notify me when available', available: 'Available', limited: 'Limited quantity', unavailable: 'Unavailable', account: 'Account & favorites', loginHint: 'Sign in to save favorites on this device.', google: 'Continue with Google', phoneOtp: 'Sign in with phone number', favorites: 'Favorites', open: 'Open', noFavorites: 'You have not added any favorites yet.', logout: 'Sign out',
     builderTitle: 'Build your PC', builderIntro: 'Choose published parts, see the total and compatibility check before adding the build to your cart.', parts: 'Build parts', savedBuild: 'Your choices are saved when you return to the store.', buildTotal: 'Build total', addBuild: 'Add build to cart', quote: 'Request a quote', backStore: 'Back to store', choosePart: 'Choose a part', searchPart: 'Search by name or model', quoteTitle: 'Build quote', copyQuote: 'Copy quote', shareWhatsApp: 'Share via WhatsApp', quoteNote: 'This quote may change and is not a confirmed purchase.', compatibility: 'Choose parts to check compatibility.', noPublished: 'No matching published products.', noDescription: 'No additional published description.', chatbot: 'SPIDER assistant', chatPlaceholder: 'Type your question...', chatbotWelcome: 'Welcome to SPIDER! Choose a question and I will help from published products.', noSections: 'No published categories yet.', noProducts: 'No published products match your search or filter.', noBrands: 'No brands found in published products.', noResults: 'No published results', tryAnother: 'Try another brand or model', selectedParts: 'parts', unknown: 'Unknown', change: 'Change', remove: 'Remove', clear: 'Clear', chooseProductNumber: 'Choose product', comparisonSameCategory: 'Choose two products from the same category for a fair comparison.', noSpecs: 'No published specifications for comparison.', notAvailable: 'Not available', showBrands: 'Show brands', hideBrands: 'Hide brands', builderCatalogTitle: 'Build products', builderSearch: 'Search by name or model', builderCategory: 'Category', builderBrand: 'Brand', chooseForBuild: 'Choose for this build', selectedForBuild: 'Selected', allParts: 'All parts', builderSummary: 'Build summary', builderHint: 'Your selected parts', productCount: 'products', notificationsSaved: 'The alert request was saved on this device. Sending needs an enabled service.', added: 'Product added to cart', buildAdded: 'Published parts were added to the cart.', sameProduct: 'The same product cannot be selected twice.'
   }
 };
@@ -193,8 +193,6 @@ function bindAppearanceEvents() {
 let deliveryFee = 0;
 let lowStockThreshold = 3;
 let authUser = null;
-let phoneConfirmation = null;
-let phoneRecaptcha = null;
 let scrollLockDepth = 0;
 let lockedScrollY = 0;
 
@@ -1225,20 +1223,73 @@ function renderAccount() {
   if (!$('accountState') || !$('favoritesList')) return;
   const box = $('accountState');
   if (authUser) {
-    box.innerHTML = `<div class="favorite-row"><img src="${esc(authUser.photoURL || 'assets/spider-bot.png')}" alt=""><div>${esc(authUser.displayName || authUser.email || (language === 'en' ? 'Google account' : 'حساب Google'))}<small>${esc(authUser.email || '')}</small></div><button class="btn btn-outline" id="logoutBtn" type="button">${t('logout')}</button></div>`;
+    box.innerHTML = `<div class="favorite-row"><img src="${esc(authUser.photoURL || 'assets/spider-bot.png')}" alt=""><div>${esc(authUser.displayName || authUser.email || (language === 'en' ? 'Account' : 'الحساب'))}<small dir="ltr">${esc(authUser.email || authUser.phoneNumber || '')}</small></div><button class="btn btn-outline" id="logoutBtn" type="button">${t('logout')}</button></div><form class="phone-auth-form" id="phoneLinkForm"><p>${language === 'en' ? 'Add phone login to this account' : 'إضافة تسجيل الدخول بالهاتف لهذا الحساب'}</p><input id="phoneLinkInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><input id="phoneLinkPin" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN (4 digits)"><input id="phoneLinkConfirm" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="تأكيد PIN"><button class="btn btn-outline" type="submit">${language === 'en' ? 'Add phone login' : 'إضافة تسجيل الهاتف'}</button></form><form class="phone-auth-form" id="changePinForm"><p>${language === 'en' ? 'Change PIN' : 'تغيير PIN'}</p><input id="currentPinInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN الحالي"><input id="newPinInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN الجديد"><input id="newPinConfirmInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="تأكيد PIN الجديد"><button class="btn btn-outline" type="submit">${language === 'en' ? 'Change PIN' : 'تغيير PIN'}</button></form>`;
     $('logoutBtn').addEventListener('click', () => signOut(auth));
+    $('phoneLinkForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'register', true));
+    $('changePinForm')?.addEventListener('submit', submitChangePin);
   } else {
-    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><div class="phone-auth-form"><input id="phoneNumberInput" type="tel" dir="ltr" inputmode="tel" placeholder="+96478XXXXXXX"><button class="btn btn-outline" id="phoneSignInBtn" type="button">${language === 'en' ? 'Send code' : 'إرسال الرمز'}</button><input id="phoneCodeInput" class="hidden" type="text" dir="ltr" inputmode="numeric" autocomplete="one-time-code" placeholder="OTP"><button class="btn btn-primary hidden" id="phoneVerifyBtn" type="button">${language === 'en' ? 'Verify' : 'تحقق'}</button><div id="phoneRecaptcha"></div></div><small>${language === 'en' ? 'Phone sign-in uses Firebase Phone Auth and reCAPTCHA. No fake code is used.' : 'تسجيل الهاتف يستخدم Firebase Phone Auth وreCAPTCHA. لا نستخدم رمزاً وهمياً.'}</small>`;
+    box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><div class="account-divider"><span>${language === 'en' ? 'or' : 'أو'}</span></div><form class="phone-auth-form" id="phoneLoginForm"><label for="phoneNumberInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneNumberInput" required type="tel" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="07XXXXXXXXX"><label for="phonePinInput">PIN</label><input id="phonePinInput" required type="password" dir="ltr" inputmode="numeric" autocomplete="current-password" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><button class="btn btn-primary" type="submit">${language === 'en' ? 'Sign in' : 'تسجيل الدخول'}</button></form><button class="btn btn-outline" id="phoneRegisterBtn" type="button">${language === 'en' ? 'Create a new account' : 'إنشاء حساب جديد'}</button><small>${language === 'en' ? 'No SMS, OTP, or reCAPTCHA is used.' : 'لا نستخدم SMS أو OTP أو reCAPTCHA.'}</small>`;
     $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`${language === 'en' ? 'Google sign-in failed' : 'تعذر تسجيل Google'}: ${e.code || 'AUTH_ERROR'}`); } });
-    $('phoneSignInBtn').addEventListener('click', startPhoneAuth);
-    $('phoneVerifyBtn')?.addEventListener('click', async () => {
-      try { await phoneConfirmation?.confirm($('phoneCodeInput').value.trim()); }
-      catch (e) { showToast(language === 'en' ? `OTP verification failed: ${e.code || 'AUTH_ERROR'}` : `فشل التحقق من الرمز: ${e.code || 'AUTH_ERROR'}`); }
-    });
+    $('phoneLoginForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'login', false));
+    $('phoneRegisterBtn').addEventListener('click', () => renderPhoneRegistration());
   }
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
   $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(productPrice(p))}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
   $('favoritesList').querySelectorAll('[data-favorite-open]').forEach((btn) => btn.addEventListener('click', () => { modal('accountModal', false); openProductDetails(btn.dataset.favoriteOpen); }));
+}
+
+function renderPhoneRegistration() {
+  const box = $('accountState');
+  box.innerHTML = `<form class="phone-auth-form" id="phoneRegisterForm"><h3>${language === 'en' ? 'Create a new account' : 'إنشاء حساب جديد'}</h3><label for="phoneNameInput">${language === 'en' ? 'Name' : 'الاسم'}</label><input id="phoneNameInput" required type="text" autocomplete="name"><label for="phoneRegisterInput">${language === 'en' ? 'Phone number' : 'رقم الهاتف'}</label><input id="phoneRegisterInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><label for="phoneRegisterPin">PIN</label><input id="phoneRegisterPin" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><label for="phoneRegisterConfirm">${language === 'en' ? 'Confirm PIN' : 'تأكيد PIN'}</label><input id="phoneRegisterConfirm" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="••••"><button class="btn btn-primary" type="submit">${language === 'en' ? 'Create account' : 'إنشاء الحساب'}</button><button class="btn btn-outline" id="backToPhoneLogin" type="button">${language === 'en' ? 'Back' : 'رجوع'}</button></form>`;
+  $('phoneRegisterForm').addEventListener('submit', (event) => submitPhoneAuth(event, 'register', false));
+  $('backToPhoneLogin').addEventListener('click', renderAccount);
+}
+
+async function submitPhoneAuth(event, mode, linkExisting) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit.disabled) return;
+  const isLink = Boolean(linkExisting);
+  const phone = $(isLink ? 'phoneLinkInput' : mode === 'login' ? 'phoneNumberInput' : 'phoneRegisterInput')?.value.trim();
+  const pin = $(isLink ? 'phoneLinkPin' : mode === 'login' ? 'phonePinInput' : 'phoneRegisterPin')?.value.trim();
+  const confirmPin = $(isLink ? 'phoneLinkConfirm' : 'phoneRegisterConfirm')?.value.trim();
+  if (!/^07[3-9][0-9]{8}$/.test(englishDigits(phone).replace(/\s/g, '')) || !/^\d{4}$/.test(englishDigits(pin)) || (mode === 'register' && pin !== confirmPin)) {
+    showToast(language === 'en' ? 'Enter a valid phone number and matching 4-digit PIN.' : 'أدخل رقم هاتف صحيح وPIN من 4 أرقام متطابق.'); return;
+  }
+  submit.disabled = true;
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (isLink && authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
+    const payload = { phone, pin };
+    if (mode === 'register') { payload.name = isLink ? (authUser?.displayName || authUser?.email || 'Customer') : $('phoneNameInput')?.value.trim(); payload.confirmPin = confirmPin; }
+    const response = await fetch(`${BACKEND_URL}/api/auth/phone/${mode}`, { method: 'POST', headers, body: JSON.stringify(payload) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'AUTH_ERROR');
+    if (data.customToken) await signInWithCustomToken(auth, data.customToken);
+    showToast(language === 'en' ? (mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.') : (mode === 'login' ? 'تم تسجيل الدخول بنجاح.' : 'تم إنشاء الحساب بنجاح.'));
+  } catch (error) {
+    const messages = { PHONE_ALREADY_REGISTERED: 'رقم الهاتف مستخدم مسبقاً', AUTH_INVALID_CREDENTIALS: 'رقم الهاتف أو الرمز غير صحيح', AUTH_RATE_LIMITED: 'محاولات كثيرة. حاول لاحقاً.', AUTH_BACKEND_NOT_CONFIGURED: 'تسجيل الهاتف غير مهيأ على الخادم.' };
+    showToast(language === 'en' ? (error.message === 'AUTH_INVALID_CREDENTIALS' ? 'Phone number or PIN is incorrect.' : `Could not complete sign-in: ${error.message}`) : (messages[error.message] || 'تعذر إكمال تسجيل الدخول.'));
+  } finally { submit.disabled = false; }
+}
+
+async function submitChangePin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  const currentPin = $('currentPinInput').value.trim();
+  const newPin = $('newPinInput').value.trim();
+  const confirmPin = $('newPinConfirmInput').value.trim();
+  if (!/^\d{4}$/.test(currentPin) || !/^\d{4}$/.test(newPin) || newPin !== confirmPin) { showToast(language === 'en' ? 'Use four digits and confirm the new PIN.' : 'استخدم 4 أرقام وأكد PIN الجديد.'); return; }
+  submit.disabled = true;
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/auth/phone/change-pin`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await authUser.getIdToken()}` }, body: JSON.stringify({ phone: authUser.phoneNumber || '00000000000', pin: currentPin, newPin, confirmPin }) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'AUTH_ERROR');
+    form.reset(); showToast(language === 'en' ? 'PIN changed successfully.' : 'تم تغيير PIN بنجاح.');
+  } catch (error) { showToast(language === 'en' ? 'Could not change PIN.' : (error.message === 'AUTH_INVALID_CREDENTIALS' ? 'PIN الحالي غير صحيح.' : 'تعذر تغيير PIN.')); }
+  finally { submit.disabled = false; }
 }
 
 // ===== Chatbot =====
@@ -1335,21 +1386,6 @@ function normalizeIraqPhone(value) {
   if (/^9647[3-9][0-9]{8}$/.test(digits)) return `+${digits}`;
   return '';
 }
-async function startPhoneAuth() {
-  const phone = normalizeIraqPhone($('phoneNumberInput')?.value || '');
-  if (!phone) { showToast(language === 'en' ? 'Enter a valid Iraqi number such as 078XXXXXXXX.' : 'أدخل رقمًا عراقيًا صحيحًا مثل 078XXXXXXXX.'); return; }
-  try {
-    if (!phoneRecaptcha) phoneRecaptcha = new RecaptchaVerifier(auth, 'phoneRecaptcha', { size: 'invisible' });
-    phoneConfirmation = await signInWithPhoneNumber(auth, phone, phoneRecaptcha);
-    $('phoneCodeInput').classList.remove('hidden'); $('phoneVerifyBtn').classList.remove('hidden'); $('phoneSignInBtn').disabled = true;
-    showToast(language === 'en' ? 'The verification code was sent.' : 'تم إرسال رمز التحقق.');
-  } catch (e) {
-    phoneConfirmation = null;
-    showToast(language === 'en' ? `Could not send OTP: ${e.code || 'AUTH_ERROR'}` : `تعذر إرسال الرمز: ${e.code || 'AUTH_ERROR'}`);
-    try { await phoneRecaptcha?.clear(); } catch {} phoneRecaptcha = null;
-  }
-}
-
 // ===== Checkout =====
 function openCheckout() {
   const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p ? productPrice(p) * item.qty : 0); }, 0);

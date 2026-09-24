@@ -7,7 +7,193 @@ export default {
   }
 };
 
-export { normalizePricingTier, resolveProductPrice };
+export { normalizePricingTier, resolveProductPrice, normalizeIraqPhone, validatePin, hashPin, verifyPin };
+
+const PHONE_LOGIN_LIMIT = 6;
+const PHONE_LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const PHONE_LOGIN_COOLDOWN_MS = 15 * 60 * 1000;
+const phoneLoginAttempts = new Map();
+
+function normalizeIraqPhone(value) {
+  const digits = String(value || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/[^0-9+]/g, '').replace(/^00/, '+');
+  if (/^07[3-9][0-9]{8}$/.test(digits)) return `+964${digits.slice(1)}`;
+  if (/^\+9647[3-9][0-9]{8}$/.test(digits)) return digits;
+  if (/^9647[3-9][0-9]{8}$/.test(digits)) return `+${digits}`;
+  return '';
+}
+
+function validatePin(pin) {
+  return /^[0-9]{4}$/.test(String(pin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))));
+}
+
+function randomBytes(length) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return bytes;
+}
+
+function base64Url(bytes) {
+  const input = typeof bytes === 'string' ? new TextEncoder().encode(bytes) : bytes;
+  let binary = '';
+  for (const byte of input) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function fromBase64(value) {
+  const normalized = String(value).replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(String(value).length / 4) * 4, '=');
+  const binary = atob(normalized);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function hashPin(pin, salt = randomBytes(16), iterations = 210000) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(pin)), { name: 'PBKDF2' }, false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
+  return { algorithm: 'PBKDF2-SHA256', iterations, salt: base64Url(salt), hash: base64Url(new Uint8Array(bits)) };
+}
+
+async function verifyPin(pin, credential) {
+  if (!credential?.salt || !credential?.hash || !validatePin(pin)) return false;
+  const computed = await hashPin(pin, fromBase64(credential.salt), Number(credential.iterations) || 210000);
+  const expected = fromBase64(credential.hash);
+  const actual = fromBase64(computed.hash);
+  if (expected.length !== actual.length) return false;
+  let difference = 0;
+  for (let i = 0; i < expected.length; i += 1) difference |= expected[i] ^ actual[i];
+  return difference === 0;
+}
+
+function serviceAccount(env) {
+  try {
+    const raw = String(env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+async function firebaseCustomToken(uid, env) {
+  const account = serviceAccount(env);
+  if (!account?.client_email || !account?.private_key) throw new Error('AUTH_BACKEND_NOT_CONFIGURED');
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const payload = base64Url(JSON.stringify({
+    iss: account.client_email,
+    sub: account.client_email,
+    aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit',
+    iat: now,
+    exp: now + 3600,
+    uid: String(uid)
+  }));
+  const pem = account.private_key.replace(/\\n/g, '\n').replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, '');
+  const key = await crypto.subtle.importKey('pkcs8', fromBase64(pem), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${payload}`));
+  return `${header}.${payload}.${base64Url(new Uint8Array(signature))}`;
+}
+
+function authToken(request) {
+  return (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+}
+
+async function verifyFirebaseIdToken(token, env) {
+  if (!token) return null;
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(env.FIREBASE_API_KEY)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token })
+  });
+  const data = await response.json().catch(() => ({}));
+  const user = data?.users?.[0];
+  return response.ok && user?.localId ? { uid: String(user.localId), email: user.email || '', displayName: user.displayName || '' } : null;
+}
+
+function authDatabaseUrl(env, path) {
+  const secret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
+  if (!secret) throw new Error('AUTH_BACKEND_NOT_CONFIGURED');
+  return firebaseUrl(env, path, secret);
+}
+
+async function readDatabase(env, path) {
+  const response = await fetch(authDatabaseUrl(env, path));
+  return response.ok ? response.json() : null;
+}
+
+async function writeDatabase(env, path, value, method = 'PUT') {
+  const response = await fetch(authDatabaseUrl(env, path), { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
+  if (!response.ok) throw new Error('AUTH_DATABASE_ERROR');
+  return response;
+}
+
+async function findProfileUidByPhone(env, phone) {
+  const profiles = await readDatabase(env, 'profiles.json');
+  if (!profiles || typeof profiles !== 'object') return null;
+  for (const [uid, profile] of Object.entries(profiles)) {
+    if (normalizeIraqPhone(profile?.phone) === phone) return uid;
+  }
+  return null;
+}
+
+function failedLoginKey(request, phone) {
+  return `${request.headers?.get?.('CF-Connecting-IP') || 'unknown'}:${phone}`;
+}
+
+function checkLoginRateLimit(request, phone) {
+  const key = failedLoginKey(request, phone);
+  const now = Date.now();
+  const entry = phoneLoginAttempts.get(key);
+  if (!entry || now - entry.startedAt > PHONE_LOGIN_WINDOW_MS) return { key, allowed: true };
+  if (entry.cooldownUntil > now) return { key, allowed: false };
+  return { key, allowed: true };
+}
+
+function recordFailedLogin(rate) {
+  const now = Date.now();
+  const entry = phoneLoginAttempts.get(rate.key) || { startedAt: now, count: 0, cooldownUntil: 0 };
+  entry.count += 1;
+  if (entry.count >= PHONE_LOGIN_LIMIT) entry.cooldownUntil = now + PHONE_LOGIN_COOLDOWN_MS;
+  phoneLoginAttempts.set(rate.key, entry);
+}
+
+function clearFailedLogin(rate) { phoneLoginAttempts.delete(rate.key); }
+
+async function handlePhoneAuth(request, env, url) {
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return errorResponse('INVALID_REQUEST', 400);
+  const phone = normalizeIraqPhone(body.phone);
+  const pin = String(body.pin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  if (!phone || !validatePin(pin)) return errorResponse('INVALID_PHONE_OR_PIN', 400);
+
+  if (url.pathname === '/api/auth/phone/register') {
+    const authenticated = await verifyFirebaseIdToken(authToken(request), env);
+    const existingProfile = authenticated ? await readDatabase(env, `profiles/${encodeURIComponent(authenticated.uid)}.json`) : null;
+    const name = String(body.name || existingProfile?.name || authenticated?.displayName || '').trim().slice(0, 100);
+    if (!name) return errorResponse('NAME_REQUIRED', 400);
+    if (String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))) !== pin) return errorResponse('PIN_CONFIRMATION_MISMATCH', 400);
+    const existingUid = await readDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`) || await findProfileUidByPhone(env, phone);
+    if (existingUid && (!authenticated || existingUid !== authenticated.uid)) return errorResponse('PHONE_ALREADY_REGISTERED', 409);
+    const uid = authenticated?.uid || existingUid || `phone-${crypto.randomUUID()}`;
+    const credential = await hashPin(pin);
+    const profile = { uid, name, phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
+    await writeDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`, uid);
+    await writeDatabase(env, '', { [`profiles/${uid}`]: { ...(await readDatabase(env, `profiles/${uid}.json`)) || {}, ...profile }, [`profile_credentials/${uid}`]: credential }, 'PATCH');
+    return jsonResponse({ success: true, uid, customToken: await firebaseCustomToken(uid, env) });
+  }
+
+  if (url.pathname === '/api/auth/phone/login') {
+    const rate = checkLoginRateLimit(request, phone);
+    if (!rate.allowed) return errorResponse('AUTH_RATE_LIMITED', 429);
+    const uid = await readDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`);
+    const credential = uid ? await readDatabase(env, `profile_credentials/${encodeURIComponent(uid)}.json`) : null;
+    const valid = Boolean(uid && credential && await verifyPin(pin, credential));
+    if (!valid) { recordFailedLogin(rate); return errorResponse('AUTH_INVALID_CREDENTIALS', 401); }
+    clearFailedLogin(rate);
+    return jsonResponse({ success: true, uid, customToken: await firebaseCustomToken(uid, env) });
+  }
+
+  const user = await verifyFirebaseIdToken(authToken(request), env);
+  if (!user) return errorResponse('AUTH_REQUIRED', 401);
+  const current = await readDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`);
+  const newPin = String(body.newPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  const confirmedPin = String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+  if (!await verifyPin(pin, current) || !validatePin(newPin) || newPin !== confirmedPin) return errorResponse('AUTH_INVALID_CREDENTIALS', 401);
+  await writeDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`, await hashPin(newPin));
+  return jsonResponse({ success: true });
+}
 
 function normalizePricingTier(profile) {
   const tier = String(profile?.pricing_tier || profile?.accountType || 'public').toLowerCase();
@@ -29,6 +215,11 @@ function resolveProductPrice(product, privatePrice = {}, tier = 'public') {
 
 async function handleRequest(request, env) {
     const url = new URL(request.url);
+
+    if (request.method === 'POST' && ['/api/auth/phone/register', '/api/auth/phone/login', '/api/auth/phone/change-pin'].includes(url.pathname)) {
+      try { return await handlePhoneAuth(request, env, url); }
+      catch (error) { return error?.message === 'AUTH_BACKEND_NOT_CONFIGURED' ? errorResponse('AUTH_BACKEND_NOT_CONFIGURED', 503) : errorResponse('AUTH_ERROR', 500); }
+    }
 
     if (url.pathname === '/api/store/prices' && request.method === 'GET') {
       try {

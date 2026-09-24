@@ -8,3 +8,4 @@ ADMIN_UID = "e8uTdYi5TQOsrztxPnlD7X4GKAx1"
 FIREBASE_PROJECT_ID = "spider-aaa19"
 # GITHUB_TOKEN must be set via secrets: wrangler secret put GITHUB_TOKEN
 # FIREBASE_DATABASE_SECRET must be set via secrets before enabling checkout writes.
+# FIREBASE_SERVICE_ACCOUNT_JSON must be set via secrets for Phone/PIN Custom Tokens.
