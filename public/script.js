@@ -1267,12 +1267,12 @@ function appendTyping() {
 
 function chatAllowsOverBudget(text) { return /(ممكن\s*(أزيد|ازيد)|زيدلي|أقرب\s*شي\s*فوق|حتى\s*لو\s*أغلى|حتى\s*لو\s*اغلى|over\s*budget|more\s*expensive)/i.test(englishDigits(text)); }
 function chatBudgetFromText(text) {
-  const value = englishDigits(text).match(/(?:ميزانيتي|حدودي|عندي|تحت|لا\s*يتجاوز|ما\s*أريد\s*أتجاوز|ما\s*اريد\s*اتجاوز)\s*(\d[\d,. ]*|خمسين|مئة|مائه|عشرين|ثلاثين|أربعين|خمسين|ستين|سبعين|ثمانين|تسعين)\s*(ألف|الف|آلاف|k)?/i);
+  const value = englishDigits(text).match(/(?:^|\s)(?:ميزانيتي|بحدود|حدودي|عندي|تحت|لا\s*يتجاوز|ما\s*أريد\s*أتجاوز|ما\s*اريد\s*اتجاوز)\s*(\d[\d,.]*|خمسين|مئة|مائه|عشرين|ثلاثين|أربعين|خمسين|ستين|سبعين|ثمانين|تسعين)\s*(ألف|الف|آلاف|k)?/i);
   if (!value) return null;
   const words = { خمسين: 50, مئة: 100, مائه: 100, عشرين: 20, ثلاثين: 30, أربعين: 40, اربعين: 40, ستين: 60, سبعين: 70, ثمانين: 80, تسعين: 90 };
   const raw = Number(value[1].replace(/[^0-9]/g, '')) || words[value[1]];
   let budget = Number.isFinite(raw) ? raw * (value[2] || raw < 1000 ? 1000 : 1) : null;
-  const increase = englishDigits(text).match(/(?:زيدلي|أزيد|ازيد)\s*(\d[\d,. ]*)\s*(ألف|الف|آلاف|k)?/i);
+  const increase = englishDigits(text).match(/(?:^|\s)(?:زيدلي|أزيد|ازيد)\s*(\d[\d,.]*)\s*(ألف|الف|آلاف|k)?/i);
   if (increase && budget) { const extra = Number(increase[1].replace(/[^0-9]/g, '')); budget += extra * (increase[2] || extra < 1000 ? 1000 : 1); }
   return budget;
 }

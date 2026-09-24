@@ -65,10 +65,14 @@ async function handleRequest(request, env) {
         const productsObj = await productsRes.json() || {};
         const pricesRes = accountType === 'retail' ? null : await fetch(firebaseUrl(env, 'private_prices.json', secret));
         const privatePrices = pricesRes?.ok ? ((await pricesRes.json()) || {}) : {};
-        const budget = detectChatBudget(message, state.budget);
-        const candidates = retrieveChatProducts(productsObj, privatePrices, message, accountType, budget);
         const nextState = updateChatState(state, message);
+        const budget = detectChatBudget(message, nextState.budget);
         nextState.budget = budget?.limit ?? nextState.budget;
+        const discovery = chatDiscoveryStatus(message, nextState, budget);
+        if (!discovery.ready) {
+          return jsonResponse({ success: true, reply: discovery.reply, products: [], state: nextState });
+        }
+        const candidates = retrieveChatProducts(productsObj, privatePrices, message, accountType, budget, nextState);
         if (budget?.limit && candidates.length === 0 && !budget.allowOverBudget) {
           const formattedBudget = new Intl.NumberFormat('en-US').format(budget.limit);
           const reply = language === 'en'
@@ -396,20 +400,92 @@ function firebaseUrl(env, path, secret) {
 
 function normalizeChatState(value) {
   const source = value && typeof value === 'object' ? value : {};
-  return { useCase: String(source.useCase || '').slice(0, 40), budget: Number.isFinite(Number(source.budget)) ? Number(source.budget) : null, preferredBrands: Array.isArray(source.preferredBrands) ? source.preferredBrands.slice(0, 5).map((item) => String(item).slice(0, 40)) : [], resolution: String(source.resolution || '').slice(0, 20), selectedProducts: Array.isArray(source.selectedProducts) ? source.selectedProducts.slice(0, 8).map((item) => String(item).slice(0, 80)) : [] };
+  const parsedBudget = source.budget === null || source.budget === '' || source.budget === undefined ? null : Number(source.budget);
+  return { useCase: String(source.useCase || '').slice(0, 40), budget: Number.isFinite(parsedBudget) && parsedBudget > 0 ? parsedBudget : null, preferredBrands: Array.isArray(source.preferredBrands) ? source.preferredBrands.slice(0, 5).map((item) => String(item).slice(0, 40)) : [], resolution: String(source.resolution || '').slice(0, 20), category: String(source.category || '').slice(0, 20), capacity: String(source.capacity || '').slice(0, 20), memoryType: String(source.memoryType || '').slice(0, 20), storageType: String(source.storageType || '').slice(0, 20), connection: String(source.connection || '').slice(0, 20), processor: String(source.processor || '').slice(0, 60), selectedProducts: Array.isArray(source.selectedProducts) ? source.selectedProducts.slice(0, 8).map((item) => String(item).slice(0, 80)) : [] };
 }
 
 function updateChatState(state, message) {
   const normalized = normalizeChatState(state);
-  const ascii = String(message).replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
-  const budget = ascii.match(/(?:\d[\d,\. ]{2,})/);
-  if (budget && !normalized.budget) normalized.budget = Number(budget[0].replace(/[^0-9]/g, '')) || null;
   if (/ألعاب|gaming/i.test(message)) normalized.useCase = 'gaming';
   else if (/دراسة|study/i.test(message)) normalized.useCase = 'study';
   else if (/تصميم|مونتاج|design|video/i.test(message)) normalized.useCase = 'design';
   const resolution = message.match(/1080p|1440p|4k/i);
   if (resolution) normalized.resolution = resolution[0];
+  const category = chatCategoryFromText(message);
+  if (category) normalized.category = category;
+  const capacity = message.match(/\b(\d{1,4})\s*(gb|tb|ترابا|جيگا|گيگا)\b/i);
+  if (capacity) normalized.capacity = `${capacity[1]}${capacity[2].toLowerCase()}`;
+  const memoryType = message.match(/\bddr\s*[345]\b/i);
+  if (memoryType) normalized.memoryType = memoryType[0].replace(/\s+/g, '').toUpperCase();
+  if (/nvme|m\.2|ssd|hdd/i.test(message)) normalized.storageType = /hdd/i.test(message) ? 'hdd' : /nvme|m\.2/i.test(message) ? 'nvme' : 'ssd';
+  if (/لاسلكي|wireless/i.test(message)) normalized.connection = 'wireless';
+  else if (/سلكي|wired/i.test(message)) normalized.connection = 'wired';
+  const processor = message.match(/(?:ryzen\s*\d|core\s*i\d|i[3579]-?\d{3,5}|معالج\s+[^،,.]+)/i);
+  if (processor) normalized.processor = processor[0].slice(0, 60);
   return normalized;
+}
+
+function chatCategoryFromText(message) {
+  const text = normalizeArabicDigits(message).toLowerCase();
+  if (/gpu|كرت\s*(شاشة|گرافيك)?|بطاقة\s*(شاشة|گرافيك)?|rtx|radeon/.test(text)) return 'gpu';
+  if (/ram|رام|ذاكرة/.test(text)) return 'ram';
+  if (/laptop|لابتوب|لاب.?توب/.test(text)) return 'laptop';
+  if (/monitor|شاشة/.test(text)) return 'monitor';
+  if (/ssd|nvme|m\.2|hdd|تخزين/.test(text)) return 'storage';
+  if (/cpu|معالج|بروسسر/.test(text)) return 'cpu';
+  if (/headset|سماعة|هيدسيت/.test(text)) return 'headset';
+  if (/mouse|ماوس|فأرة/.test(text)) return 'mouse';
+  if (/keyboard|كيبورد|لوحة\s*مفاتيح/.test(text)) return 'keyboard';
+  return '';
+}
+
+function chatDirectProductQuery(message) {
+  const text = normalizeArabicDigits(message).toLowerCase();
+  const knownBrand = /\b(kingston|crucial|corsair|g\.skill|teamgroup|samsung|wd|western\s*digital|seagate|logitech|razer|hyperx|msi|asus|gigabyte|intel|amd|nvidia|lenovo|hp|dell)\b/i.test(text);
+  const modelOrSpec = /\b(?:ddr\s*[345]|\d{1,4}\s*(?:gb|tb)|\d{3,5}(?:mhz|\s*ميگاهرتز)|rtx\s*\d{3,4}|rx\s*\d{3,4}|i[3579]-?\d{3,5}|nvme|m\.2|sodimm|so-dimm)\b/i.test(text);
+  return knownBrand && modelOrSpec;
+}
+
+function chatDiscoveryStatus(message, state, budget) {
+  const category = state.category || chatCategoryFromText(message);
+  if (chatDirectProductQuery(message)) return { ready: true };
+  if (!category) return { ready: false, reply: 'أكيد، شنو نوع المنتج اللي تدور عليه؟ مثلاً لابتوب، كرت شاشة، رام، سماعة، SSD...' };
+  const hasBudget = Number.isFinite(Number(budget?.limit ?? state.budget));
+  const hasCapacity = Boolean(state.capacity);
+  const hasUseCase = Boolean(state.useCase);
+  let ready = false;
+  if (category === 'ram') ready = hasBudget && hasCapacity;
+  else if (category === 'laptop') ready = hasBudget && hasUseCase;
+  else if (category === 'gpu') ready = hasBudget && Boolean(state.processor || state.resolution || hasUseCase);
+  else if (category === 'storage') ready = hasBudget && hasCapacity && Boolean(state.storageType);
+  else if (['headset', 'mouse', 'keyboard'].includes(category)) ready = hasBudget && hasUseCase;
+  else ready = hasBudget;
+  if (ready) return { ready: true };
+  const prompts = {
+    ram: 'تمام، رام. شكد السعة اللي تريدها وشنو ميزانيتك؟',
+    laptop: 'تمام، اللابتوب للاستخدام شنو؟ Gaming لو دراسة/شغل؟ وشكد الميزانية؟',
+    gpu: 'حتى أختارلك صح: شكد الميزانية؟ وشنو المعالج أو الدقة المطلوبة؟',
+    storage: 'تريد SSD/NVMe لو HDD؟ وشكد السعة والميزانية؟',
+    headset: 'تريدها Gaming لو استخدام عادي؟ وشكد الميزانية؟',
+    mouse: 'تريدها Gaming لو استخدام عادي؟ وشكد الميزانية؟',
+    keyboard: 'تريدها Gaming لو استخدام عادي؟ وشكد الميزانية؟'
+  };
+  return { ready: false, reply: prompts[category] || 'شنو الاستخدام وشكد الميزانية حتى أطلعلك خيارات مناسبة؟' };
+}
+
+function chatProductMatchesCategory(text, category) {
+  const aliases = {
+    gpu: /gpu|graphics|كرت|بطاقة|rtx|radeon/,
+    ram: /ram|memory|ذاكرة|رام/,
+    laptop: /laptop|notebook|لابتوب|لاب.?توب/,
+    monitor: /monitor|display|شاشة/,
+    storage: /ssd|nvme|m\.2|hdd|storage|تخزين/,
+    cpu: /cpu|processor|معالج|بروسسر/,
+    headset: /headset|headphone|سماعة|هيدسيت/,
+    mouse: /mouse|ماوس|فأرة/,
+    keyboard: /keyboard|كيبورد|مفاتيح/
+  };
+  return !category || (aliases[category] ? aliases[category].test(text) : text.includes(category));
 }
 
 function normalizeArabicDigits(value) {
@@ -436,8 +512,8 @@ function parseArabicNumber(value) {
 function detectChatBudget(message, previousBudget = null) {
   const text = normalizeArabicDigits(message).toLowerCase().replace(/[،]/g, ',');
   const allowsOverBudget = /(ممكن\s*أزيد|ممكن\s*ازيد|زيدلي|أقرب\s*شي\s*فوق|حتى\s*لو\s*أغلى|حتى\s*لو\s*اغلى|الأفضل\s*حتى|الافضل\s*حتى|over\s*budget|more\s*expensive)/i.test(text);
-  const amountPattern = '(\\d[\\d,. ]*|[أ-ي]+(?:\\s+[أ-ي]+){0,2})';
-  const match = text.match(new RegExp(`(?:ميزانيتي|حدودي|عندي|تحت|لا\\s*يتجاوز|ما\\s*أريد\\s*أتجاوز|ما\\s*اريد\\s*اتجاوز)\\s*${amountPattern}\\s*(ألف|الف|k)?`, 'i'));
+  const amountPattern = '(\\d[\\d,.]*|[أ-ي]+(?:\\s+[أ-ي]+){0,2})';
+  const match = text.match(new RegExp(`(?:ميزانيتي|بحدود|حدودي|عندي|تحت|لا\\s*يتجاوز|ما\\s*أريد\\s*أتجاوز|ما\\s*اريد\\s*اتجاوز)\\s*${amountPattern}\\s*(ألف|الف|آلاف|k)?`, 'i'));
   let limit = null;
   if (match) {
     const raw = parseArabicNumber(match[1]);
@@ -454,17 +530,29 @@ function detectChatBudget(message, previousBudget = null) {
   return limit ? { limit, allowOverBudget: false } : (allowsOverBudget ? { limit: null, allowOverBudget: true } : null);
 }
 
-function retrieveChatProducts(productsObj, privatePrices, message, accountType, budget = null) {
+function retrieveChatProducts(productsObj, privatePrices, message, accountType, budget = null, state = {}) {
   const query = String(message).toLowerCase();
-  const brandMatch = query.match(/\b(msi|asus|gigabyte|corsair|intel|amd|nvidia|lenovo|hp|dell|samsung|lg)\b/i);
-  const categoryMatch = /gpu|كرت|بطاقة|rtx|radeon/.test(query) ? 'gpu' : /ram|رام|ذاكرة/.test(query) ? 'ram' : /laptop|لابتوب/.test(query) ? 'laptop' : /monitor|شاشة/.test(query) ? 'monitor' : /ssd|hdd|تخزين/.test(query) ? 'storage' : /cpu|معالج/.test(query) ? 'cpu' : '';
+  const brandMatch = query.match(/\b(kingston|crucial|corsair|g\.skill|teamgroup|samsung|wd|seagate|logitech|razer|hyperx|msi|asus|gigabyte|intel|amd|nvidia|lenovo|hp|dell|lg)\b/i);
+  const categoryMatch = state.category || chatCategoryFromText(query);
+  const direct = chatDirectProductQuery(message);
   const all = Object.entries(productsObj).filter(([, product]) => product && product.status === 'published' && !product.isHidden).map(([id, product]) => {
     const privatePrice = privatePrices[id] || {};
     const price = accountType === 'wholesale' ? (privatePrice.wholesale_price ?? product.wholesale_price ?? product.price) : accountType === 'special' ? (privatePrice.special_price ?? product.special_price ?? product.price) : product.retail_price ?? product.price;
     const stock = product.stockQuantity ?? product.stock;
-    const text = `${product.name || ''} ${product.nameAr || ''} ${product.brand || ''} ${product.model || ''} ${product.category || ''} ${product.categoryId || ''}`.toLowerCase();
+    const text = `${product.name || ''} ${product.nameAr || ''} ${product.brand || ''} ${product.model || ''} ${product.category || ''} ${product.categoryId || ''} ${JSON.stringify(product.specifications || product.specs || {})}`.toLowerCase();
     return { id, name: product.name, nameAr: product.nameAr, brand: product.brand, model: product.model, category: product.category || product.categoryId, image: product.image || product.imageUrl || '', price: Number.isFinite(Number(price)) ? Number(price) : null, available: stock === undefined || stock === null ? true : Number(stock) > 0, specifications: product.specifications || product.specs || {} , _text: text };
-  }).filter((product) => (!brandMatch || product._text.includes(brandMatch[1].toLowerCase())) && (!categoryMatch || product._text.includes(categoryMatch))).sort((a, b) => Number(a.price ?? Number.MAX_SAFE_INTEGER) - Number(b.price ?? Number.MAX_SAFE_INTEGER));
+  }).filter((product) => {
+    const compact = product._text.replace(/\s+/g, '');
+    return product.available
+      && (!brandMatch || product._text.includes(brandMatch[1].toLowerCase()))
+      && chatProductMatchesCategory(product._text, categoryMatch)
+      && (!state.capacity || compact.includes(state.capacity.toLowerCase().replace(/\s+/g, '')))
+      && (!state.memoryType || product._text.includes(state.memoryType.toLowerCase()));
+  }).sort((a, b) => {
+    const aExact = direct && query.split(/\s+/).filter((token) => token.length > 2 && a._text.includes(token)).length;
+    const bExact = direct && query.split(/\s+/).filter((token) => token.length > 2 && b._text.includes(token)).length;
+    return (bExact - aExact) || (Number(a.price ?? Number.MAX_SAFE_INTEGER) - Number(b.price ?? Number.MAX_SAFE_INTEGER));
+  });
   const eligible = budget?.limit && !budget.allowOverBudget
     ? all.filter((product) => Number.isFinite(product.price) && product.price <= budget.limit)
     : all;
