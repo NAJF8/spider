@@ -912,3 +912,16 @@ ul { list-style: none; }
     .dashboard-hero-card{flex-direction:column-reverse;align-items:flex-start}
     .dashboard-hero-copy{max-width:100%}
 }
+/* Managers Module Specific */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+.checkbox-label input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+}

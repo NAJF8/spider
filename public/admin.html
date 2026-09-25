@@ -505,6 +505,130 @@
                     <button class="btn btn-primary" onclick="switchView('view-dashboard')"><i class="fa-solid fa-house"></i> العودة إلى الرئيسية</button>
                 </div>
             </section>
+        
+            <!-- ================= VIEW: MANAGERS & PERMISSIONS ================= -->
+            <section id="view-managers" class="admin-view hidden">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-shield-halved"></i> المدراء والصلاحيات</h2>
+                        <p>إدارة فريق العمل، الأدوار، وصلاحيات الوصول للنظام.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openManagerModal()"><i class="fa-solid fa-user-plus"></i> إضافة مدير جديد</button>
+                </div>
+
+                <div class="table-container">
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="managersSearch" placeholder="بحث بالاسم، البريد أو الهاتف...">
+                        </div>
+                        <select id="managersRoleFilter" class="form-control" style="width: 200px;">
+                            <option value="">كل الأدوار</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Manager">Manager / مشرف</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Viewer">Viewer</option>
+                        </select>
+                        <select id="managersStatusFilter" class="form-control" style="width: 200px;">
+                            <option value="">كل الحالات</option>
+                            <option value="active">مفعل</option>
+                            <option value="inactive">معطل</option>
+                        </select>
+                    </div>
+
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>المدير</th>
+                                <th>الدور</th>
+                                <th>تاريخ الإضافة</th>
+                                <th>الحالة</th>
+                                <th>إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managersTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Manager Modal -->
+                <div id="managerModal" class="modal">
+                    <div class="modal-content" style="max-width: 700px;">
+                        <span class="close-modal" onclick="closeManagerModal()">&times;</span>
+                        <h2 id="managerModalTitle">إضافة مدير جديد</h2>
+                        
+                        <form id="managerForm">
+                            <input type="hidden" id="managerId">
+                            
+                            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>الاسم الكامل</label>
+                                    <input type="text" id="managerName" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>البريد الإلكتروني</label>
+                                    <input type="email" id="managerEmail">
+                                </div>
+                                <div class="form-group">
+                                    <label>رقم الهاتف</label>
+                                    <input type="tel" id="managerPhone" dir="ltr">
+                                </div>
+                                <div class="form-group">
+                                    <label>الدور (Role)</label>
+                                    <select id="managerRole" required>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Manager">Manager / مشرف</option>
+                                        <option value="Staff">Staff</option>
+                                        <option value="Viewer">Viewer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>الحالة</label>
+                                    <select id="managerStatus">
+                                        <option value="active">مفعل</option>
+                                        <option value="inactive">معطل</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>ملاحظات (اختياري)</label>
+                                    <input type="text" id="managerNotes">
+                                </div>
+                            </div>
+
+                            <div class="permissions-section">
+                                <h3 style="margin-bottom: 15px; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;">صلاحيات الوصول</h3>
+                                <div class="permissions-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;" id="managerPermissions">
+                                    <label class="checkbox-label"><input type="checkbox" value="dashboard"> لوحة القيادة</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="products_view"> عرض المنتجات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="products_add"> إضافة منتجات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="products_edit"> تعديل منتجات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="products_delete"> حذف منتجات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="categories"> الأقسام</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="public_prices"> الأسعار العامة</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="special_prices"> الأسعار الخاصة</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="wholesale_prices"> أسعار الجملة</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="pricing_customers"> تسعير العملاء</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="orders"> الطلبات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="customers"> العملاء</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="chatbot"> إعدادات البوت</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="store_settings"> إعدادات المتجر</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="reports"> التقارير</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="audit_logs"> سجل النشاطات</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="manage_staff"> إدارة الموظفين</label>
+                                    <label class="checkbox-label"><input type="checkbox" value="manage_permissions"> إدارة الصلاحيات</label>
+                                </div>
+                            </div>
+                            
+                            <div class="modal-actions" style="margin-top: 20px;">
+                                <button type="button" class="btn btn-outline" onclick="closeManagerModal()">إلغاء</button>
+                                <button type="submit" class="btn btn-primary" id="saveManagerBtn">حفظ التغييرات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
