@@ -2,97 +2,218 @@
   "rules": {
     "products": {
       ".read": true,
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      "$productId": {
+        ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (!data.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_add').val() === true)) || (data.exists() && newData.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_edit').val() === true)) || (data.exists() && !newData.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_delete').val() === true))"
+      }
     },
     "private_prices": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'special_prices').val() === true))",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'special_prices').val() === true)"
     },
     "categories": {
       ".read": true,
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'categories').val() === true)"
     },
     "offers": {
       ".read": true,
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'categories').val() === true)"
     },
     "settings": {
       ".read": true,
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'store_settings').val() === true)"
     },
     "users": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true)",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        ".write": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        "role": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "permissions": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "pricing_tier": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "accountType": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "uid": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        }
+      }
     },
     "profiles": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true)",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        ".write": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        "role": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "permissions": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "pricing_tier": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "accountType": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        },
+        "uid": {
+          ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
+        }
+      }
     },
     "pricing_identities": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'pricing_customers').val() === true))",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'pricing_customers').val() === true)"
     },
     "auditLogs": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'audit_logs').val() === true))",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'audit_logs').val() === true)"
     },
     "reports": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'reports').val() === true))",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'reports').val() === true)"
     },
     "admins": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
+        ".write": "auth != null && ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
+        ".validate": "$uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+        "role": {
+          ".validate": "(data.val() === newData.val()) || ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') && auth.uid !== $uid && newData.val() !== 'Super Admin') || ((auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true) && auth.uid !== $uid && newData.val() !== 'Super Admin') || (!data.exists() && newData.val() !== 'Super Admin')"
+        },
+        "permissions": {
+          ".validate": "(data.val() === newData.val()) || ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') && auth.uid !== $uid) || ((auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true) && auth.uid !== $uid)",
+          "$permId": {
+            ".validate": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || root.child('admins/'+auth.uid+'/permissions/'+$permId).val() === true"
+          }
+        }
+      }
     },
     "orders": {
-      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'orders').val() === true)",
       "$orderId": {
-        ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+        ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'orders').val() === true)",
         ".validate": "newData.hasChildren(['orderNumber', 'customerName', 'customerPhone', 'governorate', 'city', 'subtotal', 'grandTotal', 'timestamp'])",
-        
-        "orderNumber": { ".validate": "newData.isString() && newData.val().length < 50" },
-        "customerName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 100" },
-        "customerPhone": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 30" },
-        "governorate": { ".validate": "newData.isString() && newData.val().length < 50" },
-        "city": { ".validate": "newData.isString() && newData.val().length < 50" },
-        "district": { ".validate": "newData.isString() && newData.val().length < 80" },
-        "subdistrict": { ".validate": "newData.isString() && newData.val().length < 80" },
-        "neighborhood": { ".validate": "newData.isString() && newData.val().length < 120" },
-        "addressDetails": { ".validate": "newData.isString() && newData.val().length < 300" },
-        "address": { ".validate": "newData.isString() && newData.val().length < 300" },
-        "notes": { ".validate": "newData.isString() && newData.val().length < 1000" },
-        "subtotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-        "deliveryFee": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
-        "grandTotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-        "timestamp": { ".validate": "newData.isNumber()" },
-        "status": { 
-          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'cancelled')" 
+        "orderNumber": {
+          ".validate": "newData.isString() && newData.val().length < 50"
         },
-        "customer_pricing_tier": { ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')" },
-        
+        "customerName": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 100"
+        },
+        "customerPhone": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 30"
+        },
+        "governorate": {
+          ".validate": "newData.isString() && newData.val().length < 50"
+        },
+        "city": {
+          ".validate": "newData.isString() && newData.val().length < 50"
+        },
+        "district": {
+          ".validate": "newData.isString() && newData.val().length < 80"
+        },
+        "subdistrict": {
+          ".validate": "newData.isString() && newData.val().length < 80"
+        },
+        "neighborhood": {
+          ".validate": "newData.isString() && newData.val().length < 120"
+        },
+        "addressDetails": {
+          ".validate": "newData.isString() && newData.val().length < 300"
+        },
+        "address": {
+          ".validate": "newData.isString() && newData.val().length < 300"
+        },
+        "notes": {
+          ".validate": "newData.isString() && newData.val().length < 1000"
+        },
+        "subtotal": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+        },
+        "deliveryFee": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000"
+        },
+        "grandTotal": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+        },
+        "timestamp": {
+          ".validate": "newData.isNumber()"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'cancelled')"
+        },
+        "customer_pricing_tier": {
+          ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')"
+        },
         "items": {
           "$itemIndex": {
-             ".validate": "newData.hasChildren(['id', 'name', 'price', 'quantity'])",
-             "id": { ".validate": "newData.isString() && newData.val().length < 100" },
-             "product_id": { ".validate": "newData.isString() && newData.val().length < 100" },
-             "name": { ".validate": "newData.isString() && newData.val().length < 200" },
-             "product_name": { ".validate": "newData.isString() && newData.val().length < 200" },
-             "price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-             "quantity": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100" },
-             "qty": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100" },
-             "unit_price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-             "pricing_tier_applied": { ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')" },
-             "line_total": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-             "public_price_snapshot": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
-             "special_price_snapshot": { ".validate": "newData.isNumber() || newData.val() == null" },
-             "wholesale_price_snapshot": { ".validate": "newData.isNumber() || newData.val() == null" },
-             "$other": { ".validate": "false" }
+            ".validate": "newData.hasChildren(['id', 'name', 'price', 'quantity'])",
+            "id": {
+              ".validate": "newData.isString() && newData.val().length < 100"
+            },
+            "product_id": {
+              ".validate": "newData.isString() && newData.val().length < 100"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length < 200"
+            },
+            "product_name": {
+              ".validate": "newData.isString() && newData.val().length < 200"
+            },
+            "price": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+            },
+            "quantity": {
+              ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100"
+            },
+            "qty": {
+              ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100"
+            },
+            "unit_price": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+            },
+            "pricing_tier_applied": {
+              ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')"
+            },
+            "line_total": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+            },
+            "public_price_snapshot": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000"
+            },
+            "special_price_snapshot": {
+              ".validate": "newData.isNumber() || newData.val() == null"
+            },
+            "wholesale_price_snapshot": {
+              ".validate": "newData.isNumber() || newData.val() == null"
+            },
+            "$other": {
+              ".validate": "false"
+            }
           }
         },
-        
         "$other": {
           ".validate": "false"
         }
+      }
+    },
+    "pending_admins": {
+      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)",
+      "$key": {
+        ".read": "auth != null && (data.child('email').val() === auth.token.email || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
+        ".write": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)"
+      }
+    },
+    "profile_credentials": {
+      ".read": false,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
       }
     }
   }
