@@ -1897,11 +1897,12 @@ let allAdminsData = {};
 let allPendingAdminsData = {};
 
 window.initManagersModule = function() {
-    if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff && !window.currentAdminPermissions.manage_permissions) {
-        document.querySelector('[data-view="view-managers"]').parentElement.style.display = 'none';
-        return;
+    const canSee = window.isSuperAdmin || (window.currentAdminPermissions && (window.currentAdminPermissions.manage_staff || window.currentAdminPermissions.manage_permissions));
+    const navLink = document.querySelector('[data-view="view-managers"]');
+    if (navLink && navLink.parentElement) {
+        navLink.parentElement.style.display = canSee ? 'block' : 'none';
     }
-    document.querySelector('[data-view="view-managers"]').parentElement.style.display = 'block';
+    if (!canSee) return;
 
     const adminsRef = ref(db, 'admins');
     onValue(adminsRef, (snapshot) => {
@@ -1936,7 +1937,7 @@ window.renderManagersTable = function() {
     combined.push({
         id: SUPER_ADMIN_UID,
         isSuper: true,
-        name: 'Super Admin (System Owner)',
+        name: 'Super Admin',
         role: 'Super Admin',
         status: 'active',
         addedAt: 0,
@@ -1955,30 +1956,54 @@ window.renderManagersTable = function() {
     combined.forEach(m => {
         const email = m.email || '';
         const name = m.name || m.email || 'غير معروف';
+        const phone = m.phone || '';
         
-        if (search && !name.toLowerCase().includes(search) && !email.toLowerCase().includes(search) && !(m.phone||'').includes(search)) return;
+        if (search && !name.toLowerCase().includes(search) && !email.toLowerCase().includes(search) && !(phone).includes(search)) return;
         if (roleFilter && m.role !== roleFilter && !m.isSuper) return;
-        if (statusFilter && m.status !== statusFilter && !m.isSuper) return;
+        
+        if (statusFilter) {
+            if (statusFilter === 'pending' && m.type !== 'pending') return;
+            if (statusFilter !== 'pending' && m.type === 'pending') return;
+            if (statusFilter !== 'pending' && m.status !== statusFilter && !m.isSuper) return;
+        }
 
         let actions = '';
         if (m.isSuper) {
-            actions = '<span class="badge badge-primary">محمي</span>';
+            actions = '<span class="badge" style="background:#4b5563;color:white;"><i class="fa-solid fa-lock"></i> محمي</span>';
         } else {
             actions = `
-                <button class="btn btn-sm btn-outline" onclick="editManager('${m.id}', '${m.type}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline" title="تعديل / الصلاحيات" onclick="editManager('${m.id}', '${m.type}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline" title="تفعيل / تعطيل" onclick="toggleManagerStatus('${m.id}', '${m.type}', '${m.status}')"><i class="fa-solid fa-power-off"></i></button>
+                <button class="btn btn-sm btn-outline btn-danger" title="حذف" onclick="deleteManager('${m.id}', '${m.type}')"><i class="fa-solid fa-trash"></i></button>
             `;
         }
         
+        let permissionsCount = m.isSuper ? 'الكل' : (m.permissions ? Object.keys(m.permissions).length : 0);
+        let addedAt = m.addedAt ? new Date(m.addedAt).toLocaleDateString('ar-IQ') : '---';
+        let updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleDateString('ar-IQ') : '---';
+
+        let statusBadge = '';
+        if (m.type === 'pending') {
+            statusBadge = '<span class="badge" style="background:#f59e0b;color:white;">Pending</span>';
+        } else {
+            statusBadge = m.status === 'active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Disabled</span>';
+        }
+        
+        let roleBadge = m.isSuper ? '<span class="badge" style="background:#e63946;color:white;"><i class="fa-solid fa-crown"></i> Super Admin / المالك</span>' : `<span class="badge">${m.role || 'Admin'}</span>`;
+
         html += `
             <tr>
                 <td>
                     <strong>${name}</strong>
-                    <div style="font-size: 0.85em; color: #6b7280;">${email} ${m.type === 'pending' ? '(في الانتظار)' : ''}</div>
+                    <div style="font-size: 0.85em; color: #6b7280;">${email}</div>
+                    ${phone ? `<div style="font-size: 0.85em; color: #6b7280;" dir="ltr">${phone}</div>` : ''}
                 </td>
-                <td><span class="badge">${m.role || 'Admin'}</span></td>
-                <td>${m.addedAt ? new Date(m.addedAt).toLocaleDateString('ar-IQ') : '---'}</td>
-                <td><span class="badge ${m.status === 'active' ? 'badge-success' : 'badge-danger'}">${m.status === 'active' ? 'مفعل' : 'معطل'}</span></td>
-                <td>${actions}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td><span class="badge badge-light">${permissionsCount}</span></td>
+                <td>${addedAt}</td>
+                <td>${updatedAt}</td>
+                <td><div style="display:flex;gap:5px;">${actions}</div></td>
             </tr>
         `;
     });
@@ -1998,6 +2023,58 @@ window.openManagerModal = function() {
 
 window.closeManagerModal = function() {
     document.getElementById('managerModal').style.display = 'none';
+};
+
+window.toggleManagerStatus = async function(id, type, currentStatus) {
+    if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff) {
+        alert('عذراً، لا تملك صلاحية تعديل المشرفين.');
+        return;
+    }
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const path = type === 'active' ? `admins/${id}` : `pending_admins/${id}`;
+    
+    try {
+        await update(ref(db, path), {
+            status: newStatus,
+            updatedAt: Date.now()
+        });
+        
+        await push(ref(db, 'auditLogs'), {
+            actor: currentAdminUser.email || currentAdminUser.uid,
+            action: 'TOGGLE_MANAGER_STATUS',
+            targetId: id,
+            newStatus: newStatus,
+            timestamp: Date.now()
+        });
+        
+    } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء تغيير الحالة.');
+    }
+};
+
+window.deleteManager = async function(id, type) {
+    if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff) {
+        alert('عذراً، لا تملك صلاحية تعديل المشرفين.');
+        return;
+    }
+    if (!confirm('هل أنت متأكد من حذف هذا المدير نهائياً؟')) return;
+    
+    const path = type === 'active' ? `admins/${id}` : `pending_admins/${id}`;
+    try {
+        await remove(ref(db, path));
+        
+        await push(ref(db, 'auditLogs'), {
+            actor: currentAdminUser.email || currentAdminUser.uid,
+            action: 'DELETE_MANAGER',
+            targetId: id,
+            timestamp: Date.now()
+        });
+        
+    } catch (err) {
+        console.error(err);
+        alert('حدث خطأ أثناء الحذف.');
+    }
 };
 
 window.editManager = function(id, type) {
@@ -2058,10 +2135,25 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
     
     try {
         if (!isEdit) {
-            // New -> add to pending
-            const emailKey = email ? btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : 'phone_' + phone;
-            data.addedAt = Date.now();
-            await set(ref(db, `pending_admins/${emailKey}`), data);
+            // Check if email or phone already exists in admins
+            let existingUid = null;
+            if (email || phone) {
+                existingUid = Object.keys(allAdminsData).find(uid => {
+                    const u = allAdminsData[uid];
+                    return (email && u.email && u.email.toLowerCase() === email.toLowerCase()) || 
+                           (phone && u.phone && u.phone === phone);
+                });
+            }
+
+            if (existingUid) {
+                // Already registered -> update existing using its UID
+                await update(ref(db, `admins/${existingUid}`), data);
+            } else {
+                // New -> add to pending
+                const emailKey = email ? btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : 'phone_' + phone;
+                data.addedAt = Date.now();
+                await set(ref(db, `pending_admins/${emailKey}`), data);
+            }
         } else {
             if (isPendingEdit) {
                 await update(ref(db, `pending_admins/${realId}`), data);

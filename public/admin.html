@@ -65,7 +65,7 @@
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المحتوى"><i class="fa-solid fa-image"></i> <span>المحتوى</span> <span class="badge-sub">قريباً</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="التقارير والإحصائيات"><i class="fa-solid fa-chart-line"></i> <span>التقارير</span> <span class="badge-sub">قريباً</span></a></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المستخدمين"><i class="fa-solid fa-users-gear"></i> <span>المستخدمون</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-managers"><i class="fa-solid fa-users-gear"></i> <span>المدراء والمشرفين</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إعدادات المتجر"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span> <span class="badge-sub">قريباً</span></a></li>
             </ul>
             
@@ -507,49 +507,56 @@
             </section>
         
             <!-- ================= VIEW: MANAGERS & PERMISSIONS ================= -->
-            <section id="view-managers" class="admin-view hidden">
+            <section id="view-managers" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-shield-halved"></i> المدراء والصلاحيات</h2>
+                        <h2><i class="fa-solid fa-shield-halved"></i> إدارة المدراء والمشرفين</h2>
                         <p>إدارة فريق العمل، الأدوار، وصلاحيات الوصول للنظام.</p>
                     </div>
                     <button class="btn btn-primary" onclick="openManagerModal()"><i class="fa-solid fa-user-plus"></i> إضافة مدير جديد</button>
                 </div>
 
-                <div class="table-container">
-                    <div class="filters-bar">
-                        <div class="search-box">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                            <input type="text" id="managersSearch" placeholder="بحث بالاسم، البريد أو الهاتف...">
-                        </div>
-                        <select id="managersRoleFilter" class="form-control" style="width: 200px;">
-                            <option value="">كل الأدوار</option>
-                            <option value="Admin">Admin</option>
-                            <option value="Manager">Manager / مشرف</option>
-                            <option value="Staff">Staff</option>
-                            <option value="Viewer">Viewer</option>
-                        </select>
-                        <select id="managersStatusFilter" class="form-control" style="width: 200px;">
-                            <option value="">كل الحالات</option>
-                            <option value="active">مفعل</option>
-                            <option value="inactive">معطل</option>
-                        </select>
+                <div class="filter-bar box">
+                    <div class="search-input-group">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="managersSearch" placeholder="بحث بالاسم، البريد أو الهاتف...">
                     </div>
+                    <select id="managersRoleFilter" class="filter-select" style="width: 200px;">
+                        <option value="">كل الأدوار</option>
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Supervisor">Supervisor</option>
+                        <option value="Staff">Staff</option>
+                        <option value="Viewer">Viewer</option>
+                    </select>
+                    <select id="managersStatusFilter" class="filter-select" style="width: 200px;">
+                        <option value="">كل الحالات</option>
+                        <option value="active">Active (مفعل)</option>
+                        <option value="inactive">Disabled (معطل)</option>
+                        <option value="pending">Pending (بانتظار التسجيل)</option>
+                    </select>
+                </div>
 
-                    <table class="data-table">
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table">
                         <thead>
                             <tr>
-                                <th>المدير</th>
-                                <th>الدور</th>
-                                <th>تاريخ الإضافة</th>
+                                <th>الاسم / البريد / الهاتف</th>
+                                <th>الدور (Role)</th>
                                 <th>الحالة</th>
-                                <th>إجراءات</th>
+                                <th>الصلاحيات</th>
+                                <th>تاريخ الإضافة</th>
+                                <th>آخر تحديث</th>
+                                <th>الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="managersTableBody">
                             <!-- Populated dynamically -->
                         </tbody>
                     </table>
+                    </div>
                 </div>
 
                 <!-- Manager Modal -->
@@ -578,7 +585,8 @@
                                     <label>الدور (Role)</label>
                                     <select id="managerRole" required>
                                         <option value="Admin">Admin</option>
-                                        <option value="Manager">Manager / مشرف</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Supervisor">Supervisor</option>
                                         <option value="Staff">Staff</option>
                                         <option value="Viewer">Viewer</option>
                                     </select>
@@ -586,8 +594,8 @@
                                 <div class="form-group">
                                     <label>الحالة</label>
                                     <select id="managerStatus">
-                                        <option value="active">مفعل</option>
-                                        <option value="inactive">معطل</option>
+                                        <option value="active">Active (مفعل)</option>
+                                        <option value="inactive">Disabled (معطل)</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
