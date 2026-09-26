@@ -347,19 +347,37 @@ function resolveProductPrice(product, privatePrice = {}, tier = 'public') {
 
 async function handleRequest(request, env) {
     const url = new URL(request.url);
-      if (request.method === 'POST' && url.pathname === '/api/auth/admin-reset-pin') {
-        try {
-          const body = await request.json().catch(() => null);
-          const adminUser = await verifyFirebaseIdToken(authToken(request), env);
-          if (!adminUser || adminUser.uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') return errorResponse('FORBIDDEN', 403);
-          const targetUid = String(body.targetUid || '');
-          const newPin = String(body.newPin || '');
-          if (!targetUid || !validatePin(newPin)) return errorResponse('INVALID_REQUEST', 400);
-          await writeServiceDatabase(env, "profile_credentials/" + encodeURIComponent(targetUid) + ".json", await hashPin(newPin));
-          await writeServiceDatabase(env, 'auditLogs.json', { [crypto.randomUUID()]: { action: 'admin_reset_pin', targetUid, actorUid: adminUser.uid, message: 'Customer PIN reset by Super Admin', timestamp: Date.now() } }, 'PATCH');
-          return jsonResponse({ success: true });
-        } catch { return errorResponse('AUTH_ERROR', 500); }
-      }
+
+    
+    if (request.method === 'POST' && url.pathname === '/api/auth/admin-reset-pin') {
+      try {
+        const body = await request.json().catch(() => null);
+        const adminUser = await verifyFirebaseIdToken(authToken(request), env);
+        if (!adminUser || adminUser.uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') return errorResponse('FORBIDDEN', 403);
+        const targetUid = String(body.targetUid || '');
+        const newPin = String(body.newPin || '');
+        if (!targetUid || !validatePin(newPin)) return errorResponse('INVALID_REQUEST', 400);
+        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(newPin));
+        await writeServiceDatabase(env, 'auditLogs.json', { [crypto.randomUUID()]: { action: 'admin_reset_pin', targetUid, actorUid: adminUser.uid, message: 'Customer PIN reset by Super Admin', timestamp: Date.now() } }, 'PATCH');
+        return jsonResponse({ success: true });
+      } catch { return errorResponse('AUTH_ERROR', 500); }
+    }
+
+    
+    if (request.method === 'POST' && url.pathname === '/api/auth/admin-reset-pin') {
+      try {
+        const body = await request.json().catch(() => null);
+        const adminUser = await verifyFirebaseIdToken(authToken(request), env);
+        if (!adminUser || adminUser.uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') return errorResponse('FORBIDDEN', 403);
+        const targetUid = String(body.targetUid || '');
+        const newPin = String(body.newPin || '');
+        if (!targetUid || !validatePin(newPin)) return errorResponse('INVALID_REQUEST', 400);
+        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(newPin));
+        await writeServiceDatabase(env, 'auditLogs.json', { [crypto.randomUUID()]: { action: 'admin_reset_pin', targetUid, actorUid: adminUser.uid, message: 'Customer PIN reset by Super Admin', timestamp: Date.now() } }, 'PATCH');
+        return jsonResponse({ success: true });
+      } catch { return errorResponse('AUTH_ERROR', 500); }
+    }
+
     if (request.method === 'POST' && ['/api/auth/phone/register', '/api/auth/phone/login', '/api/auth/phone/change-pin'].includes(url.pathname)) {
       try { return await handlePhoneAuth(request, env, url); }
       catch (error) {
@@ -470,7 +488,7 @@ async function handleRequest(request, env) {
         // 1. Verify Authentication (Signature, Expiry, Project, UID)
         const authHeader = request.headers?.get?.('Authorization') || '';
         const token = authHeader.replace('Bearer ', '').trim();
-
+        
         if (!token) return errorResponse('AUTH_REQUIRED', 401);
 
         // Google Identity Toolkit natively checks signature, expiry, and issues it for this specific API_KEY (project)
@@ -487,7 +505,7 @@ async function handleRequest(request, env) {
         }
 
         const uid = verifyData.users[0].localId;
-
+        
         // Strict Admin UID Check
         if (uid !== env.ADMIN_UID) {
           return errorResponse('FORBIDDEN', 403);
@@ -511,7 +529,7 @@ async function handleRequest(request, env) {
         if (!filename.toLowerCase().endsWith('.webp') && !filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.png')) {
           filename += '.webp';
         }
-
+        
         // Enforce prefix and randomness to prevent overwriting other files blindly
         if (!filename.startsWith('product-')) {
           filename = `product-${Date.now()}-${filename}`;
@@ -525,7 +543,7 @@ async function handleRequest(request, env) {
 
         const buffer = await file.arrayBuffer();
         const bytes = new Uint8Array(buffer);
-
+        
         // Basic Magic Byte Check for WebP, JPEG, PNG
         let validImage = false;
         if (bytes.length > 4) {
@@ -671,7 +689,7 @@ async function handleRequest(request, env) {
           if (!liveProd || liveProd.isHidden || liveProd.status !== 'published') {
             return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
           }
-
+          
           const availableStock = liveProd.stockQuantity ?? liveProd.stock;
           if (availableStock !== undefined && availableStock !== null && Number(availableStock) < item.qty) {
             return errorResponse(`OUT_OF_STOCK_${item.id}`, 400);
@@ -763,26 +781,26 @@ async function handleRequest(request, env) {
       try {
         const token = authToken(request);
         if (!token) return jsonResponse({ code: "INVALID_TOKEN" }, 401);
-
+        
         const user = await verifyFirebaseIdToken(token, env);
         if (!user || !user.uid || !user.email) return jsonResponse({ code: "INVALID_TOKEN" }, 401);
-
+        
         const emailKey = btoa(user.email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         const pendingRefPath = `pending_admins/${emailKey}.json`;
-
+        
         const pendingResponse = await serviceDatabaseResponse(env, pendingRefPath);
         const pendingData = pendingResponse.ok ? await pendingResponse.json() : null;
-
+        
         if (!pendingData || typeof pendingData !== 'object' || !pendingData.email || pendingData.linked) {
             return jsonResponse({ code: "NO_PENDING_ADMIN" }, 404);
         }
-
+        
         if (pendingData.email.toLowerCase() !== user.email.toLowerCase()) {
             return jsonResponse({ code: "EMAIL_MISMATCH" }, 403);
         }
 
         const adminRefPath = `admins/${user.uid}.json`;
-
+        
         const existingAdminRes = await serviceDatabaseResponse(env, adminRefPath);
         const existingAdmin = existingAdminRes.ok ? await existingAdminRes.json() : null;
         if (existingAdmin && (existingAdmin.status === 'active' || existingAdmin.active === true || existingAdmin.enabled === true)) {
@@ -802,13 +820,13 @@ async function handleRequest(request, env) {
             updatedAt: Date.now(),
             uid: user.uid
         };
-
+        
         const saveRes = await writeServiceDatabase(env, adminRefPath, newAdminData, 'PUT');
         if (!saveRes.ok) throw new Error('ADMIN_SAVE_FAILED');
-
+        
         const markLinkedData = { ...pendingData, linked: true, linkedUid: user.uid };
         await writeServiceDatabase(env, pendingRefPath, markLinkedData, 'PUT');
-
+        
         return jsonResponse({ linked: true });
       } catch (err) {
         console.error("Claim Pending Error:", err.message);
@@ -1136,5 +1154,3 @@ function preflightResponse(request) {
   const status = origin && !ALLOWED_ORIGINS.has(origin) ? 403 : 204;
   return new Response(null, { status, headers: corsHeaders(request) });
 }
-
-
