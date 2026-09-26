@@ -229,16 +229,34 @@ const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === unde
 const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out']; const s = productStock(p); if (s !== undefined && Number(s) <= lowStockThreshold) return [t('limited'), 'limited']; return [t('available'), 'in']; };
 const imageFor = (p) => p?.image || 'images/default-product.svg';
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
+function categoryOrderValue(category) {
+  const value = Number(category?.order);
+  return Number.isFinite(value) && value > 0 ? value : Number.MAX_SAFE_INTEGER;
+}
+function compareCategoryOrder(a, b) {
+  const diff = categoryOrderValue(a) - categoryOrderValue(b);
+  return diff !== 0 ? diff : String(a?.id || '').localeCompare(String(b?.id || ''));
+}
 function orderedCategories(categories = state.categories) {
   return [...categories]
     .filter((cat) => cat && cat.enabled !== false)
-    .sort((a, b) => {
-      const ao = Number(a.order);
-      const bo = Number(b.order);
-      const aOrder = Number.isFinite(ao) ? ao : 9999;
-      const bOrder = Number.isFinite(bo) ? bo : 9999;
-      return aOrder - bOrder || String(a.id || '').localeCompare(String(b.id || ''));
-    });
+    .sort(compareCategoryOrder);
+}
+function sidebarCategories() {
+  const categoryMap = new Map(state.categories.filter(Boolean).map((category) => [category.id, category]));
+  const visible = new Map();
+  const addCategory = (category) => {
+    if (category && category.enabled !== false) visible.set(category.id, category);
+  };
+
+  // Start with every visible category, then resolve subcategoryIds through the
+  // same object map. The final flat list is deduplicated and sorted once.
+  orderedCategories().forEach(addCategory);
+  state.categories.forEach((category) => {
+    (category.subcategoryIds || []).forEach((id) => addCategory(categoryMap.get(id)));
+  });
+
+  return [...visible.values()].sort(compareCategoryOrder);
 }
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
@@ -433,36 +451,22 @@ function renderCategories() {
     btn.addEventListener('click', () => filterProductsByCategory(btn.dataset.categoryId))
   );
 
-  // Sidebar nav
-  $('sidebarNav').innerHTML = categories.map((cat) => {
-    const subcategories = orderedCategories((cat.subcategoryIds || [])
-      .map((sid) => state.categories.find((candidate) => candidate.id === sid))
-      .filter(Boolean));
-    const hasSubs = subcategories.length > 0;
+  // Sidebar nav: all visible categories share one final order, regardless of
+  // whether they came from a parent list or a subcategoryIds relationship.
+  const sidebarItems = sidebarCategories();
+  $('sidebarNav').innerHTML = sidebarItems.map((cat) => {
     const imgHtml = `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
     return `<li>
-      <button type="button" data-category-id="${esc(cat.id)}" ${hasSubs ? `aria-expanded="false"` : ''}>
+      <button type="button" data-category-id="${esc(cat.id)}">
         <span>${imgHtml} ${esc(categoryLabel(cat))}</span>
-        ${hasSubs ? '<i class="fa-solid fa-chevron-down chevron"></i>' : ''}
       </button>
-      ${hasSubs ? `<ul class="sidebar-sub" id="sub-${esc(cat.id)}">${subcategories.map((sub) => {
-        return `<li><button type="button" data-category-id="${esc(sub.id)}">${esc(categoryLabel(sub))}</button></li>`;
-      }).join('')}</ul>` : ''}
     </li>`;
   }).join('');
 
   $('sidebarNav').querySelectorAll('[data-category-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const hasSubs = btn.hasAttribute('aria-expanded');
-      if (hasSubs) {
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        const subList = document.getElementById(`sub-${btn.dataset.categoryId}`);
-        if (subList) subList.classList.toggle('open', !isExpanded);
-      } else {
-        filterProductsByCategory(btn.dataset.categoryId);
-        closeSidebar();
-      }
+      filterProductsByCategory(btn.dataset.categoryId);
+      closeSidebar();
     });
   });
 }
