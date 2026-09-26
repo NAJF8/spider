@@ -617,8 +617,40 @@ async function handleRequest(request, env) {
         });
 
         if (!githubRes.ok) {
-          console.error("GitHub Upload Error:", await githubRes.text());
-          return errorResponse('GITHUB_UPLOAD_FAILED', 500);
+          const rawGithubBody = await githubRes.text();
+          let githubBody = null;
+          try { githubBody = JSON.parse(rawGithubBody); } catch { /* GitHub may return non-JSON text. */ }
+          const githubMessage = typeof githubBody?.message === 'string'
+            ? githubBody.message
+            : rawGithubBody.slice(0, 500);
+          const failureCode = githubRes.status === 401
+            ? 'GITHUB_UNAUTHORIZED'
+            : githubRes.status === 403
+              ? 'GITHUB_FORBIDDEN'
+              : githubRes.status === 404
+                ? 'GITHUB_PATH_INVALID'
+                : githubRes.status === 409
+                  ? 'GITHUB_CONFLICT'
+                  : githubRes.status === 422
+                    ? 'GITHUB_VALIDATION_FAILED'
+                    : 'GITHUB_UPLOAD_FAILED';
+          const publicMessage = {
+            GITHUB_UNAUTHORIZED: 'GitHub rejected the configured credential.',
+            GITHUB_FORBIDDEN: 'GitHub denied write access to the repository.',
+            GITHUB_PATH_INVALID: 'GitHub could not resolve the repository, branch, or path.',
+            GITHUB_CONFLICT: 'GitHub reported a conflicting file update.',
+            GITHUB_VALIDATION_FAILED: 'GitHub rejected the upload payload or path.',
+            GITHUB_UPLOAD_FAILED: 'GitHub image storage failed.'
+          }[failureCode];
+          console.error(JSON.stringify({
+            code: failureCode,
+            status: githubRes.status,
+            message: githubMessage,
+            documentation_url: typeof githubBody?.documentation_url === 'string' ? githubBody.documentation_url : undefined,
+            kind,
+            path
+          }));
+          return errorResponse(failureCode, 502, { message: publicMessage, upstreamStatus: githubRes.status });
         }
 
         // Success
@@ -1135,8 +1167,8 @@ function providerRejected(data) {
   return Boolean(message && data?.data && typeof data.data === 'object' && !Array.isArray(data.data) && Object.keys(data.data).length === 0 && !/^(ok|success|succeed|completed?)$/.test(message));
 }
 
-function errorResponse(code, status) {
-  return new Response(JSON.stringify({ error: code }), {
+function errorResponse(code, status, details = {}) {
+  return new Response(JSON.stringify({ error: code, ...details }), {
     status: status,
     headers: {
       'Content-Type': 'application/json'

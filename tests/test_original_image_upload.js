@@ -15,5 +15,13 @@ assert.doesNotMatch(activeUpload, /toDataURL|drawImage|canvas\.width|setTimeout\
 assert.match(workerJs, /image\/jpeg.*image\/png.*image\/webp.*image\/gif.*image\/avif.*image\/bmp.*image\/heic.*image\/heif/);
 assert.match(workerJs, /detectedMime/);
 assert.match(workerJs, /file\.size > 50 \* 1024 \* 1024/);
+assert.match(workerJs, /GITHUB_UNAUTHORIZED/);
+assert.match(workerJs, /GITHUB_FORBIDDEN/);
+assert.match(workerJs, /GITHUB_PATH_INVALID/);
+assert.match(workerJs, /upstreamStatus/);
+assert.match(workerJs, /publicMessage/);
+assert.match(activeUpload, /GITHUB_FORBIDDEN/);
+assert.match(activeUpload, /GITHUB_PATH_INVALID/);
+assert.match(activeUpload, /error\.upstreamStatus/);
 
 console.log('Original image upload assertions passed.');

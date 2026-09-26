@@ -1761,19 +1761,25 @@ const IMAGE_UPLOAD_MIME_TYPES = new Set([
     'image/bmp', 'image/heic', 'image/heif'
 ]);
 
-function imageUploadErrorMessage(code) {
+function imageUploadErrorMessage(code, upstreamStatus = '') {
     const messages = {
         AUTH_REQUIRED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
         IMAGE_REQUIRED: 'لم يتم اختيار صورة.',
         IMAGE_TYPE_UNSUPPORTED: 'نوع الصورة غير مدعوم أو لا يطابق محتوى الملف.',
         IMAGE_TOO_LARGE: 'حجم الصورة أكبر من الحد المسموح به للخدمة.',
         GITHUB_UPLOAD_NOT_CONFIGURED: 'خدمة تخزين الصور غير مهيأة.',
-        GITHUB_UPLOAD_FAILED: 'فشل تخزين الصورة في الخدمة.',
+        GITHUB_UNAUTHORIZED: 'رمز GitHub غير صالح أو منتهي الصلاحية.',
+        GITHUB_FORBIDDEN: 'رمز GitHub لا يملك صلاحية الكتابة إلى المستودع.',
+        GITHUB_PATH_INVALID: 'مسار الصورة أو المستودع غير صحيح في GitHub.',
+        GITHUB_CONFLICT: 'تعذر إنشاء ملف الصورة بسبب تعارض في GitHub.',
+        GITHUB_VALIDATION_FAILED: 'رفض GitHub بيانات ملف الصورة أو مساره.',
+        GITHUB_UPLOAD_FAILED: 'فشل تخزين الصورة في الخدمة. راجع حالة GitHub في Network.',
         AUTH_INVALID: 'تعذر التحقق من صلاحية الحساب.',
         FORBIDDEN: 'لا تملك صلاحية رفع الصور.',
         NETWORK_ERROR: 'انقطع الاتصال أثناء رفع الصورة.'
     };
-    return messages[code] || `فشل رفع الصورة: ${code || 'خطأ غير معروف'}`;
+    const message = messages[code] || `فشل رفع الصورة: ${code || 'خطأ غير معروف'}`;
+    return upstreamStatus ? `${message} (GitHub ${upstreamStatus})` : message;
 }
 
 function safeImageName(name, fallback = 'image') {
@@ -1860,6 +1866,7 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
                 if (xhr.status < 200 || xhr.status >= 300 || !data.success) {
                     const error = new Error(data.error || 'IMAGE_UPLOAD_FAILED');
                     error.previousValue = previousValue;
+                    error.upstreamStatus = Number.isInteger(data.upstreamStatus) ? data.upstreamStatus : 0;
                     reject(error);
                     return;
                 }
@@ -1906,7 +1913,7 @@ document.addEventListener('click', (event) => {
         })
         .catch((error) => {
             console.error('Original image upload failed:', error);
-            alert(imageUploadErrorMessage(error.message));
+            alert(imageUploadErrorMessage(error.message, error.upstreamStatus));
         })
         .finally(() => { isUploadingImage = false; });
 }, true);
