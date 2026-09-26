@@ -718,11 +718,18 @@ async function handleRequest(request, env) {
           });
         }
 
+        // GitHub Contents uploads are not automatically present on Firebase
+        // Hosting. Return the raw GitHub URL as the canonical public URL so
+        // the value saved in RTDB is immediately renderable by the storefront.
+        const rawUrl = `https://raw.githubusercontent.com/NAJF8/spider/main/public/images/${assetDirectory}/${filename}`;
+        const hostingUrl = `https://spider-aaa19.web.app/images/${assetDirectory}/${filename}`;
+
         // Success
         return new Response(JSON.stringify({
           success: true,
-          imageUrl: `https://spider-aaa19.web.app/images/${assetDirectory}/${filename}`,
-          rawUrl: `https://raw.githubusercontent.com/NAJF8/spider/main/public/images/${assetDirectory}/${filename}`,
+          imageUrl: rawUrl,
+          rawUrl,
+          hostingUrl,
           path: `/images/${assetDirectory}/${filename}`
         }), {
           headers: {

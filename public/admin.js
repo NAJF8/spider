@@ -1870,7 +1870,10 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
                     reject(error);
                     return;
                 }
-                document.getElementById(targetInputId).value = data.path || data.imageUrl;
+                // GitHub Contents does not trigger a Firebase Hosting deploy.
+                // Persist the direct raw URL so the storefront can render the
+                // just-uploaded file immediately; keep path only as a legacy fallback.
+                document.getElementById(targetInputId).value = data.rawUrl || data.imageUrl || data.path;
                 progress.value = 100;
                 status.textContent = 'تم رفع الصورة الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
                 resolve(data);
