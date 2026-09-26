@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم | SPIDER NAJAF</title>
+    <title>???? ?????? | SPIDER NAJAF</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,18 +17,18 @@
         <div class="login-box">
             <div class="spider-logo-badge"><i class="fa-solid fa-spider"></i></div>
             <h2>SPIDER NAJAF</h2>
-            <p>لوحة الإدارة والتحكم العليا</p>
+            <p>???? ??????? ??????? ??????</p>
             <div id="login-error" class="error-msg hidden"></div>
             <button id="login-google-btn" class="btn btn-google">
-                <i class="fa-brands fa-google"></i> تسجيل الدخول باستخدام Google
+                <i class="fa-brands fa-google"></i> ????? ?????? ???????? Google
             </button>
-            <small class="login-hint">الدخول محصور لحساب سوبر مشرف المعتمد فقط.</small>
+            <small class="login-hint">?????? ????? ????? ???? ???? ??????? ???.</small>
 
             <div class="demo-login-box" style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
                 <button id="demo-preview-btn" class="btn" style="background: rgba(230, 57, 70, 0.15); border: 1px solid var(--primary-red); color: white; width: 100%; padding: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
-                    <i class="fa-solid fa-eye"></i> معاينة لوحة الإدارة (وضع العرض التجريبي)
+                    <i class="fa-solid fa-eye"></i> ?????? ???? ??????? (??? ????? ????????)
                 </button>
-                <small style="display: block; margin-top: 8px; color: #aaa; font-size: 0.78rem;">استعراض فوري لجميع أقسام لوحة الإدارة ببيانات نموذجية معزولة دون الحاجة لتسجيل الدخول.</small>
+                <small style="display: block; margin-top: 8px; color: #aaa; font-size: 0.78rem;">??????? ???? ????? ????? ???? ??????? ??????? ??????? ?????? ??? ?????? ?????? ??????.</small>
             </div>
         </div>
     </div>
@@ -51,28 +51,28 @@
             </div>
 
             <ul class="nav-links">
-                <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>إدارة الأسعار</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-ai-settings"><i class="fa-solid fa-robot"></i> <span>إعدادات المساعد الذكي</span></a></li>
+                <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>????????</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>????????</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>????? ???????</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>???????</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>???????</span> <span class="badge" id="ordersBadge">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>?????? ????????</span> <span class="badge" id="reviewBadge">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>?????????</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-ai-settings"><i class="fa-solid fa-robot"></i> <span>??????? ??????? ?????</span></a></li>
                 <li class="nav-divider"></li>
-                <li><a href="#" class="nav-item" data-view="view-customers"><i class="fa-solid fa-users"></i> <span>العملاء</span> <span class="counter-badge" id="navCustomersCount">0</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-pricing-customers"><i class="fa-solid fa-user-tag"></i> <span>فئات العملاء</span></a></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="الخصومات والعروض"><i class="fa-solid fa-tags"></i> <span>الخصومات</span> <span class="badge-sub">قريباً</span></a></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إدارة المحتوى"><i class="fa-solid fa-image"></i> <span>المحتوى</span> <span class="badge-sub">قريباً</span></a></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="التقارير والإحصائيات"><i class="fa-solid fa-chart-line"></i> <span>التقارير</span> <span class="badge-sub">قريباً</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-managers"><i class="fa-solid fa-users-gear"></i> <span>المدراء والمشرفين</span></a></li>
-                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إعدادات المتجر"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span> <span class="badge-sub">قريباً</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-customers"><i class="fa-solid fa-users"></i> <span>???????</span> <span class="counter-badge" id="navCustomersCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-pricing-customers"><i class="fa-solid fa-user-tag"></i> <span>???? ???????</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="???????? ???????"><i class="fa-solid fa-tags"></i> <span>????????</span> <span class="badge-sub">??????</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="????? ???????"><i class="fa-solid fa-image"></i> <span>???????</span> <span class="badge-sub">??????</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="???????? ???????????"><i class="fa-solid fa-chart-line"></i> <span>????????</span> <span class="badge-sub">??????</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-managers"><i class="fa-solid fa-users-gear"></i> <span>??????? ?????????</span></a></li>
+                <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="??????? ??????"><i class="fa-solid fa-gear"></i> <span>?????????</span> <span class="badge-sub">??????</span></a></li>
             </ul>
 
             <div class="sidebar-help">
                 <i class="fa-solid fa-shield-halved"></i>
-                <p><strong>حساب سوبر مشرف</strong><br>كامل الصلاحيات مفعلة</p>
-                <div class="version-tag">SPIDER v1.2.0 • Pro</div>
+                <p><strong>???? ???? ????</strong><br>???? ????????? ?????</p>
+                <div class="version-tag">SPIDER v1.2.0 � Pro</div>
             </div>
         </aside>
 
@@ -81,15 +81,15 @@
             <!-- Topbar -->
             <header class="topbar">
                 <div class="topbar-leading">
-                    <button class="mobile-toggle-btn" id="sidebarToggleBtn" title="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
+                    <button class="mobile-toggle-btn" id="sidebarToggleBtn" title="??? ???????"><i class="fa-solid fa-bars"></i></button>
                     <div class="user-info compact-user-card">
                         <img src="assets/spider-bot.png" alt="Admin" class="avatar" id="adminAvatar">
                         <div class="user-text">
-                            <strong id="adminName">محمد مسلم</strong>
-                            <span class="super-admin-badge" id="adminRole"><i class="fa-solid fa-crown"></i> مدير النظام</span>
+                            <strong id="adminName">???? ????</strong>
+                            <span class="super-admin-badge" id="adminRole"><i class="fa-solid fa-crown"></i> ???? ??????</span>
                         </div>
                     </div>
-                    <button class="topbar-icon-btn" title="الإشعارات">
+                    <button class="topbar-icon-btn" title="?????????">
                         <i class="fa-regular fa-bell"></i>
                         <span class="notif-dot">3</span>
                     </button>
@@ -97,20 +97,20 @@
 
                 <div class="topbar-search-shell">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" placeholder="ابحث عن منتج، طلب، أو عميل ...">
+                    <input type="text" placeholder="???? ?? ????? ???? ?? ???? ...">
                     <span class="search-shortcut">Ctrl K</span>
                 </div>
 
                 <div class="topbar-trailing">
-                    <div class="topbar-date-chip"><i class="fa-regular fa-calendar"></i> الخميس، 18 سبتمبر 2025</div>
-                    <button class="btn btn-danger btn-export"><i class="fa-solid fa-download"></i> تصدير تقرير</button>
+                    <div class="topbar-date-chip"><i class="fa-regular fa-calendar"></i> ??????? 18 ?????? 2025</div>
+                    <button class="btn btn-danger btn-export"><i class="fa-solid fa-download"></i> ????? ?????</button>
                     <select class="filter-select dashboard-range-select">
-                        <option>آخر 7 أيام</option>
-                        <option>آخر 30 يوم</option>
-                        <option>هذا الشهر</option>
+                        <option>??? 7 ????</option>
+                        <option>??? 30 ???</option>
+                        <option>??? ?????</option>
                     </select>
-                    <a href="index.html" target="_blank" class="btn btn-outline" title="زيارة متجر الزبائن"><i class="fa-solid fa-store"></i> عرض المتجر</a>
-                    <button class="btn btn-outline" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> خروج</button>
+                    <a href="index.html" target="_blank" class="btn btn-outline" title="????? ???? ???????"><i class="fa-solid fa-store"></i> ??? ??????</a>
+                    <button class="btn btn-outline" id="logout-btn"><i class="fa-solid fa-arrow-right-from-bracket"></i> ????</button>
                 </div>
             </header>
 
@@ -118,10 +118,10 @@
             <div id="adminDemoBanner" class="admin-demo-banner" style="display: none; background: #1c1917; border-bottom: 2px solid #e63946; color: #fff; padding: 10px 24px; font-size: 0.88rem; align-items: center; justify-content: space-between; gap: 12px; z-index: 90;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; font-size: 1.1rem;"></i>
-                    <span><strong>وضع المعاينة التجريبي مفعّل:</strong> يتم عرض بيانات نموذجية للتحقق من جميع وظائف لوحة الإدارة (المنتجات، الأقسام، الطلبات، والإحصائيات) دون التأثير على قاعدة بيانات الإنتاج.</span>
+                    <span><strong>??? ???????? ???????? ?????:</strong> ??? ??? ?????? ??????? ?????? ?? ???? ????? ???? ??????? (????????? ???????? ???????? ???????????) ??? ??????? ??? ????? ?????? ???????.</span>
                 </div>
                 <button id="adminExitDemoBtn" class="btn btn-outline" style="font-size: 0.78rem; padding: 4px 12px; color: #fff; border-color: #777; white-space: nowrap;">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> العودة لشاشة الدخول
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> ?????? ????? ??????
                 </button>
             </div>
 
@@ -129,8 +129,8 @@
             <section id="view-dashboard" class="admin-view active">
                 <div class="dashboard-welcome-row">
                     <div>
-                        <h1><span id="dashboardGreeting" data-i18n="admin_greeting">مرحباً</span> <span id="dashboardGreetingName">محمد</span> <span class="wave-emoji">👋</span></h1>
-                        <p>إليك نظرة عامة على متجرك اليوم</p>
+                        <h1><span id="dashboardGreeting" data-i18n="admin_greeting">??????</span> <span id="dashboardGreetingName">????</span> <span class="wave-emoji">??</span></h1>
+                        <p>???? ???? ???? ??? ????? ?????</p>
                     </div>
                 </div>
 
@@ -138,23 +138,23 @@
                     <div class="stat-card" onclick="switchView('view-products')">
                         <div class="stat-icon bg-soft-blue"><i class="fa-solid fa-box-open"></i></div>
                         <div class="stat-details">
-                            <p>عدد المنتجات</p>
+                            <p>??? ????????</p>
                             <h3 id="statProducts">0</h3>
-                            <span class="trend neutral" id="statCategoriesSummary">0 أقسام</span>
+                            <span class="trend neutral" id="statCategoriesSummary">0 ?????</span>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon bg-soft-green"><i class="fa-solid fa-sack-dollar"></i></div>
                         <div class="stat-details">
-                            <p>إجمالي المبيعات</p>
-                            <h3 id="statSales">0 د.ع</h3>
+                            <p>?????? ????????</p>
+                            <h3 id="statSales">0 ?.?</h3>
                             <span class="trend positive">+18% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon bg-soft-cyan"><i class="fa-solid fa-users"></i></div>
                         <div class="stat-details">
-                            <p>عدد العملاء</p>
+                            <p>??? ???????</p>
                             <h3 id="statCustomers">0</h3>
                             <span class="trend positive">+8% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
@@ -162,7 +162,7 @@
                     <div class="stat-card" onclick="switchView('view-orders')">
                         <div class="stat-icon bg-soft-red"><i class="fa-solid fa-cart-shopping"></i></div>
                         <div class="stat-details">
-                            <p>إجمالي الطلبات</p>
+                            <p>?????? ???????</p>
                             <h3 id="statOrders">0</h3>
                             <span class="trend positive">+12% <i class="fa-solid fa-arrow-up"></i></span>
                         </div>
@@ -174,33 +174,33 @@
                         <div class="box sales-overview-box">
                             <div class="box-header split-controls">
                                 <div class="header-controls-group">
-                                    <select class="filter-select"><option>آخر 7 أيام</option></select>
-                                    <select class="filter-select"><option>المبيعات</option></select>
+                                    <select class="filter-select"><option>??? 7 ????</option></select>
+                                    <select class="filter-select"><option>????????</option></select>
                                 </div>
-                                <h3>المبيعات</h3>
+                                <h3>????????</h3>
                             </div>
                             <div class="chart-shell"><canvas id="salesChart"></canvas></div>
                         </div>
 
                         <div class="box recent-orders-box">
                             <div class="box-header">
-                                <a href="#" onclick="switchView('view-orders'); return false;" class="view-link">عرض الكل</a>
-                                <h3>أحدث الطلبات</h3>
+                                <a href="#" onclick="switchView('view-orders'); return false;" class="view-link">??? ????</a>
+                                <h3>???? ???????</h3>
                             </div>
                             <div class="table-responsive">
                                 <table class="orders-table modern-table">
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>العميل</th>
-                                            <th>المنتجات</th>
-                                            <th>المجموع</th>
-                                            <th>الحالة</th>
-                                            <th>إجراء</th>
+                                            <th>??????</th>
+                                            <th>????????</th>
+                                            <th>???????</th>
+                                            <th>??????</th>
+                                            <th>?????</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ordersTableBody">
-                                        <tr><td colspan="6" class="text-center">جاري التحميل...</td></tr>
+                                        <tr><td colspan="6" class="text-center">???? ???????...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -208,8 +208,8 @@
 
                         <div class="box top-products-box">
                             <div class="box-header">
-                                <a href="#" onclick="switchView('view-products'); return false;" class="view-link">عرض الكل</a>
-                                <h3>منتجات مختارة</h3>
+                                <a href="#" onclick="switchView('view-products'); return false;" class="view-link">??? ????</a>
+                                <h3>?????? ??????</h3>
                             </div>
                             <div class="top-products-list dashboard-product-strip" id="topProductsList"></div>
                         </div>
@@ -218,27 +218,27 @@
                     <aside class="dashboard-side-column">
                         <div class="dashboard-hero-card">
                             <div class="dashboard-hero-copy">
-                                <h3>مرحباً بك في<br>لوحة التحكم</h3>
-                                <p>هنا يمكنك إدارة منتجاتك وطلباتك وكل محتوى المتجر بسهولة.</p>
-                                <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                                <h3>?????? ?? ??<br>???? ??????</h3>
+                                <p>??? ????? ????? ??????? ??????? ??? ????? ?????? ??????.</p>
+                                <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> ????? ???? ????</button>
                             </div>
                             <img src="assets/spider-bot.png" alt="Spider Bot">
                         </div>
 
                         <div class="quick-links-panel">
-                            <button class="quick-link-tile" onclick="switchView('view-products')"><i class="fa-solid fa-box"></i><span>إدارة المنتجات</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-categories')"><i class="fa-solid fa-border-all"></i><span>إدارة الأقسام</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-orders')"><i class="fa-solid fa-cart-shopping"></i><span>الطلبات</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-customers')"><i class="fa-solid fa-users"></i><span>العملاء</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'الخصومات والعروض')"><i class="fa-solid fa-tags"></i><span>الخصومات</span></button>
-                            <button class="quick-link-tile" onclick="switchView('view-placeholder', 'إعدادات المتجر')"><i class="fa-solid fa-gear"></i><span>الإعدادات</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-products')"><i class="fa-solid fa-box"></i><span>????? ????????</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-categories')"><i class="fa-solid fa-border-all"></i><span>????? ???????</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-orders')"><i class="fa-solid fa-cart-shopping"></i><span>???????</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-customers')"><i class="fa-solid fa-users"></i><span>???????</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-placeholder', '???????? ???????')"><i class="fa-solid fa-tags"></i><span>????????</span></button>
+                            <button class="quick-link-tile" onclick="switchView('view-placeholder', '??????? ??????')"><i class="fa-solid fa-gear"></i><span>?????????</span></button>
                         </div>
 
                         <div class="box distribution-box">
-                            <div class="box-header"><h3>توزيع المنتجات حسب الأقسام</h3></div>
+                            <div class="box-header"><h3>????? ???????? ??? ???????</h3></div>
                             <div class="distribution-chart-wrap">
                                 <canvas id="categoriesChart"></canvas>
-                                <div class="distribution-total"><strong id="distributionTotal">0</strong><span>منتج</span></div>
+                                <div class="distribution-total"><strong id="distributionTotal">0</strong><span>????</span></div>
                             </div>
                             <div class="distribution-list" id="categoryDistributionList"></div>
                         </div>
@@ -254,38 +254,38 @@
                     </div>
                     <div class="dashboard-banner red-banner">
                         <div>
-                            <strong>نجاحك يبدأ من هنا</strong>
-                            <p>إدارة أسهل، مبيعات أكثر، وعملاء سعداء</p>
+                            <strong>????? ???? ?? ???</strong>
+                            <p>????? ????? ?????? ????? ?????? ?????</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             <section id="view-pricing" class="admin-view">
-                <div class="view-header"><div><h2><i class="fa-solid fa-money-bill-trend-up"></i> إدارة الأسعار</h2><p>السعر العام محفوظ مع المنتج، والأسعار الخاصة والجملة محفوظة في المسار المحمي.</p></div></div>
-                <div class="filter-bar box"><div class="search-input-group"><i class="fa-solid fa-search"></i><input id="pricingSearch" placeholder="بحث بالاسم أو الموديل..."></div><select id="pricingCategoryFilter" class="filter-select"><option value="">كل الأقسام</option></select><select id="pricingStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="published">نشط</option><option value="draft">مسودة</option><option value="hidden">مخفي</option></select></div>
-                <div class="box table-box"><div class="table-responsive"><table class="data-table"><thead><tr><th>الصورة</th><th>المنتج</th><th>القسم</th><th>السعر العام</th><th>السعر الخاص</th><th>سعر الجملة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="pricingManagementBody"><tr><td colspan="8" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+                <div class="view-header"><div><h2><i class="fa-solid fa-money-bill-trend-up"></i> ????? ???????</h2><p>????? ????? ????? ?? ??????? ???????? ?????? ??????? ?????? ?? ?????? ??????.</p></div></div>
+                <div class="filter-bar box"><div class="search-input-group"><i class="fa-solid fa-search"></i><input id="pricingSearch" placeholder="??? ?????? ?? ???????..."></div><select id="pricingCategoryFilter" class="filter-select"><option value="">?? ???????</option></select><select id="pricingStatusFilter" class="filter-select"><option value="">?? ???????</option><option value="published">???</option><option value="draft">?????</option><option value="hidden">????</option></select></div>
+                <div class="box table-box"><div class="table-responsive"><table class="data-table"><thead><tr><th>??????</th><th>??????</th><th>?????</th><th>????? ?????</th><th>????? ?????</th><th>??? ??????</th><th>??????</th><th>?????</th></tr></thead><tbody id="pricingManagementBody"><tr><td colspan="8" class="text-center">???? ???????...</td></tr></tbody></table></div></div>
             </section>
 
             <section id="view-ai-settings" class="admin-view">
-                <div class="view-header"><div><h2><i class="fa-solid fa-robot"></i> إعدادات المساعد الذكي</h2><p>تحكم برسائل المساعد وأحجام الخطوط العامة من Firebase.</p></div></div>
+                <div class="view-header"><div><h2><i class="fa-solid fa-robot"></i> ??????? ??????? ?????</h2><p>???? ?????? ??????? ?????? ?????? ?????? ?? Firebase.</p></div></div>
                 <div class="box">
                     <form id="chatbotSettingsForm">
                         <div class="form-grid">
-                            <div class="form-group"><label>رسالة الترحيب AR</label><textarea id="chatWelcomeAr" rows="3"></textarea></div>
+                            <div class="form-group"><label>????? ??????? AR</label><textarea id="chatWelcomeAr" rows="3"></textarea></div>
                             <div class="form-group"><label>Welcome Message EN</label><textarea id="chatWelcomeEn" rows="3" dir="ltr"></textarea></div>
-                            <div class="form-group"><label>الاقتراح الأول AR</label><input id="chatSuggestion1Ar"></div><div class="form-group"><label>Suggestion 1 EN</label><input id="chatSuggestion1En" dir="ltr"></div>
-                            <div class="form-group"><label>الاقتراح الثاني AR</label><input id="chatSuggestion2Ar"></div><div class="form-group"><label>Suggestion 2 EN</label><input id="chatSuggestion2En" dir="ltr"></div>
-                            <div class="form-group"><label>الاقتراح الثالث AR</label><input id="chatSuggestion3Ar"></div><div class="form-group"><label>Suggestion 3 EN</label><input id="chatSuggestion3En" dir="ltr"></div>
-                            <div class="form-group"><label>رسالة تعطل AI AR</label><textarea id="chatUnavailableAr" rows="2"></textarea></div><div class="form-group"><label>AI Unavailable EN</label><textarea id="chatUnavailableEn" rows="2" dir="ltr"></textarea></div>
-                            <div class="form-group"><label>رسالة عدم وجود معلومة AR</label><textarea id="chatNoInfoAr" rows="2"></textarea></div><div class="form-group"><label>No Information EN</label><textarea id="chatNoInfoEn" rows="2" dir="ltr"></textarea></div>
-                            <div class="form-group"><label>حجم خط رسائل البوت (14–22px)</label><input type="number" id="chatBotFontSize" min="14" max="22" required></div>
-                            <div class="form-group"><label>حجم خط رسائل المستخدم (14–22px)</label><input type="number" id="chatUserFontSize" min="14" max="22" required></div>
-                            <div class="form-group"><label>حجم خط الاقتراحات (14–22px)</label><input type="number" id="chatSuggestionFontSize" min="14" max="22" required></div>
-                            <div class="form-group"><label>حجم خط حقل الإدخال (14–22px)</label><input type="number" id="chatInputFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>???????? ????? AR</label><input id="chatSuggestion1Ar"></div><div class="form-group"><label>Suggestion 1 EN</label><input id="chatSuggestion1En" dir="ltr"></div>
+                            <div class="form-group"><label>???????? ?????? AR</label><input id="chatSuggestion2Ar"></div><div class="form-group"><label>Suggestion 2 EN</label><input id="chatSuggestion2En" dir="ltr"></div>
+                            <div class="form-group"><label>???????? ?????? AR</label><input id="chatSuggestion3Ar"></div><div class="form-group"><label>Suggestion 3 EN</label><input id="chatSuggestion3En" dir="ltr"></div>
+                            <div class="form-group"><label>????? ???? AI AR</label><textarea id="chatUnavailableAr" rows="2"></textarea></div><div class="form-group"><label>AI Unavailable EN</label><textarea id="chatUnavailableEn" rows="2" dir="ltr"></textarea></div>
+                            <div class="form-group"><label>????? ??? ???? ?????? AR</label><textarea id="chatNoInfoAr" rows="2"></textarea></div><div class="form-group"><label>No Information EN</label><textarea id="chatNoInfoEn" rows="2" dir="ltr"></textarea></div>
+                            <div class="form-group"><label>??? ?? ????? ????? (14�22px)</label><input type="number" id="chatBotFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>??? ?? ????? ???????? (14�22px)</label><input type="number" id="chatUserFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>??? ?? ?????????? (14�22px)</label><input type="number" id="chatSuggestionFontSize" min="14" max="22" required></div>
+                            <div class="form-group"><label>??? ?? ??? ??????? (14�22px)</label><input type="number" id="chatInputFontSize" min="14" max="22" required></div>
                         </div>
-                        <div class="chat-admin-preview"><h3>Preview</h3><div class="chat-preview-window"><div class="message bot-message" id="chatPreviewWelcome"></div><div class="chat-quick-replies"><button type="button" id="chatPreviewSuggestion">اقتراح سريع</button></div><input id="chatPreviewInput" value="اكتب سؤالك..." readonly></div></div>
-                        <div class="header-controls-group"><button type="button" class="btn btn-outline" id="resetChatbotSettingsBtn">استعادة الإعدادات الافتراضية</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ إعدادات المساعد</button></div>
+                        <div class="chat-admin-preview"><h3>Preview</h3><div class="chat-preview-window"><div class="message bot-message" id="chatPreviewWelcome"></div><div class="chat-quick-replies"><button type="button" id="chatPreviewSuggestion">?????? ????</button></div><input id="chatPreviewInput" value="???? ?????..." readonly></div></div>
+                        <div class="header-controls-group"><button type="button" class="btn btn-outline" id="resetChatbotSettingsBtn">??????? ????????? ??????????</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> ??? ??????? ???????</button></div>
                     </form>
                 </div>
             </section>
@@ -294,24 +294,24 @@
             <section id="view-products" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-box"></i> إدارة المنتجات</h2>
-                        <p>عرض وإضافة وتعديل وحذف المنتجات والتحكم بظهورها في المتجر</p>
+                        <h2><i class="fa-solid fa-box"></i> ????? ????????</h2>
+                        <p>??? ?????? ?????? ???? ???????? ??????? ??????? ?? ??????</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</button>
+                    <button class="btn btn-primary" onclick="openProductModal()"><i class="fa-solid fa-plus"></i> ????? ???? ????</button>
                 </div>
 
                 <div class="filter-bar box">
                     <div class="search-input-group">
                         <i class="fa-solid fa-search"></i>
-                        <input type="text" id="productSearchInput" placeholder="بحث بالاسم أو الوصف...">
+                        <input type="text" id="productSearchInput" placeholder="??? ?????? ?? ?????...">
                     </div>
                     <select id="productCategoryFilter" class="filter-select">
-                        <option value="">جميع الأقسام</option>
+                        <option value="">???? ???????</option>
                     </select>
                     <select id="productStatusFilter" class="filter-select">
-                        <option value="">جميع الحالات</option>
-                        <option value="visible">معروض في المتجر</option>
-                        <option value="hidden">مخفي مؤقتاً</option>
+                        <option value="">???? ???????</option>
+                        <option value="visible">????? ?? ??????</option>
+                        <option value="hidden">???? ??????</option>
                     </select>
                 </div>
 
@@ -320,16 +320,16 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>الصورة</th>
-                                    <th>اسم المنتج</th>
-                                    <th>القسم</th>
-                                    <th>السعر</th>
-                                    <th>الحالة</th>
-                                    <th>الإجراءات</th>
+                                    <th>??????</th>
+                                    <th>??? ??????</th>
+                                    <th>?????</th>
+                                    <th>?????</th>
+                                    <th>??????</th>
+                                    <th>?????????</th>
                                 </tr>
                             </thead>
                             <tbody id="productsFullTableBody">
-                                <tr><td colspan="6" class="text-center">جاري تحميل المنتجات...</td></tr>
+                                <tr><td colspan="6" class="text-center">???? ????? ????????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -340,10 +340,10 @@
             <section id="view-categories" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-border-all"></i> إدارة الأقسام</h2>
-                        <p>تنظيم تصنيفات المتجر وإضافة وتعديل الأقسام وتحديد ظهورها</p>
+                        <h2><i class="fa-solid fa-border-all"></i> ????? ???????</h2>
+                        <p>????? ??????? ?????? ?????? ?????? ??????? ?????? ??????</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openCategoryModal()"><i class="fa-solid fa-plus"></i> إضافة قسم جديد</button>
+                    <button class="btn btn-primary" onclick="openCategoryModal()"><i class="fa-solid fa-plus"></i> ????? ??? ????</button>
                 </div>
 
                 <div class="box table-box">
@@ -351,16 +351,16 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>الأيقونة</th>
-                                    <th>اسم القسم</th>
-                                    <th>معرف القسم (ID)</th>
-                                    <th>عدد المنتجات</th>
-                                    <th>الحالة</th>
-                                    <th>الإجراءات</th>
+                                    <th>????????</th>
+                                    <th>??? ?????</th>
+                                    <th>???? ????? (ID)</th>
+                                    <th>??? ????????</th>
+                                    <th>??????</th>
+                                    <th>?????????</th>
                                 </tr>
                             </thead>
                             <tbody id="categoriesFullTableBody">
-                                <tr><td colspan="6" class="text-center">جاري تحميل الأقسام...</td></tr>
+                                <tr><td colspan="6" class="text-center">???? ????? ???????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -371,16 +371,16 @@
             <section id="view-orders" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-cart-shopping"></i> إدارة الطلبات</h2>
-                        <p>متابعة وتحديث حالات طلبات العملاء وتفاصيل الشحن والمبالغ</p>
+                        <h2><i class="fa-solid fa-cart-shopping"></i> ????? ???????</h2>
+                        <p>?????? ?????? ????? ????? ??????? ??????? ????? ????????</p>
                     </div>
                 </div>
 
                 <div class="order-status-tabs">
-                    <button class="tab-btn active" onclick="filterOrdersTab('all')">جميع الطلبات (<span id="countOrdersAll">0</span>)</button>
-                    <button class="tab-btn" onclick="filterOrdersTab('pending')">قيد التجهيز (<span id="countOrdersPending">0</span>)</button>
-                    <button class="tab-btn" onclick="filterOrdersTab('completed')">مكتملة (<span id="countOrdersCompleted">0</span>)</button>
-                    <button class="tab-btn" onclick="filterOrdersTab('cancelled')">ملغية (<span id="countOrdersCancelled">0</span>)</button>
+                    <button class="tab-btn active" onclick="filterOrdersTab('all')">???? ??????? (<span id="countOrdersAll">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('pending')">??? ??????? (<span id="countOrdersPending">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('completed')">?????? (<span id="countOrdersCompleted">0</span>)</button>
+                    <button class="tab-btn" onclick="filterOrdersTab('cancelled')">????? (<span id="countOrdersCancelled">0</span>)</button>
                 </div>
 
                 <div class="box table-box">
@@ -388,18 +388,18 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>رقم الطلب</th>
-                                    <th>اسم العميل</th>
-                                    <th>رقم الهاتف</th>
-                                    <th>المحافظة / المدينة</th>
-                                    <th>إجمالي المبلغ</th>
-                                    <th>تاريخ الطلب</th>
-                                    <th>الحالة</th>
-                                    <th>التفاصيل</th>
+                                    <th>??? ?????</th>
+                                    <th>??? ??????</th>
+                                    <th>??? ??????</th>
+                                    <th>???????? / ???????</th>
+                                    <th>?????? ??????</th>
+                                    <th>????? ?????</th>
+                                    <th>??????</th>
+                                    <th>????????</th>
                                 </tr>
                             </thead>
                             <tbody id="ordersFullTableBody">
-                                <tr><td colspan="8" class="text-center">جاري تحميل الطلبات...</td></tr>
+                                <tr><td colspan="8" class="text-center">???? ????? ???????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -410,25 +410,25 @@
             <section id="view-review" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-list-check"></i> مراجعة الكتالوگ واعتماده</h2>
-                        <p>مراجعة المنتجات المبدئية (المسودات) واعتماد الصور والأسعار قبل النشر.</p>
+                        <h2><i class="fa-solid fa-list-check"></i> ?????? ???????? ????????</h2>
+                        <p>?????? ???????? ???????? (????????) ??????? ????? ???????? ??? ?????.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="seedDraftCatalog()"><i class="fa-solid fa-cloud-arrow-up"></i> رفع الكتالوگ الأولي (مسودات)</button>
+                    <button class="btn btn-primary" onclick="seedDraftCatalog()"><i class="fa-solid fa-cloud-arrow-up"></i> ??? ???????? ?????? (??????)</button>
                 </div>
                 <div class="box table-box">
                     <div class="table-responsive">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>الصورة</th>
-                                    <th>اسم المنتج</th>
-                                    <th>السعر المقترح</th>
-                                    <th>الحالة</th>
-                                    <th>الإجراءات</th>
+                                    <th>??????</th>
+                                    <th>??? ??????</th>
+                                    <th>????? ???????</th>
+                                    <th>??????</th>
+                                    <th>?????????</th>
                                 </tr>
                             </thead>
                             <tbody id="reviewTableBody">
-                                <tr><td colspan="5" class="text-center">جاري تحميل المسودات...</td></tr>
+                                <tr><td colspan="5" class="text-center">???? ????? ????????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -439,44 +439,44 @@
             <section id="view-settings" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-gear"></i> إعدادات المتجر</h2>
-                        <p>إدارة هوية المتجر وروابط التواصل والطلبات من Firebase.</p>
+                        <h2><i class="fa-solid fa-gear"></i> ??????? ??????</h2>
+                        <p>????? ???? ?????? ?????? ??????? ???????? ?? Firebase.</p>
                     </div>
                 </div>
                 <div class="box">
                     <form id="settingsForm">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>اسم المتجر بالعربي</label>
-                                <input type="text" id="settingStoreNameAr" placeholder="سبايدر للإلكترونيات">
+                                <label>??? ?????? ???????</label>
+                                <input type="text" id="settingStoreNameAr" placeholder="?????? ????????????">
                             </div>
                             <div class="form-group">
-                                <label>اسم المتجر بالإنجليزي</label>
+                                <label>??? ?????? ??????????</label>
                                 <input type="text" id="settingStoreNameEn" placeholder="Spider Electronics" dir="ltr">
                             </div>
                             <div class="form-group">
-                                <label>رقم واتساب المتجر <span class="req">*</span></label>
-                                <input type="text" id="settingWhatsapp" required placeholder="مثال: 9647827337942" dir="ltr">
-                                <small class="form-hint">سيتم تحويل الطلبات إلى هذا الرقم.</small>
+                                <label>??? ?????? ?????? <span class="req">*</span></label>
+                                <input type="text" id="settingWhatsapp" required placeholder="????: 9647827337942" dir="ltr">
+                                <small class="form-hint">???? ????? ??????? ??? ??? ?????.</small>
                             </div>
-                            <div class="form-group"><label>رقم الهاتف</label><input type="text" id="settingPhone" placeholder="07XXXXXXXXX" dir="ltr"></div>
-                            <div class="form-group"><label>رابط إنستغرام</label><input type="url" id="settingInstagramUrl" placeholder="https://instagram.com/..." dir="ltr"></div>
-                            <div class="form-group"><label>رابط Google Maps</label><input type="url" id="settingGoogleMapsUrl" placeholder="https://maps.google.com/..." dir="ltr"></div>
-                            <div class="form-group"><label>عنوان المتجر</label><input type="text" id="settingStoreAddress" placeholder="العنوان التفصيلي"></div>
-                            <div class="form-group"><label>رسالة الترحيب</label><textarea id="settingWelcomeMessage" placeholder="أهلاً بيكم في سبايدر"></textarea></div>
-                            <div class="form-group"><label>عنوان البانر</label><input type="text" id="settingHeroTitle" placeholder="عالم الإلكترونيات بين إيديك"></div>
-                            <div class="form-group"><label>وصف البانر</label><input type="text" id="settingHeroSubtitle" placeholder="أجهزة أصلية .. أداء أعلى .. تجربة أفضل"></div>
-                            <div class="form-group"><label>نص زر البانر</label><input type="text" id="settingHeroCta" placeholder="ابنِ تجميعتك الآن"></div>
-                            <div class="form-group"><label>صورة البانر</label><input type="url" id="settingHeroImage" placeholder="https://..." dir="ltr"></div>
-                            <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingChatbotEnabled" checked><span>تفعيل مساعد سبايدر</span></label></div>
+                            <div class="form-group"><label>??? ??????</label><input type="text" id="settingPhone" placeholder="07XXXXXXXXX" dir="ltr"></div>
+                            <div class="form-group"><label>???? ????????</label><input type="url" id="settingInstagramUrl" placeholder="https://instagram.com/..." dir="ltr"></div>
+                            <div class="form-group"><label>???? Google Maps</label><input type="url" id="settingGoogleMapsUrl" placeholder="https://maps.google.com/..." dir="ltr"></div>
+                            <div class="form-group"><label>????? ??????</label><input type="text" id="settingStoreAddress" placeholder="??????? ????????"></div>
+                            <div class="form-group"><label>????? ???????</label><textarea id="settingWelcomeMessage" placeholder="????? ???? ?? ??????"></textarea></div>
+                            <div class="form-group"><label>????? ??????</label><input type="text" id="settingHeroTitle" placeholder="???? ???????????? ??? ?????"></div>
+                            <div class="form-group"><label>??? ??????</label><input type="text" id="settingHeroSubtitle" placeholder="????? ????? .. ???? ???? .. ????? ????"></div>
+                            <div class="form-group"><label>?? ?? ??????</label><input type="text" id="settingHeroCta" placeholder="???? ??????? ????"></div>
+                            <div class="form-group"><label>???? ??????</label><input type="url" id="settingHeroImage" placeholder="https://..." dir="ltr"></div>
+                            <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingChatbotEnabled" checked><span>????? ????? ??????</span></label></div>
                             <div class="form-group">
-                                <label>تكلفة التوصيل الافتراضية <span class="req">*</span></label>
+                                <label>????? ??????? ?????????? <span class="req">*</span></label>
                                 <input type="number" id="settingDeliveryFee" required placeholder="5000">
-                                <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
+                                <small class="form-hint">???? ??????? ??? ?????? ?????.</small>
                             </div>
-                            <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
+                            <div class="form-group"><label>???? ?????? ????????</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">???? ?????? ?? �???? ??????� ??? ??? ??????? ??? ?? ????? ???.</small></div>
                         </div>
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> ??? ?????????</button>
                     </form>
                 </div>
             </section>
@@ -485,14 +485,14 @@
             <section id="view-customers" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-users"></i> إدارة العملاء</h2>
-                        <p>عرض وتعديل بيانات العملاء المسجلين</p>
+                        <h2><i class="fa-solid fa-users"></i> ????? ???????</h2>
+                        <p>??? ?????? ?????? ??????? ????????</p>
                     </div>
                 </div>
                 <div class="filter-bar box">
                     <div class="search-input-group" style="flex: 1; max-width: 400px;">
                         <i class="fa-solid fa-search"></i>
-                        <input type="text" id="customerSearch" placeholder="ابحث بالاسم أو البريد أو UID..." dir="auto">
+                        <input type="text" id="customerSearch" placeholder="???? ?????? ?? ?????? ?? UID..." dir="auto">
                     </div>
                 </div>
                 <div class="box table-box">
@@ -500,17 +500,17 @@
                         <table class="data-table customers-mgmt-table">
                             <thead>
                                 <tr>
-                                    <th>الاسم</th>
-                                    <th>البريد</th>
-                                    <th>الهاتف</th>
+                                    <th>?????</th>
+                                    <th>??????</th>
+                                    <th>??????</th>
                                     <th>UID</th>
-                                    <th>نوع الحساب</th>
-                                    <th>تاريخ التسجيل</th>
-                                    <th>إجراء</th>
+                                    <th>??? ??????</th>
+                                    <th>????? ???????</th>
+                                    <th>?????</th>
                                 </tr>
                             </thead>
                             <tbody id="customersTableBody">
-                                <tr><td colspan="7" class="text-center">جاري التحميل...</td></tr>
+                                <tr><td colspan="7" class="text-center">???? ???????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -520,29 +520,29 @@
             <section id="view-pricing-customers" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-user-tag"></i> فئات العملاء</h2>
-                        <p>إدارة الأسعار الخاصة وتصنيف العملاء</p>
+                        <h2><i class="fa-solid fa-user-tag"></i> ???? ???????</h2>
+                        <p>????? ??????? ?????? ?????? ???????</p>
                     </div>
                 </div>
                 <div class="box" style="margin-bottom: 24px;">
                     <div class="box-header" style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <h3 style="margin: 0; font-size: 1.1rem;">تعيين فئة سعرية للعميل</h3>
+                        <h3 style="margin: 0; font-size: 1.1rem;">????? ??? ????? ??????</h3>
                     </div>
                     <form id="pendingPricingForm" class="customer-category-form" style="padding: 20px;">
                         <div class="form-group" style="margin: 0;">
-                            <input type="text" id="pendingPricingIdentity" required placeholder="البحث / UID أو البريد أو الهاتف" dir="auto" class="ltr-field-if-email">
+                            <input type="text" id="pendingPricingIdentity" required placeholder="????? / UID ?? ?????? ?? ??????" dir="auto" class="ltr-field-if-email">
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <select id="pendingPricingTier">
-                                <option value="public">Public / عام</option>
-                                <option value="special">Special / سعر خاص</option>
-                                <option value="wholesale">Wholesale / سعر جملة</option>
+                                <option value="public">Public / ???</option>
+                                <option value="special">Special / ??? ???</option>
+                                <option value="wholesale">Wholesale / ??? ????</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <input type="text" id="pendingPricingNotes" placeholder="ملاحظات">
+                            <input type="text" id="pendingPricingNotes" placeholder="???????">
                         </div>
-                        <button class="btn btn-primary save-category-btn" type="submit">حفظ التصنيف</button>
+                        <button class="btn btn-primary save-category-btn" type="submit">??? ???????</button>
                     </form>
                 </div>
                 <div class="box table-box">
@@ -550,17 +550,17 @@
                         <table class="data-table customer-pricing-table">
                             <thead>
                                 <tr>
-                                    <th>الاسم</th>
-                                    <th>البريد</th>
-                                    <th>الهاتف</th>
+                                    <th>?????</th>
+                                    <th>??????</th>
+                                    <th>??????</th>
                                     <th>UID</th>
-                                    <th>نوع السعر</th>
-                                    <th>التاريخ</th>
-                                    <th>إجراء</th>
+                                    <th>??? ?????</th>
+                                    <th>???????</th>
+                                    <th>?????</th>
                                 </tr>
                             </thead>
                             <tbody id="pricingCustomersTableBody">
-                                <tr><td colspan="7" class="text-center">جاري التحميل...</td></tr>
+                                <tr><td colspan="7" class="text-center">???? ???????...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -570,13 +570,13 @@
             <section id="view-placeholder" class="admin-view">
                 <div class="placeholder-box box">
                     <div class="placeholder-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                    <h2 id="placeholderTitle">هذا القسم قيد التطوير</h2>
-                    <p class="placeholder-desc">تم حجز هذا القسم لصلاحيات سوبر مشرف (Super Admin). نحن نعمل على استكمال ميزاته في التحديث القادم مع ضمان أعلى معايير الأمان والأداء.</p>
+                    <h2 id="placeholderTitle">??? ????? ??? ???????</h2>
+                    <p class="placeholder-desc">?? ??? ??? ????? ???????? ???? ???? (Super Admin). ??? ???? ??? ??????? ?????? ?? ??????? ?????? ?? ???? ???? ?????? ?????? ???????.</p>
                     <div class="placeholder-features">
-                        <span><i class="fa-solid fa-check"></i> بنية الصلاحيات جاهزة في Firebase Rules</span>
-                        <span><i class="fa-solid fa-check"></i> محمية برقم UID الخاص بك حصراً</span>
+                        <span><i class="fa-solid fa-check"></i> ???? ????????? ????? ?? Firebase Rules</span>
+                        <span><i class="fa-solid fa-check"></i> ????? ???? UID ????? ?? ?????</span>
                     </div>
-                    <button class="btn btn-primary" onclick="switchView('view-dashboard')"><i class="fa-solid fa-house"></i> العودة إلى الرئيسية</button>
+                    <button class="btn btn-primary" onclick="switchView('view-dashboard')"><i class="fa-solid fa-house"></i> ?????? ??? ????????</button>
                 </div>
             </section>
 
@@ -584,19 +584,19 @@
             <section id="view-managers" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-shield-halved"></i> إدارة المدراء والمشرفين</h2>
-                        <p>إدارة فريق العمل، الأدوار، وصلاحيات الوصول للنظام.</p>
+                        <h2><i class="fa-solid fa-shield-halved"></i> ????? ??????? ?????????</h2>
+                        <p>????? ???? ?????? ???????? ???????? ?????? ??????.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="openManagerModal()"><i class="fa-solid fa-user-plus"></i> إضافة مدير جديد</button>
+                    <button class="btn btn-primary" onclick="openManagerModal()"><i class="fa-solid fa-user-plus"></i> ????? ???? ????</button>
                 </div>
 
                 <div class="filter-bar box">
                     <div class="search-input-group">
                         <i class="fa-solid fa-search"></i>
-                        <input type="text" id="managersSearch" placeholder="بحث بالاسم، البريد أو الهاتف...">
+                        <input type="text" id="managersSearch" placeholder="??? ??????? ?????? ?? ??????...">
                     </div>
                     <select id="managersRoleFilter" class="filter-select" style="width: 200px;">
-                        <option value="">كل الأدوار</option>
+                        <option value="">?? ???????</option>
                         <option value="Super Admin">Super Admin</option>
                         <option value="Admin">Admin</option>
                         <option value="Manager">Manager</option>
@@ -605,10 +605,10 @@
                         <option value="Viewer">Viewer</option>
                     </select>
                     <select id="managersStatusFilter" class="filter-select" style="width: 200px;">
-                        <option value="">كل الحالات</option>
-                        <option value="active">Active (مفعل)</option>
-                        <option value="inactive">Disabled (معطل)</option>
-                        <option value="pending">Pending (بانتظار التسجيل)</option>
+                        <option value="">?? ???????</option>
+                        <option value="active">Active (????)</option>
+                        <option value="inactive">Disabled (????)</option>
+                        <option value="pending">Pending (??????? ???????)</option>
                     </select>
                 </div>
 
@@ -617,13 +617,13 @@
                         <table class="data-table">
                         <thead>
                             <tr>
-                                <th>الاسم / البريد / الهاتف</th>
-                                <th>الدور (Role)</th>
-                                <th>الحالة</th>
-                                <th>الصلاحيات</th>
-                                <th>تاريخ الإضافة</th>
-                                <th>آخر تحديث</th>
-                                <th>الإجراءات</th>
+                                <th>????? / ?????? / ??????</th>
+                                <th>????? (Role)</th>
+                                <th>??????</th>
+                                <th>?????????</th>
+                                <th>????? ???????</th>
+                                <th>??? ?????</th>
+                                <th>?????????</th>
                             </tr>
                         </thead>
                         <tbody id="managersTableBody">
@@ -633,43 +633,76 @@
                     </div>
                 </div>
 
+                                <!-- Reset PIN Modal -->
+                <div class="modal-overlay" id="resetPinModal">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <div class="modal-header">
+                            <h2>????? ????? ??? PIN</h2>
+                            <button class="close-btn" onclick="closeResetPinModal()"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="resetPinForm">
+                                <input type="hidden" id="resetPinUid">
+                                <div class="form-group">
+                                    <label>??????</label>
+                                    <input type="text" id="resetPinName" readonly style="background: #f1f5f9; color: #64748b; font-weight: bold;">
+                                </div>
+                                <div class="form-group">
+                                    <label>??? ??????</label>
+                                    <input type="text" id="resetPinPhone" readonly dir="ltr" style="background: #f1f5f9; color: #64748b; font-weight: bold;">
+                                </div>
+                                <div class="form-group">
+                                    <label>??? PIN ?????? (4 ?????) <span class="req">*</span></label>
+                                    <input type="password" id="resetPinNew" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label>????? ????? <span class="req">*</span></label>
+                                    <input type="password" id="resetPinConfirm" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                                </div>
+                                <div id="resetPinError" class="error-msg hidden" style="text-align: center; margin-bottom: 15px;"></div>
+                                <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> ????? ?????</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Manager Modal -->
                 <div class="modal-overlay" id="managerModal">
                     <div class="modal-content manager-modal-content">
                         <div class="modal-header">
-                            <h2 id="managerModalTitle">إضافة مدير جديد</h2>
+                            <h2 id="managerModalTitle">????? ???? ????</h2>
                             <button class="close-btn" onclick="closeManagerModal()"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                         <div class="modal-body">
-                            <div id="managerModalError" style="display:none; color: white; background: var(--red); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">تعذر حفظ التعديلات</div>
+                            <div id="managerModalError" style="display:none; color: white; background: var(--red); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">???? ??? ?????????</div>
 
                             <form id="managerForm">
                                 <input type="hidden" id="managerId">
 
                                 <div class="form-section">
-                                    <h3><i class="fa-solid fa-id-card"></i> معلومات الحساب</h3>
+                                    <h3><i class="fa-solid fa-id-card"></i> ??????? ??????</h3>
                                     <div class="form-grid manager-form-grid">
                                         <div class="form-group">
-                                            <label>الاسم الكامل <span class="req">*</span></label>
-                                            <input type="text" id="managerName" required placeholder="اسم المدير">
+                                            <label>????? ?????? <span class="req">*</span></label>
+                                            <input type="text" id="managerName" required placeholder="??? ??????">
                                         </div>
                                         <div class="form-group">
-                                            <label>البريد الإلكتروني <span class="req">*</span></label>
+                                            <label>?????? ?????????? <span class="req">*</span></label>
                                             <input type="email" id="managerEmail" placeholder="example@domain.com">
-                                            <small id="managerEmailNote" style="color:var(--red);display:none;">* البريد للقراءة فقط في وضع التعديل للحفاظ على سلامة الحساب.</small>
+                                            <small id="managerEmailNote" style="color:var(--red);display:none;">* ?????? ??????? ??? ?? ??? ??????? ?????? ??? ????? ??????.</small>
                                         </div>
                                         <div class="form-group">
-                                            <label>رقم الهاتف</label>
+                                            <label>??? ??????</label>
                                             <input type="tel" id="managerPhone" dir="ltr" placeholder="07...">
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="form-section">
-                                    <h3><i class="fa-solid fa-user-shield"></i> الدور والحالة</h3>
+                                    <h3><i class="fa-solid fa-user-shield"></i> ????? ???????</h3>
                                     <div class="form-grid manager-form-grid">
                                         <div class="form-group">
-                                            <label>الدور (Role) <span class="req">*</span></label>
+                                            <label>????? (Role) <span class="req">*</span></label>
                                             <select id="managerRole" required>
                                                 <option value="Admin">Admin</option>
                                                 <option value="Manager">Manager</option>
@@ -679,10 +712,10 @@
                                             </select>
                                         </div>
                                         <div class="form-group">
-                                            <label>الحالة <span class="req">*</span></label>
+                                            <label>?????? <span class="req">*</span></label>
                                             <select id="managerStatus">
-                                                <option value="active">Active (مفعل)</option>
-                                                <option value="inactive">Disabled (معطل)</option>
+                                                <option value="active">Active (????)</option>
+                                                <option value="inactive">Disabled (????)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -690,45 +723,45 @@
 
                                 <div class="form-section" id="permissionsSectionWrapper">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                                        <h3><i class="fa-solid fa-key"></i> الصلاحيات</h3>
+                                        <h3><i class="fa-solid fa-key"></i> ?????????</h3>
                                         <div>
-                                            <button type="button" class="btn btn-sm btn-outline" onclick="selectAllPermissions()"><i class="fa-solid fa-check-double"></i> تحديد الكل</button>
-                                            <button type="button" class="btn btn-sm btn-outline" onclick="deselectAllPermissions()"><i class="fa-solid fa-square-xmark"></i> إلغاء التحديد</button>
+                                            <button type="button" class="btn btn-sm btn-outline" onclick="selectAllPermissions()"><i class="fa-solid fa-check-double"></i> ????? ????</button>
+                                            <button type="button" class="btn btn-sm btn-outline" onclick="deselectAllPermissions()"><i class="fa-solid fa-square-xmark"></i> ????? ???????</button>
                                         </div>
                                     </div>
                                     <div class="permissions-grid" id="managerPermissions">
-                                        <label class="checkbox-label"><input type="checkbox" value="dashboard"> لوحة القيادة</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="products_view"> عرض المنتجات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="products_add"> إضافة منتجات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="products_edit"> تعديل منتجات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="products_delete"> حذف منتجات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="categories"> الأقسام</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="public_prices"> الأسعار العامة</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="special_prices"> الأسعار الخاصة</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="wholesale_prices"> أسعار الجملة</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="pricing_customers"> تسعير العملاء</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="orders"> الطلبات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="customers"> العملاء</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="chatbot"> إعدادات البوت</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="store_settings"> إعدادات المتجر</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="reports"> التقارير</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="audit_logs"> سجل النشاطات</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="manage_staff"> إدارة الموظفين</label>
-                                        <label class="checkbox-label"><input type="checkbox" value="manage_permissions"> إدارة الصلاحيات</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="dashboard"> ???? ???????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="products_view"> ??? ????????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="products_add"> ????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="products_edit"> ????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="products_delete"> ??? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="categories"> ???????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="public_prices"> ??????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="special_prices"> ??????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="wholesale_prices"> ????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="pricing_customers"> ????? ???????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="orders"> ???????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="customers"> ???????</label>`n                                          <label class="checkbox-label"><input type="checkbox" value="customers_delete"> ??? ???????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="chatbot"> ??????? ?????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="store_settings"> ??????? ??????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="reports"> ????????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="audit_logs"> ??? ????????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="manage_staff"> ????? ????????</label>
+                                        <label class="checkbox-label"><input type="checkbox" value="manage_permissions"> ????? ?????????</label>
                                     </div>
                                 </div>
 
                                 <div class="form-section">
-                                    <h3><i class="fa-solid fa-clipboard"></i> ملاحظات</h3>
+                                    <h3><i class="fa-solid fa-clipboard"></i> ???????</h3>
                                     <div class="form-group">
-                                        <input type="text" id="managerNotes" placeholder="ملاحظات إضافية (اختياري)">
+                                        <input type="text" id="managerNotes" placeholder="??????? ?????? (???????)">
                                     </div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-outline" onclick="closeManagerModal()">إلغاء</button>
-                            <button type="submit" form="managerForm" class="btn btn-primary" id="saveManagerBtn">إضافة المدير</button>
+                            <button type="button" class="btn btn-outline" onclick="closeManagerModal()">?????</button>
+                            <button type="submit" form="managerForm" class="btn btn-primary" id="saveManagerBtn">????? ??????</button>
                         </div>
                     </div>
                 </div>
@@ -743,90 +776,90 @@
     <div class="modal-overlay" id="productModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="productModalTitle">إضافة منتج جديد</h2>
+                <h2 id="productModalTitle">????? ???? ????</h2>
                 <button class="close-btn" onclick="closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <form id="productForm">
                     <input type="hidden" id="prodId">
                     <div class="form-group">
-                        <label>اسم المنتج <span class="req">*</span></label>
-                        <input type="text" id="prodName" required placeholder="مثال: ASUS TUF Gaming F15">
+                        <label>??? ?????? <span class="req">*</span></label>
+                        <input type="text" id="prodName" required placeholder="????: ASUS TUF Gaming F15">
                     </div>
                     <div class="form-group">
-                        <label>القسم <span class="req">*</span></label>
+                        <label>????? <span class="req">*</span></label>
                         <select id="prodCategory" required>
                             <!-- Categories load here -->
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>القسم الفرعي</label>
-                        <input type="text" id="prodSubcategory" placeholder="مثال: المعالجات">
+                        <label>????? ??????</label>
+                        <input type="text" id="prodSubcategory" placeholder="????: ?????????">
                     </div>
                     <div class="form-group">
-                        <label>الماركة (Brand)</label>
-                        <input type="text" id="prodBrand" placeholder="مثال: ASUS">
+                        <label>??????? (Brand)</label>
+                        <input type="text" id="prodBrand" placeholder="????: ASUS">
                     </div>
                     <div class="form-group">
-                        <label>الموديل</label>
-                        <input type="text" id="prodModel" placeholder="مثال: TUF Gaming F15">
+                        <label>???????</label>
+                        <input type="text" id="prodModel" placeholder="????: TUF Gaming F15">
                     </div>
                     <div class="form-group">
-                        <label>السعر العام / المفرق (د.ع) <span class="req">*</span></label>
-                        <input type="number" id="prodPrice" required min="0" step="1" placeholder="مثال: 1250000">
+                        <label>????? ????? / ?????? (?.?) <span class="req">*</span></label>
+                        <input type="number" id="prodPrice" required min="0" step="1" placeholder="????: 1250000">
                     </div>
                     <div class="form-group">
-                        <label>سعر الجملة (اختياري)</label>
-                        <input type="number" id="prodWholesalePrice" min="0" step="1" placeholder="يترك فارغاً للرجوع للسعر العام">
+                        <label>??? ?????? (???????)</label>
+                        <input type="number" id="prodWholesalePrice" min="0" step="1" placeholder="???? ?????? ?????? ????? ?????">
                     </div>
                     <div class="form-group">
-                        <label>السعر الخاص (اختياري)</label>
-                        <input type="number" id="prodSpecialPrice" min="0" step="1" placeholder="يترك فارغاً للرجوع للسعر العام">
+                        <label>????? ????? (???????)</label>
+                        <input type="number" id="prodSpecialPrice" min="0" step="1" placeholder="???? ?????? ?????? ????? ?????">
                     </div>
                     <div class="form-group">
-                        <label>السعر السابق (في حال وجود عرض)</label>
-                        <input type="number" id="prodOriginalPrice" placeholder="مثال: 1400000">
+                        <label>????? ?????? (?? ??? ???? ???)</label>
+                        <input type="number" id="prodOriginalPrice" placeholder="????: 1400000">
                     </div>
                     <div class="form-group">
-                        <label>المخزون المتوفر</label>
-                        <input type="number" id="prodStock" placeholder="الكمية المتوفرة" min="0">
+                        <label>??????? ???????</label>
+                        <input type="number" id="prodStock" placeholder="?????? ????????" min="0">
                     </div>
                     <div class="form-group">
-                        <label>الضمان</label>
-                        <input type="text" id="prodWarranty" placeholder="مثال: سنة كاملة">
+                        <label>??????</label>
+                        <input type="text" id="prodWarranty" placeholder="????: ??? ?????">
                     </div>
                     <div class="form-group">
-                        <label>الوصف</label>
-                        <textarea id="prodDesc" placeholder="نبذة عن المنتج..."></textarea>
+                        <label>?????</label>
+                        <textarea id="prodDesc" placeholder="???? ?? ??????..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="prodSpecs">مواصفات المقارنة (اختياري)</label>
-                        <textarea id="prodSpecs" rows="5" maxlength="3500" placeholder="Socket: AM5&#10;الأنوية: 8&#10;الذاكرة: DDR5"></textarea>
-                        <small class="form-hint">اكتب كل مواصفة بسطر بصيغة «اسم المواصفة: القيمة». هذه البيانات تظهر في مقارنة المنتجات، ولا نولّد مواصفات من الوصف تلقائياً.</small>
+                        <label for="prodSpecs">??????? ???????? (???????)</label>
+                        <textarea id="prodSpecs" rows="5" maxlength="3500" placeholder="Socket: AM5&#10;???????: 8&#10;???????: DDR5"></textarea>
+                        <small class="form-hint">???? ?? ?????? ???? ????? �??? ????????: ??????�. ??? ???????? ???? ?? ?????? ????????? ??? ????? ??????? ?? ????? ????????.</small>
                     </div>
                     <div class="form-group">
-                        <label>صورة المنتج</label>
+                        <label>???? ??????</label>
                         <div class="image-upload-row">
                             <input type="file" id="prodImageFile" accept="image/png, image/jpeg, image/webp">
-                            <button type="button" id="uploadImageBtn" class="btn btn-dark">معاينة وضغط</button>
+                            <button type="button" id="uploadImageBtn" class="btn btn-dark">?????? ????</button>
                         </div>
                         <div id="imagePreviewContainer" class="image-preview-box" style="display:none;">
                             <img id="imagePreview" src="" alt="Preview">
                             <div id="imageDetails" class="image-details-text"></div>
-                            <button type="button" id="confirmUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
+                            <button type="button" id="confirmUploadBtn" class="btn btn-primary w-100">??? ?????? ??? GitHub</button>
                         </div>
                         <input type="hidden" id="prodImage" placeholder="/images/products/...">
-                        <small class="form-hint">يتم ضغط الصورة محلياً وتحويلها إلى WebP لسرعة المتجر، ثم رفعها عبر الخادم الخلفي الآمن.</small>
+                        <small class="form-hint">??? ??? ?????? ?????? ???????? ??? WebP ????? ??????? ?? ????? ??? ?????? ?????? ?????.</small>
                     </div>
                     <div class="form-group">
-                        <label>حالة المنتج <span class="req">*</span></label>
+                        <label>???? ?????? <span class="req">*</span></label>
                         <select id="prodStatus" required>
-                            <option value="draft">مسودة (لا يظهر للزبون)</option>
-                            <option value="published">منشور (متاح للبيع)</option>
-                            <option value="hidden">مخفي (معطل مؤقتاً)</option>
+                            <option value="draft">????? (?? ???? ??????)</option>
+                            <option value="published">????? (???? ?????)</option>
+                            <option value="hidden">???? (???? ??????)</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> حفظ المنتج</button>
+                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> ??? ??????</button>
                 </form>
             </div>
         </div>
@@ -836,44 +869,44 @@
     <div class="modal-overlay" id="categoryModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="categoryModalTitle">إضافة قسم جديد</h2>
+                <h2 id="categoryModalTitle">????? ??? ????</h2>
                 <button class="close-btn" onclick="closeCategoryModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
                 <form id="categoryForm">
                     <input type="hidden" id="catId">
                     <div class="form-group">
-                        <label>اسم القسم <span class="req">*</span></label>
-                        <input type="text" id="catName" required placeholder="مثال: كروت الشاشة">
+                        <label>??? ????? <span class="req">*</span></label>
+                        <input type="text" id="catName" required placeholder="????: ???? ??????">
                     </div>
                     <div class="form-group">
-                        <label>ترتيب العرض (رقم)</label>
-                        <input type="number" id="catOrder" value="0" placeholder="مثال: 1, 2, 3">
+                        <label>????? ????? (???)</label>
+                        <input type="number" id="catOrder" value="0" placeholder="????: 1, 2, 3">
                     </div>
                     <div class="form-group">
-                        <label>صورة القسم <span class="req">*</span></label>
+                        <label>???? ????? <span class="req">*</span></label>
                         <div class="image-upload-row">
                             <input type="file" id="catImageFile" accept="image/png, image/jpeg, image/webp">
-                            <button type="button" id="uploadCatImageBtn" class="btn btn-dark">معاينة وضغط</button>
+                            <button type="button" id="uploadCatImageBtn" class="btn btn-dark">?????? ????</button>
                         </div>
                         <div id="catImagePreviewContainer" class="image-preview-box" style="display:none;">
                             <img id="catImagePreview" src="" alt="Preview">
                             <div id="catImageDetails" class="image-details-text"></div>
-                            <button type="button" id="confirmCatUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
+                            <button type="button" id="confirmCatUploadBtn" class="btn btn-primary w-100">??? ?????? ??? GitHub</button>
                         </div>
                         <input type="hidden" id="catImage" placeholder="/images/products/..." required>
                     </div>
                     <div class="form-group">
-                        <label>وصف القسم (اختياري)</label>
-                        <textarea id="catDesc" placeholder="نبذة مختصرة عن نوع المنتجات في هذا القسم"></textarea>
+                        <label>??? ????? (???????)</label>
+                        <textarea id="catDesc" placeholder="???? ?????? ?? ??? ???????? ?? ??? ?????"></textarea>
                     </div>
                     <div class="form-group checkbox-group">
                         <label class="checkbox-label">
                             <input type="checkbox" id="catHidden">
-                            <span>إخفاء هذا القسم مؤقتاً من المتجر</span>
+                            <span>????? ??? ????? ?????? ?? ??????</span>
                         </label>
                     </div>
-                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> حفظ القسم</button>
+                    <button type="submit" class="btn btn-danger w-100 btn-submit"><i class="fa-solid fa-floppy-disk"></i> ??? ?????</button>
                 </form>
             </div>
         </div>
@@ -883,7 +916,7 @@
     <div class="modal-overlay" id="orderModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>تفاصيل الطلب</h2>
+                <h2>?????? ?????</h2>
                 <button class="close-btn" onclick="closeOrderModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" id="orderDetailsContent">
@@ -895,5 +928,7 @@
     <script type="module" src="admin.js?v=6"></script>
 </body>
 </html>
+
+
 
 

@@ -67,7 +67,7 @@ function getAdminDisplayName(user, adminData) {
     if (adminData?.name?.trim()) return adminData.name.trim();
     if (user?.displayName?.trim()) return user.displayName.trim();
     if (user?.email) return user.email.split('@')[0];
-    return 'المستخدم';
+    return '????????';
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -81,10 +81,10 @@ onAuthStateChanged(auth, async (user) => {
         if (user.uid === SUPER_ADMIN_UID) {
             isAuthorized = true;
             window.isSuperAdmin = true;
-            role = 'سوبر مشرف';
+            role = '???? ????';
             roleIcon = '<i class="fa-solid fa-crown"></i>';
             window.currentAdminPermissions = { _super: true };
-            currentAdminData = { name: 'محمد مسلم' };
+            currentAdminData = { name: '???? ????' };
         } else {
             window.isSuperAdmin = false;
             try {
@@ -120,7 +120,7 @@ onAuthStateChanged(auth, async (user) => {
                 if (adminSnap.exists() && isAdminActive(adminSnap.val())) {
                     currentAdminData = adminSnap.val();
                     isAuthorized = true;
-                    role = currentAdminData.role || 'مشرف';
+                    role = currentAdminData.role || '????';
                     roleIcon = '<i class="fa-solid fa-shield-halved"></i>';
                     window.currentAdminPermissions = currentAdminData.permissions || {};
                 }
@@ -152,7 +152,7 @@ onAuthStateChanged(auth, async (user) => {
             signOut(auth);
             loginScreen.classList.remove('hidden');
             adminScreen.classList.add('hidden');
-            errorMsg.textContent = 'عذراً، هذا الحساب غير مخول بالدخول للوحة التحكم.';
+            errorMsg.textContent = '?????? ??? ?????? ??? ???? ??????? ????? ??????.';
             errorMsg.classList.remove('hidden');
         }
     } else {
@@ -170,7 +170,7 @@ loginBtn.addEventListener('click', () => {
     errorMsg.classList.add('hidden');
     const provider = new GoogleAuthProvider();
     signInWithPopup(auth, provider).catch((error) => {
-        errorMsg.textContent = 'فشل تسجيل الدخول: ' + error.message;
+        errorMsg.textContent = '??? ????? ??????: ' + error.message;
         errorMsg.classList.remove('hidden');
     });
 });
@@ -197,10 +197,10 @@ document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
     const banner = document.getElementById('adminDemoBanner');
     if (banner) banner.style.display = 'flex';
 
-    adminName.textContent = 'محمد مسلم (معاينة تجريبية)';
+    adminName.textContent = '???? ???? (?????? ???????)';
     const greetingName = document.getElementById('dashboardGreetingName');
-    if (greetingName) greetingName.textContent = 'محمد مسلم';
-    adminRole.innerHTML = '<i class="fa-solid fa-crown"></i> سوبر مشرف <span style="font-size:0.75rem;opacity:0.85;">(وضع المعاينة)</span>';
+    if (greetingName) greetingName.textContent = '???? ????';
+    adminRole.innerHTML = '<i class="fa-solid fa-crown"></i> ???? ???? <span style="font-size:0.75rem;opacity:0.85;">(??? ????????)</span>';
 
     categories = JSON.parse(JSON.stringify(DEMO_CATEGORIES));
     products = JSON.parse(JSON.stringify(DEMO_PRODUCTS));
@@ -239,7 +239,7 @@ window.switchView = function(viewId, title = '') {
     // Handle placeholder titles
     if (viewId === 'view-placeholder') {
         const pTitle = document.getElementById('placeholderTitle');
-        if (pTitle) pTitle.textContent = title || 'قسم قيد التطوير';
+        if (pTitle) pTitle.textContent = title || '??? ??? ???????';
     }
 
     // Close mobile drawer
@@ -284,12 +284,12 @@ if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeMobileSidebar)
 
 // ================= UTILITIES =================
 function formatPrice(price) {
-    if (!price || isNaN(price)) return '0 د.ع';
-    return Number(price).toLocaleString('ar-IQ') + ' د.ع';
+    if (!price || isNaN(price)) return '0 ?.?';
+    return Number(price).toLocaleString('ar-IQ') + ' ?.?';
 }
 
 function formatDate(timestamp) {
-    if (!timestamp) return 'غير محدد';
+    if (!timestamp) return '??? ????';
     const date = new Date(timestamp);
     return date.toLocaleDateString('ar-IQ', {
         month: 'short',
@@ -301,7 +301,7 @@ function formatDate(timestamp) {
 
 function getCategoryName(categoryId) {
     const cat = categories.find(c => c.id === categoryId);
-    return cat ? cat.name : 'عام';
+    return cat ? cat.name : '???';
 }
 
 // Unified function to update all UI views & metrics
@@ -310,7 +310,7 @@ function updateAllDashboardViews() {
     const navCategories = document.getElementById('navCategoriesCount');
     const statCategories = document.getElementById('statCategoriesSummary');
     if (navCategories) navCategories.textContent = categories.length;
-    if (statCategories) statCategories.textContent = `${categories.length} أقسام`;
+    if (statCategories) statCategories.textContent = `${categories.length} ?????`;
 
     // 2. Products metrics
     const statProducts = document.getElementById('statProducts');
@@ -322,15 +322,15 @@ function updateAllDashboardViews() {
     let totalSales = 0;
     let uniqueCustomers = new Set();
     orders.forEach(order => {
-        if (order.status === 'completed' || order.status === 'مكتمل') {
+        if (order.status === 'completed' || order.status === '?????') {
             totalSales += (order.grandTotal || 0);
         }
         if (order.customerPhone) uniqueCustomers.add(order.customerPhone);
     });
 
-    const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'جديد').length;
-    const completedCount = orders.filter(o => o.status === 'completed' || o.status === 'مكتمل').length;
-    const cancelledCount = orders.filter(o => o.status === 'cancelled' || o.status === 'ملغي').length;
+    const pendingCount = orders.filter(o => o.status === 'pending' || o.status === '????').length;
+    const completedCount = orders.filter(o => o.status === 'completed' || o.status === '?????').length;
+    const cancelledCount = orders.filter(o => o.status === 'cancelled' || o.status === '????').length;
 
     const elStatOrders = document.getElementById('statOrders');
     const elOrdersBadge = document.getElementById('ordersBadge');
@@ -422,7 +422,7 @@ function loadDashboardData() {
 
 function customerDate(value) {
     const date = value ? new Date(value) : null;
-    return date && !Number.isNaN(date.getTime()) ? date.toLocaleString('ar-IQ') : 'غير متوفر';
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleString('ar-IQ') : '??? ?????';
 }
 
 function renderCustomers() {
@@ -436,8 +436,8 @@ function renderCustomers() {
     if (stat) stat.textContent = customers.length;
     body.innerHTML = filtered.length ? filtered.map((customer) => {
         const type = ['retail', 'wholesale', 'special'].includes(customer.accountType) ? customer.accountType : 'retail';
-        return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}…</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="نسخ UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><button class="btn btn-primary action-save-btn" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button></td></tr>`;
-    }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
+        return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || '??? ?????')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || '??? ?????')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || '??? ?????')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}�</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="??? UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-primary action-save-btn" style="flex:1;" data-save-customer="${escapeHtml(customer.uid)}">???</button>${currentAdminUser?.uid === SUPER_ADMIN_UID ? `<button class="btn btn-outline btn-sm" style="flex:1;" onclick="openResetPinModal('')" title="????? ????? PIN"><i class="fa-solid fa-key"></i> PIN</button>` : ''}${(currentAdminUser?.uid === SUPER_ADMIN_UID || currentAdminUser?.permissions?.customers_delete) ? `<button class="btn btn-outline btn-sm" style="flex:1; color: var(--primary); border-color: var(--primary);" onclick="deleteCustomer('')" title="???"><i class="fa-solid fa-trash"></i></button>` : ''}</div></td></tr>`;
+    }).join('') : '<tr><td colspan="7" class="text-center">?? ???? ????? ?? ?????? ??????? /profiles.</td></tr>';
     body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
     renderPricingCustomers();
 }
@@ -447,12 +447,12 @@ function renderPricingCustomers() {
     if (!body) return;
     const rows = customers.map((customer) => {
         const type = ['public', 'special', 'wholesale'].includes(customer.pricing_tier) ? customer.pricing_tier : (customer.accountType === 'retail' ? 'public' : (customer.accountType || 'public'));
-        return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td>${escapeHtml(customer.uid)}</td><td><span class="visibility-badge ${type === 'public' ? 'visible' : 'limited'}">${type}</span></td><td>${customerDate(customer.createdAt || customer.creationTime)}</td><td><button class="btn btn-outline btn-sm" data-pricing-customer="${escapeHtml(customer.uid)}">تعديل من جدول العملاء</button></td></tr>`;
+        return `<tr><td>${escapeHtml(customer.name || customer.displayName || '??? ?????')}</td><td dir="ltr">${escapeHtml(customer.email || '??? ?????')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || '??? ?????')}</td><td>${escapeHtml(customer.uid)}</td><td><span class="visibility-badge ${type === 'public' ? 'visible' : 'limited'}">${type}</span></td><td>${customerDate(customer.createdAt || customer.creationTime)}</td><td><button class="btn btn-outline btn-sm" data-pricing-customer="${escapeHtml(customer.uid)}">????? ?? ???? ???????</button></td></tr>`;
     });
-    Object.entries(pendingPricingIdentities).forEach(([key, item]) => rows.push(`<tr><td>معلق</td><td dir="ltr">${escapeHtml(item.email || item.identity || '')}</td><td dir="ltr">${escapeHtml(item.phone || '')}</td><td>${escapeHtml(item.uid || 'pending')}</td><td><span class="visibility-badge limited">${escapeHtml(item.pricing_tier || 'public')} / pending</span></td><td>${customerDate(item.createdAt)}</td><td><button class="btn btn-outline btn-sm" data-delete-pending="${escapeHtml(key)}">حذف التصنيف</button></td></tr>`));
-    body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" class="text-center">لا توجد فئات عملاء.</td></tr>';
+    Object.entries(pendingPricingIdentities).forEach(([key, item]) => rows.push(`<tr><td>????</td><td dir="ltr">${escapeHtml(item.email || item.identity || '')}</td><td dir="ltr">${escapeHtml(item.phone || '')}</td><td>${escapeHtml(item.uid || 'pending')}</td><td><span class="visibility-badge limited">${escapeHtml(item.pricing_tier || 'public')} / pending</span></td><td>${customerDate(item.createdAt)}</td><td><button class="btn btn-outline btn-sm" data-delete-pending="${escapeHtml(key)}">??? ???????</button></td></tr>`));
+    body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="7" class="text-center">?? ???? ???? ?????.</td></tr>';
     body.querySelectorAll('[data-pricing-customer]').forEach((button) => button.addEventListener('click', () => switchView('view-customers')));
-    body.querySelectorAll('[data-delete-pending]').forEach((button) => button.addEventListener('click', async () => { if (confirm('حذف التصنيف المعلق؟')) await remove(ref(db, `pricing_identities/${button.dataset.deletePending}`)); }));
+    body.querySelectorAll('[data-delete-pending]').forEach((button) => button.addEventListener('click', async () => { if (confirm('??? ??????? ???????')) await remove(ref(db, `pricing_identities/${button.dataset.deletePending}`)); }));
 }
 
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
@@ -497,7 +497,7 @@ document.getElementById('pendingPricingForm')?.addEventListener('submit', async 
         await set(ref(db, `pricing_identities/${key}`), { identity, pricing_tier: tier, notes, createdAt: now, createdBy: currentAdminUser.uid });
     }
     event.target.reset();
-    alert('تم حفظ تصنيف السعر.');
+    alert('?? ??? ????? ?????.');
 });
 
 function updateCategorySelects() {
@@ -506,18 +506,18 @@ function updateCategorySelects() {
     const pricingFilterSelect = document.getElementById('pricingCategoryFilter');
 
     if (prodSelect) {
-        prodSelect.innerHTML = '<option value="">اختر القسم المناسب...</option>';
+        prodSelect.innerHTML = '<option value="">???? ????? ???????...</option>';
         categories.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat.id;
-            opt.textContent = cat.name + (cat.isHidden ? ' (مخفي)' : '');
+            opt.textContent = cat.name + (cat.isHidden ? ' (????)' : '');
             prodSelect.appendChild(opt);
         });
     }
 
     if (filterSelect) {
         const currentVal = filterSelect.value;
-        filterSelect.innerHTML = '<option value="">جميع الأقسام</option>';
+        filterSelect.innerHTML = '<option value="">???? ???????</option>';
         categories.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat.id;
@@ -528,7 +528,7 @@ function updateCategorySelects() {
     }
     if (pricingFilterSelect) {
         const currentVal = pricingFilterSelect.value;
-        pricingFilterSelect.innerHTML = '<option value="">كل الأقسام</option>';
+        pricingFilterSelect.innerHTML = '<option value="">?? ???????</option>';
         categories.forEach(cat => { const opt = document.createElement('option'); opt.value = cat.id; opt.textContent = cat.name; pricingFilterSelect.appendChild(opt); });
         pricingFilterSelect.value = currentVal;
     }
@@ -546,8 +546,8 @@ function renderPricingManagementTable() {
     });
     tbody.innerHTML = filtered.length ? filtered.map((p) => {
         const prices = privatePricesByProduct[p.id] || {};
-        return `<tr><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '')}</td><td><input class="pricing-input" type="number" min="1" step="1" data-public-price="${escapeHtml(p.id)}" value="${Number(p.public_price ?? p.price) || ''}"></td><td><input class="pricing-input" type="number" min="1" step="1" data-special-price="${escapeHtml(p.id)}" value="${prices.special_price || ''}" placeholder="fallback"></td><td><input class="pricing-input" type="number" min="1" step="1" data-wholesale-price="${escapeHtml(p.id)}" value="${prices.wholesale_price || ''}" placeholder="fallback"></td><td><span class="visibility-badge ${p.isHidden ? 'hidden' : 'visible'}">${p.isHidden ? 'مخفي' : 'نشط'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">حفظ</button></td></tr>`;
-    }).join('') : '<tr><td colspan="8" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
+        return `<tr><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '')}</td><td><input class="pricing-input" type="number" min="1" step="1" data-public-price="${escapeHtml(p.id)}" value="${Number(p.public_price ?? p.price) || ''}"></td><td><input class="pricing-input" type="number" min="1" step="1" data-special-price="${escapeHtml(p.id)}" value="${prices.special_price || ''}" placeholder="fallback"></td><td><input class="pricing-input" type="number" min="1" step="1" data-wholesale-price="${escapeHtml(p.id)}" value="${prices.wholesale_price || ''}" placeholder="fallback"></td><td><span class="visibility-badge ${p.isHidden ? 'hidden' : 'visible'}">${p.isHidden ? '????' : '???'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">???</button></td></tr>`;
+    }).join('') : '<tr><td colspan="8" class="text-center">?? ???? ?????? ??????.</td></tr>';
     tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => saveProductPricing(button.dataset.savePricing)));
 }
 
@@ -561,7 +561,7 @@ async function saveProductPricing(id) {
     const specialPrice = specialInput?.value === '' ? null : Number(specialInput.value);
     const wholesalePrice = wholesaleInput?.value === '' ? null : Number(wholesaleInput.value);
     if (!product || !Number.isFinite(publicPrice) || publicPrice <= 0 || (specialPrice !== null && (!Number.isFinite(specialPrice) || specialPrice <= 0)) || (wholesalePrice !== null && (!Number.isFinite(wholesalePrice) || wholesalePrice <= 0))) {
-        alert('السعر العام موجب، والخاص/الجملة إما فارغ أو رقم موجب.');
+        alert('????? ????? ????? ??????/?????? ??? ???? ?? ??? ????.');
         return;
     }
     const now = Date.now();
@@ -571,7 +571,7 @@ async function saveProductPricing(id) {
         [`private_prices/${id}`]: { special_price: specialPrice, wholesale_price: wholesalePrice, updatedAt: now, updatedBy: currentAdminUser.uid },
         [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice, specialPrice, wholesalePrice, timestamp: now }
     });
-    alert('تم حفظ مستويات السعر وتسجيل التعديل.');
+    alert('?? ??? ??????? ????? ?????? ???????.');
 }
 window.saveProductPricing = saveProductPricing;
 document.getElementById('pricingSearch')?.addEventListener('input', renderPricingManagementTable);
@@ -585,24 +585,24 @@ function renderRecentOrders() {
     tbody.innerHTML = '';
 
     if (orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:30px;color:#888;">لا توجد أي طلبات مسجلة حتى الآن</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:30px;color:#888;">?? ???? ?? ????? ????? ??? ????</td></tr>';
         return;
     }
 
     const recent = orders.slice(0, 5);
     recent.forEach((order, idx) => {
-        const statusClass = (order.status === 'pending' || order.status === 'جديد') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
-        const statusText = (order.status === 'pending' || order.status === 'جديد') ? 'قيد التجهيز' : (order.status === 'cancelled' ? 'ملغي' : 'مكتمل');
+        const statusClass = (order.status === 'pending' || order.status === '????') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
+        const statusText = (order.status === 'pending' || order.status === '????') ? '??? ???????' : (order.status === 'cancelled' ? '????' : '?????');
         const itemsCount = order.items ? (Array.isArray(order.items) ? order.items.length : Object.keys(order.items).length) : 0;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>#${order.orderNumber || idx + 1}</strong></td>
-            <td>${order.customerName || 'عميل'}</td>
-            <td>${itemsCount} قطع</td>
+            <td>${order.customerName || '????'}</td>
+            <td>${itemsCount} ???</td>
             <td><strong style="color:var(--dark);">${formatPrice(order.grandTotal || 0)}</strong></td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td><button class="table-btn btn-edit" onclick="viewOrder('${order.id}')"><i class="fa-solid fa-eye"></i> عرض</button></td>
+            <td><button class="table-btn btn-edit" onclick="viewOrder('${order.id}')"><i class="fa-solid fa-eye"></i> ???</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -614,7 +614,7 @@ function renderTopProducts() {
     list.innerHTML = '';
 
     if (products.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:25px;color:#888;grid-column:1/-1;">لا توجد منتجات مسجلة</div>';
+        list.innerHTML = '<div style="text-align:center;padding:25px;color:#888;grid-column:1/-1;">?? ???? ?????? ?????</div>';
         return;
     }
 
@@ -627,7 +627,7 @@ function renderTopProducts() {
                     <div class="tp-name">${prod.name}</div>
                     <div class="tp-price">${formatPrice(prod.price || 0)}</div>
                 </div>
-                <span class="visibility-badge ${prod.isHidden ? 'hidden' : 'visible'}">${prod.isHidden ? 'مخفي' : 'نشط'}</span>
+                <span class="visibility-badge ${prod.isHidden ? 'hidden' : 'visible'}">${prod.isHidden ? '????' : '???'}</span>
             </div>
         `;
         list.insertAdjacentHTML('beforeend', html);
@@ -646,7 +646,7 @@ function renderDashboardCharts() {
             data: {
                 labels: salesData.labels,
                 datasets: [{
-                    label: 'المبيعات',
+                    label: '????????',
                     data: salesData.values,
                     borderColor: '#ef4444',
                     backgroundColor: 'rgba(239,68,68,0.12)',
@@ -716,7 +716,7 @@ function buildSalesSeries() {
         labels.push(date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
         const total = orders.reduce((sum, order) => {
             const ts = order.timestamp || 0;
-            if (ts >= date.getTime() && ts < next.getTime() && (order.status === 'completed' || order.status === 'مكتمل' || order.status === 'pending' || order.status === 'جديد')) {
+            if (ts >= date.getTime() && ts < next.getTime() && (order.status === 'completed' || order.status === '?????' || order.status === 'pending' || order.status === '????')) {
                 return sum + Number(order.grandTotal || 0);
             }
             return sum;
@@ -747,7 +747,7 @@ function renderCategoryDistribution() {
     const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#94a3b8'];
     list.innerHTML = '';
     if (distribution.length === 0) {
-        list.innerHTML = '<div style="text-align:center;color:#888;padding:15px 0;">لا توجد بيانات أقسام كافية</div>';
+        list.innerHTML = '<div style="text-align:center;color:#888;padding:15px 0;">?? ???? ?????? ????? ?????</div>';
         return;
     }
 
@@ -790,7 +790,7 @@ function renderProductsManagementTable() {
     tbody.innerHTML = '';
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">لا توجد منتجات مطابقة لخيارات البحث أو الفلترة</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">?? ???? ?????? ?????? ??????? ????? ?? ???????</td></tr>';
         return;
     }
 
@@ -806,19 +806,19 @@ function renderProductsManagementTable() {
             <td><strong style="color:var(--primary);">${formatPrice(prod.price)}</strong></td>
             <td>
                 <span class="visibility-badge ${isHidden ? 'hidden' : 'visible'}">
-                    <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? 'مخفي مؤقتاً' : 'معروض بالمتجر'}
+                    <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? '???? ??????' : '????? ???????'}
                 </span>
             </td>
             <td>
                 <div class="table-actions">
-                    <button class="table-btn btn-edit" title="تعديل المنتج" onclick="openProductModal('${prod.id}')">
-                        <i class="fa-solid fa-pen-to-square"></i> تعديل
+                    <button class="table-btn btn-edit" title="????? ??????" onclick="openProductModal('${prod.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i> ?????
                     </button>
-                    <button class="table-btn btn-toggle" title="${isHidden ? 'إظهار في المتجر' : 'إخفاء من المتجر'}" onclick="toggleProductVisibility('${prod.id}', ${isHidden})">
-                        <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i> ${isHidden ? 'إظهار' : 'إخفاء'}
+                    <button class="table-btn btn-toggle" title="${isHidden ? '????? ?? ??????' : '????? ?? ??????'}" onclick="toggleProductVisibility('${prod.id}', ${isHidden})">
+                        <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i> ${isHidden ? '?????' : '?????'}
                     </button>
-                    <button class="table-btn btn-delete" title="حذف نهائي" onclick="deleteProduct('${prod.id}')">
-                        <i class="fa-solid fa-trash"></i> حذف
+                    <button class="table-btn btn-delete" title="??? ?????" onclick="deleteProduct('${prod.id}')">
+                        <i class="fa-solid fa-trash"></i> ???
                     </button>
                 </div>
             </td>
@@ -845,7 +845,7 @@ window.openProductModal = function(id = null) {
     currentProcessedImageName = null;
 
     if (id) {
-        document.getElementById('productModalTitle').textContent = 'تعديل بيانات المنتج';
+        document.getElementById('productModalTitle').textContent = '????? ?????? ??????';
         const prod = products.find(p => p.id === id);
         if (prod) {
             document.getElementById('prodId').value = prod.id;
@@ -874,12 +874,12 @@ window.openProductModal = function(id = null) {
 
             if (prod.image) {
                 document.getElementById('imagePreview').src = prod.image;
-                document.getElementById('imageDetails').textContent = 'الصورة الحالية للمنتج';
+                document.getElementById('imageDetails').textContent = '?????? ??????? ??????';
                 document.getElementById('imagePreviewContainer').style.display = 'block';
             }
         }
     } else {
-        document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
+        document.getElementById('productModalTitle').textContent = '????? ???? ????';
         document.getElementById('prodStatus').value = 'published';
     }
 
@@ -902,17 +902,17 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     for (const line of specsText.split(/\r?\n/).filter(Boolean)) {
         const separator = line.indexOf(':');
         if (separator <= 0 || separator >= line.length - 1) {
-            alert('صيغة المواصفات غير صحيحة. استخدم «اسم المواصفة: القيمة» بكل سطر.');
+            alert('???? ????????? ??? ?????. ?????? �??? ????????: ??????� ??? ???.');
             return;
         }
         const key = line.slice(0, separator).trim();
         const value = line.slice(separator + 1).trim();
         if (!key || !value || key.length > 80 || value.length > 180 || key.includes('/') || key.includes('.')) {
-            alert('تأكد من طول اسم المواصفة وقيمتها، ولا تستخدم / أو . داخل اسم المواصفة.');
+            alert('???? ?? ??? ??? ???????? ???????? ??? ?????? / ?? . ???? ??? ????????.');
             return;
         }
         if (Object.keys(specifications).length >= 18 && !Object.hasOwn(specifications, key)) {
-            alert('الحد الأقصى 18 مواصفة لكل منتج.');
+            alert('???? ?????? 18 ?????? ??? ????.');
             return;
         }
         specifications[key] = value;
@@ -920,7 +920,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     const retailPrice = Number(document.getElementById('prodPrice').value);
     const wholesaleRaw = document.getElementById('prodWholesalePrice').value;
     const specialRaw = document.getElementById('prodSpecialPrice').value;
-    if (!Number.isFinite(retailPrice) || retailPrice <= 0 || (wholesaleRaw && (!Number.isFinite(Number(wholesaleRaw)) || Number(wholesaleRaw) <= 0)) || (specialRaw && (!Number.isFinite(Number(specialRaw)) || Number(specialRaw) <= 0))) { alert('السعر العام يجب أن يكون رقمًا موجبًا. اترك الخاص/الجملة فارغًا أو أدخل رقمًا موجبًا.'); return; }
+    if (!Number.isFinite(retailPrice) || retailPrice <= 0 || (wholesaleRaw && (!Number.isFinite(Number(wholesaleRaw)) || Number(wholesaleRaw) <= 0)) || (specialRaw && (!Number.isFinite(Number(specialRaw)) || Number(specialRaw) <= 0))) { alert('????? ????? ??? ?? ???? ????? ??????. ???? ?????/?????? ?????? ?? ???? ????? ??????.'); return; }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
         category: document.getElementById('prodCategory').value,
@@ -948,11 +948,11 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
             if (index !== -1) {
                 products[index] = { ...products[index], ...prodData, id };
             }
-            alert('تم تعديل المنتج بنجاح في الذاكرة (وضع العرض التجريبي).');
+            alert('?? ????? ?????? ????? ?? ??????? (??? ????? ????????).');
         } else {
             const newId = 'demo-prod-' + Date.now();
             products.unshift({ id: newId, ...prodData, createdAt: Date.now() });
-            alert('تمت إضافة المنتج الجديد بنجاح في الذاكرة (وضع العرض التجريبي).');
+            alert('??? ????? ?????? ?????? ????? ?? ??????? (??? ????? ????????).');
         }
         updateAllDashboardViews();
         closeProductModal();
@@ -964,19 +964,19 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
             await update(ref(db, 'products/' + id), prodData);
             await update(ref(db, 'private_prices/' + id), privatePrices);
             await set(ref(db, `auditLogs/${push(ref(db, 'auditLogs')).key}`), { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice: retailPrice, specialPrice: privatePrices.special_price, wholesalePrice: privatePrices.wholesale_price, timestamp: Date.now() });
-            alert('تم تحديث المنتج بنجاح!');
+            alert('?? ????? ?????? ?????!');
         } else {
             prodData.createdAt = Date.now();
             const productRef = push(ref(db, 'products'));
             await set(productRef, prodData);
             await set(ref(db, 'private_prices/' + productRef.key), privatePrices);
             await set(ref(db, `auditLogs/${push(ref(db, 'auditLogs')).key}`), { action: 'product_pricing_created', productId: productRef.key, actorUid: currentAdminUser.uid, publicPrice: retailPrice, specialPrice: privatePrices.special_price, wholesalePrice: privatePrices.wholesale_price, timestamp: Date.now() });
-            alert('تمت إضافة المنتج الجديد بنجاح!');
+            alert('??? ????? ?????? ?????? ?????!');
         }
         closeProductModal();
     } catch (error) {
         console.error(error);
-        alert('خطأ أثناء حفظ المنتج في Firebase: ' + error.message);
+        alert('??? ????? ??? ?????? ?? Firebase: ' + error.message);
     }
 });
 
@@ -992,23 +992,23 @@ window.toggleProductVisibility = async function(id, currentHidden) {
     try {
         await update(ref(db, 'products/' + id), { isHidden: !currentHidden });
     } catch (err) {
-        alert('فشل تغيير حالة العرض: ' + err.message);
+        alert('??? ????? ???? ?????: ' + err.message);
     }
 };
 
 window.deleteProduct = async function(id) {
-    if (!confirm('هل أنت متأكد تماماً من رغبتك بحذف هذا المنتج نهائياً من المتجر وقاعدة البيانات؟')) return;
+    if (!confirm('?? ??? ????? ?????? ?? ????? ???? ??? ?????? ??????? ?? ?????? ?????? ?????????')) return;
     if (isDemoMode) {
         products = products.filter(p => p.id !== id);
         updateAllDashboardViews();
-        alert('تم حذف المنتج بنجاح من قائمة المعاينة.');
+        alert('?? ??? ?????? ????? ?? ????? ????????.');
         return;
     }
     try {
         await remove(ref(db, 'products/' + id));
-        alert('تم حذف المنتج بنجاح.');
+        alert('?? ??? ?????? ?????.');
     } catch (err) {
-        alert('فشل حذف المنتج: ' + err.message);
+        alert('??? ??? ??????: ' + err.message);
     }
 };
 
@@ -1022,7 +1022,7 @@ function renderCategoriesManagementTable() {
     categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     if (categories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">لا توجد أقسام مسجلة. انقر على "إضافة قسم جديد" للبدء</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">?? ???? ????? ?????. ???? ??? "????? ??? ????" ?????</td></tr>';
         return;
     }
 
@@ -1034,24 +1034,24 @@ function renderCategoriesManagementTable() {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><img src="${imageUrl}" class="tp-img" alt="${cat.name}" style="border-radius:4px;"></td>
-            <td><strong>${cat.name}</strong><br><small style="color:#777;">${cat.description || 'لا يوجد وصف'}</small></td>
+            <td><strong>${cat.name}</strong><br><small style="color:#777;">${cat.description || '?? ???? ???'}</small></td>
             <td><code>${cat.id}</code></td>
-            <td><strong style="color:var(--dark);">${prodCount} منتج</strong></td>
+            <td><strong style="color:var(--dark);">${prodCount} ????</strong></td>
             <td>
                 <span class="visibility-badge ${isHidden ? 'hidden' : 'visible'}">
-                    <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? 'مخفي' : 'ظاهر'}
+                    <i class="fa-solid ${isHidden ? 'fa-eye-slash' : 'fa-eye'}"></i> ${isHidden ? '????' : '????'}
                 </span>
             </td>
             <td>
                 <div class="table-actions">
-                    <button class="table-btn btn-edit" title="تعديل القسم" onclick="openCategoryModal('${cat.id}')">
-                        <i class="fa-solid fa-pen-to-square"></i> تعديل
+                    <button class="table-btn btn-edit" title="????? ?????" onclick="openCategoryModal('${cat.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i> ?????
                     </button>
-                    <button class="table-btn btn-toggle" title="${isHidden ? 'إظهار القسم' : 'إخفاء القسم'}" onclick="toggleCategoryVisibility('${cat.id}', ${isHidden})">
-                        <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i> ${isHidden ? 'إظهار' : 'إخفاء'}
+                    <button class="table-btn btn-toggle" title="${isHidden ? '????? ?????' : '????? ?????'}" onclick="toggleCategoryVisibility('${cat.id}', ${isHidden})">
+                        <i class="fa-solid ${isHidden ? 'fa-eye' : 'fa-eye-slash'}"></i> ${isHidden ? '?????' : '?????'}
                     </button>
-                    <button class="table-btn btn-delete" title="حذف القسم" onclick="deleteCategory('${cat.id}')">
-                        <i class="fa-solid fa-trash"></i> حذف
+                    <button class="table-btn btn-delete" title="??? ?????" onclick="deleteCategory('${cat.id}')">
+                        <i class="fa-solid fa-trash"></i> ???
                     </button>
                 </div>
             </td>
@@ -1069,7 +1069,7 @@ window.openCategoryModal = function(id = null) {
     document.getElementById('catId').value = '';
 
     if (id) {
-        document.getElementById('categoryModalTitle').textContent = 'تعديل القسم';
+        document.getElementById('categoryModalTitle').textContent = '????? ?????';
         const cat = categories.find(c => c.id === id);
         if (cat) {
             document.getElementById('catId').value = cat.id;
@@ -1079,7 +1079,7 @@ window.openCategoryModal = function(id = null) {
             document.getElementById('catHidden').checked = !!cat.isHidden;
         }
     } else {
-        document.getElementById('categoryModalTitle').textContent = 'إضافة قسم جديد';
+        document.getElementById('categoryModalTitle').textContent = '????? ??? ????';
         document.getElementById('catImage').value = '';
         document.getElementById('catHidden').checked = false;
     }
@@ -1109,11 +1109,11 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
             if (index !== -1) {
                 categories[index] = { ...categories[index], ...catData, id };
             }
-            alert('تم تعديل القسم بنجاح في الذاكرة (وضع العرض التجريبي).');
+            alert('?? ????? ????? ????? ?? ??????? (??? ????? ????????).');
         } else {
             const newId = 'demo-cat-' + Date.now();
             categories.push({ id: newId, ...catData, createdAt: Date.now() });
-            alert('تمت إضافة القسم بنجاح إلى قائمة المعاينة (وضع العرض التجريبي).');
+            alert('??? ????? ????? ????? ??? ????? ???????? (??? ????? ????????).');
         }
         updateAllDashboardViews();
         closeCategoryModal();
@@ -1123,15 +1123,15 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
     try {
         if (id) {
             await update(ref(db, 'categories/' + id), catData);
-            alert('تم تعديل القسم بنجاح!');
+            alert('?? ????? ????? ?????!');
         } else {
             catData.createdAt = Date.now();
             await set(push(ref(db, 'categories')), catData);
-            alert('تمت إضافة القسم بنجاح!');
+            alert('??? ????? ????? ?????!');
         }
         closeCategoryModal();
     } catch (err) {
-        alert('خطأ أثناء حفظ القسم: ' + err.message);
+        alert('??? ????? ??? ?????: ' + err.message);
     }
 });
 
@@ -1147,30 +1147,30 @@ window.toggleCategoryVisibility = async function(id, currentHidden) {
     try {
         await update(ref(db, 'categories/' + id), { isHidden: !currentHidden });
     } catch (err) {
-        alert('فشل تغيير حالة القسم: ' + err.message);
+        alert('??? ????? ???? ?????: ' + err.message);
     }
 };
 
 window.deleteCategory = async function(id) {
     const relatedCount = products.filter(p => p.categoryId === id || p.category === id).length;
-    let msg = 'هل أنت متأكد من حذف هذا القسم؟';
+    let msg = '?? ??? ????? ?? ??? ??? ??????';
     if (relatedCount > 0) {
-        msg = `تحذير: يوجد ${relatedCount} منتج مرتبط بهذا القسم! هل أنت متأكد من حذفه؟`;
+        msg = `?????: ???? ${relatedCount} ???? ????? ???? ?????! ?? ??? ????? ?? ?????`;
     }
     if (!confirm(msg)) return;
 
     if (isDemoMode) {
         categories = categories.filter(c => c.id !== id);
         updateAllDashboardViews();
-        alert('تم حذف القسم بنجاح من قائمة المعاينة.');
+        alert('?? ??? ????? ????? ?? ????? ????????.');
         return;
     }
 
     try {
         await remove(ref(db, 'categories/' + id));
-        alert('تم حذف القسم بنجاح.');
+        alert('?? ??? ????? ?????.');
     } catch (err) {
-        alert('فشل حذف القسم: ' + err.message);
+        alert('??? ??? ?????: ' + err.message);
     }
 };
 
@@ -1196,26 +1196,26 @@ function renderOrdersManagementTable() {
 
     let filtered = orders;
     if (activeOrderTab === 'pending') {
-        filtered = orders.filter(o => o.status === 'pending' || o.status === 'جديد');
+        filtered = orders.filter(o => o.status === 'pending' || o.status === '????');
     } else if (activeOrderTab === 'completed') {
-        filtered = orders.filter(o => o.status === 'completed' || o.status === 'مكتمل');
+        filtered = orders.filter(o => o.status === 'completed' || o.status === '?????');
     } else if (activeOrderTab === 'cancelled') {
-        filtered = orders.filter(o => o.status === 'cancelled' || o.status === 'ملغي');
+        filtered = orders.filter(o => o.status === 'cancelled' || o.status === '????');
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:40px;color:#888;">لا توجد طلبات في هذا التبويب</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:40px;color:#888;">?? ???? ????? ?? ??? ???????</td></tr>';
         return;
     }
 
     filtered.forEach((order, idx) => {
-        const statusClass = (order.status === 'pending' || order.status === 'جديد') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
-        const statusText = (order.status === 'pending' || order.status === 'جديد') ? 'قيد التجهيز' : (order.status === 'cancelled' ? 'ملغي' : 'مكتمل');
+        const statusClass = (order.status === 'pending' || order.status === '????') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
+        const statusText = (order.status === 'pending' || order.status === '????') ? '??? ???????' : (order.status === 'cancelled' ? '????' : '?????');
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>#${order.orderNumber || idx + 1}</strong></td>
-            <td><strong>${order.customerName || 'عميل'}</strong></td>
+            <td><strong>${order.customerName || '????'}</strong></td>
             <td><a href="tel:${order.customerPhone}" style="color:var(--primary);font-weight:700;">${order.customerPhone || '-'}</a></td>
             <td>${order.governorate || ''} - ${order.city || ''}</td>
             <td><strong style="color:var(--dark);">${formatPrice(order.grandTotal || 0)}</strong></td>
@@ -1223,7 +1223,7 @@ function renderOrdersManagementTable() {
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>
                 <button class="table-btn btn-edit" onclick="viewOrder('${order.id}')">
-                    <i class="fa-solid fa-list-check"></i> تفاصيل وتحديث
+                    <i class="fa-solid fa-list-check"></i> ?????? ??????
                 </button>
             </td>
         `;
@@ -1249,7 +1249,7 @@ window.viewOrder = function(orderId) {
                 <li style="padding:10px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
                     <div>
                         <strong>${item.name}</strong>
-                        <span style="display:block;font-size:0.8rem;color:#777;">الكمية: ${item.quantity}</span>
+                        <span style="display:block;font-size:0.8rem;color:#777;">??????: ${item.quantity}</span>
                     </div>
                     <strong>${formatPrice((item.price || 0) * (item.quantity || 1))}</strong>
                 </li>`;
@@ -1262,35 +1262,35 @@ window.viewOrder = function(orderId) {
     content.innerHTML = `
         <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid #eee;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <p><strong>رقم الطلب:</strong> #${order.orderNumber || orderId}</p>
-                <p><strong>تاريخ الطلب:</strong> ${formatDate(order.timestamp)}</p>
-                <p><strong>اسم العميل:</strong> ${order.customerName}</p>
-                <p><strong>رقم الهاتف:</strong> <a href="tel:${order.customerPhone}" style="color:var(--primary);">${order.customerPhone}</a></p>
+                <p><strong>??? ?????:</strong> #${order.orderNumber || orderId}</p>
+                <p><strong>????? ?????:</strong> ${formatDate(order.timestamp)}</p>
+                <p><strong>??? ??????:</strong> ${order.customerName}</p>
+                <p><strong>??? ??????:</strong> <a href="tel:${order.customerPhone}" style="color:var(--primary);">${order.customerPhone}</a></p>
             </div>
-            <p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>
-            ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>ملاحظات العميل:</strong> ${order.notes}</p>` : ''}
+            <p style="margin-top:8px;"><strong>??????? ????????:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>
+            ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>??????? ??????:</strong> ${order.notes}</p>` : ''}
         </div>
 
-        <h4 style="font-weight:800;color:var(--dark);"><i class="fa-solid fa-boxes-packing"></i> المنتجات المطلوبة</h4>
+        <h4 style="font-weight:800;color:var(--dark);"><i class="fa-solid fa-boxes-packing"></i> ???????? ????????</h4>
         ${itemsHtml}
 
         <div style="margin-top:20px;padding-top:15px;border-top:2px solid #eee;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>مجموع المنتجات:</span> <strong>${formatPrice(order.subtotal || 0)}</strong></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>أجور التوصيل:</span> <strong>${formatPrice(order.deliveryFee || 5000)}</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>????? ????????:</span> <strong>${formatPrice(order.subtotal || 0)}</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>???? ???????:</span> <strong>${formatPrice(order.deliveryFee || 5000)}</strong></div>
             <div style="display:flex;justify-content:space-between;color:var(--primary);font-size:1.25rem;font-weight:900;margin-top:10px;padding-top:10px;border-top:1px dashed #ddd;">
-                <span>المبلغ الكلي:</span> <strong>${formatPrice(order.grandTotal || 0)}</strong>
+                <span>?????? ?????:</span> <strong>${formatPrice(order.grandTotal || 0)}</strong>
             </div>
         </div>
 
         <div style="margin-top:25px;background:#fff8e1;padding:16px;border-radius:8px;border:1px solid #ffe082;">
-            <label style="font-weight:800;display:block;margin-bottom:8px;color:#f57f17;"><i class="fa-solid fa-pen-to-square"></i> تحديث حالة الطلب بصلاحية سوبر مشرف:</label>
+            <label style="font-weight:800;display:block;margin-bottom:8px;color:#f57f17;"><i class="fa-solid fa-pen-to-square"></i> ????? ???? ????? ??????? ???? ????:</label>
             <div style="display:flex;gap:10px;">
                 <select id="updateOrderStatus" style="padding:10px;border-radius:6px;border:1px solid #ccc;flex-grow:1;font-weight:700;">
-                    <option value="pending" ${currentStatus==='pending'||currentStatus==='جديد'?'selected':''}>قيد التجهيز</option>
-                    <option value="completed" ${currentStatus==='completed'||currentStatus==='مكتمل'?'selected':''}>مكتمل (تم التسليم)</option>
-                    <option value="cancelled" ${currentStatus==='cancelled'||currentStatus==='ملغي'?'selected':''}>ملغي</option>
+                    <option value="pending" ${currentStatus==='pending'||currentStatus==='????'?'selected':''}>??? ???????</option>
+                    <option value="completed" ${currentStatus==='completed'||currentStatus==='?????'?'selected':''}>????? (?? ???????)</option>
+                    <option value="cancelled" ${currentStatus==='cancelled'||currentStatus==='????'?'selected':''}>????</option>
                 </select>
-                <button class="btn btn-primary" onclick="saveOrderStatus('${order.id}')"><i class="fa-solid fa-check"></i> حفظ الحالة</button>
+                <button class="btn btn-primary" onclick="saveOrderStatus('${order.id}')"><i class="fa-solid fa-check"></i> ??? ??????</button>
             </div>
         </div>
     `;
@@ -1309,7 +1309,7 @@ window.saveOrderStatus = async function(orderId) {
         if (ord) {
             ord.status = newStatus;
             updateAllDashboardViews();
-            alert('تم تحديث حالة الطلب بنجاح في الذاكرة (وضع العرض التجريبي).');
+            alert('?? ????? ???? ????? ????? ?? ??????? (??? ????? ????????).');
             closeOrderModal();
         }
         return;
@@ -1319,11 +1319,11 @@ window.saveOrderStatus = async function(orderId) {
             status: newStatus,
             updatedAt: Date.now()
         });
-        alert('تم تحديث حالة الطلب بنجاح في Firebase.');
+        alert('?? ????? ???? ????? ????? ?? Firebase.');
         closeOrderModal();
     } catch (error) {
         console.error(error);
-        alert('فشل تحديث حالة الطلب: ' + error.message);
+        alert('??? ????? ???? ?????: ' + error.message);
     }
 };
 
@@ -1355,18 +1355,18 @@ window.addEventListener('keydown', (e) => {
 document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
     const fileInput = document.getElementById('prodImageFile');
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert('الرجاء اختيار صورة أولاً.');
+        alert('?????? ?????? ???? ?????.');
         return;
     }
 
     const file = fileInput.files[0];
     if (!file.type.match(/image\/(png|jpeg|webp)/)) {
-        alert('صيغة غير مدعومة. الرجاء اختيار صورة بصيغة PNG أو JPEG أو WebP.');
+        alert('???? ??? ??????. ?????? ?????? ???? ????? PNG ?? JPEG ?? WebP.');
         return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-        alert('حجم الصورة كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.');
+        alert('??? ?????? ???? ????. ???? ?????? ??????? ?? ?? 5 ????????.');
         return;
     }
 
@@ -1411,7 +1411,7 @@ document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
             const estimatedBytes = Math.round((currentProcessedImageBase64.length * 3) / 4);
             const kbSize = (estimatedBytes / 1024).toFixed(1);
 
-            document.getElementById('imageDetails').textContent = `الأبعاد: ${Math.round(width)}×${Math.round(height)} بكسل | الحجم المحسّن: ${kbSize} KB | الصيغة: WebP`;
+            document.getElementById('imageDetails').textContent = `???????: ${Math.round(width)}�${Math.round(height)} ???? | ????? ???????: ${kbSize} KB | ??????: WebP`;
             document.getElementById('imagePreviewContainer').style.display = 'block';
         };
         img.src = e.target.result;
@@ -1423,18 +1423,18 @@ document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
 document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
     const fileInput = document.getElementById('catImageFile');
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert('الرجاء اختيار صورة أولاً.');
+        alert('?????? ?????? ???? ?????.');
         return;
     }
 
     const file = fileInput.files[0];
     if (!file.type.match(/image\/(png|jpeg|webp)/)) {
-        alert('صيغة غير مدعومة. الرجاء اختيار صورة بصيغة PNG أو JPEG أو WebP.');
+        alert('???? ??? ??????. ?????? ?????? ???? ????? PNG ?? JPEG ?? WebP.');
         return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-        alert('حجم الصورة كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.');
+        alert('??? ?????? ???? ????. ???? ?????? ??????? ?? ?? 5 ????????.');
         return;
     }
 
@@ -1480,7 +1480,7 @@ document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
             const estimatedBytes = Math.round((currentProcessedImageBase64.length * 3) / 4);
             const kbSize = (estimatedBytes / 1024).toFixed(1);
 
-            document.getElementById('catImageDetails').textContent = `الأبعاد: ${Math.round(width)}×${Math.round(height)} بكسل | الحجم المحسّن: ${kbSize} KB | الصيغة: WebP`;
+            document.getElementById('catImageDetails').textContent = `???????: ${Math.round(width)}�${Math.round(height)} ???? | ????? ???????: ${kbSize} KB | ??????: WebP`;
             document.getElementById('catImagePreviewContainer').style.display = 'block';
         };
         img.src = e.target.result;
@@ -1491,7 +1491,7 @@ document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
 document.getElementById('confirmUploadBtn')?.addEventListener('click', async () => {
     if (isUploadingImage) return;
     if (!currentProcessedImageBase64) {
-        alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
+        alert('?????? ?????? ???? ????????? ????? ??? ?????.');
         return;
     }
 
@@ -1500,10 +1500,10 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
     const btn = document.getElementById('confirmUploadBtn');
     const prepBtn = document.getElementById('uploadImageBtn');
     const prodImageInput = document.getElementById('prodImage');
-    const originalText = 'رفع الصورة إلى GitHub';
+    const originalText = '??? ?????? ??? GitHub';
     const previousImageValue = prodImageInput ? prodImageInput.value : '';
 
-    btn.textContent = 'جاري الرفع إلى GitHub...';
+    btn.textContent = '???? ????? ??? GitHub...';
     btn.disabled = true;
     if (prepBtn) prepBtn.disabled = true;
 
@@ -1538,7 +1538,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
             throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
         }
 
-        btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
+        btn.textContent = '?? ?????! ??????? ?????? ?????...';
 
         let attempts = 0;
         const maxAttempts = 15;
@@ -1546,7 +1546,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
 
         while (attempts < maxAttempts) {
             attempts++;
-            btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
+            btn.textContent = `???? ?????? ?? ????? (${attempts}/${maxAttempts})...`;
             try {
                 const verifyUrl = `${data.imageUrl}?_t=${Date.now()}`;
                 const checkRes = await fetch(verifyUrl, {
@@ -1568,14 +1568,14 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
 
         if (!isAvailable) {
             if (prodImageInput) prodImageInput.value = previousImageValue;
-            btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
+            btn.textContent = '????? ?????? - ?? ????? ???';
             btn.style.backgroundColor = '#c62828';
-            alert('تم الرفع إلى GitHub بنجاح، ولكن انتهت مهلة الانتظار قبل اكتمال نشر الصورة على المتجر. تم الاحتفاظ بالصورة السابقة للمنتج تجنباً للروابط المكسورة.');
+            alert('?? ????? ??? GitHub ?????? ???? ????? ???? ???????? ??? ?????? ??? ?????? ??? ??????. ?? ???????? ??????? ??????? ?????? ?????? ??????? ????????.');
             return;
         }
 
         if (prodImageInput) prodImageInput.value = data.path;
-        btn.textContent = 'تم توفر الصورة بنجاح!';
+        btn.textContent = '?? ???? ?????? ?????!';
         btn.style.backgroundColor = '#2e7d32';
 
         setTimeout(() => {
@@ -1588,8 +1588,8 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
     } catch (error) {
         if (prodImageInput) prodImageInput.value = previousImageValue;
         console.error("Upload failed:", error);
-        alert(error.message === 'Failed to fetch' ? 'فشل الاتصال بالخادم. يرجى التأكد من إعداد Cloudflare Worker وتحديث رابط SPIDER_BACKEND_ENDPOINT.' : `فشل الرفع: ${error.message}`);
-        btn.textContent = 'إعادة المحاولة';
+        alert(error.message === 'Failed to fetch' ? '??? ??????? ???????. ???? ?????? ?? ????? Cloudflare Worker ?????? ???? SPIDER_BACKEND_ENDPOINT.' : `??? ?????: ${error.message}`);
+        btn.textContent = '????? ????????';
         btn.style.backgroundColor = '#c62828';
     } finally {
         isUploadingImage = false;
@@ -1602,7 +1602,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
 document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async () => {
     if (isUploadingImage) return;
     if (!currentProcessedImageBase64) {
-        alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
+        alert('?????? ?????? ???? ????????? ????? ??? ?????.');
         return;
     }
 
@@ -1611,10 +1611,10 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
     const btn = document.getElementById('confirmCatUploadBtn');
     const prepBtn = document.getElementById('uploadCatImageBtn');
     const catImageInput = document.getElementById('catImage');
-    const originalText = 'رفع الصورة إلى GitHub';
+    const originalText = '??? ?????? ??? GitHub';
     const previousImageValue = catImageInput ? catImageInput.value : '';
 
-    btn.textContent = 'جاري الرفع إلى GitHub...';
+    btn.textContent = '???? ????? ??? GitHub...';
     btn.disabled = true;
     if (prepBtn) prepBtn.disabled = true;
 
@@ -1649,7 +1649,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
             throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
         }
 
-        btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
+        btn.textContent = '?? ?????! ??????? ?????? ?????...';
 
         let attempts = 0;
         const maxAttempts = 15;
@@ -1657,7 +1657,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
 
         while (attempts < maxAttempts) {
             attempts++;
-            btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
+            btn.textContent = `???? ?????? ?? ????? (${attempts}/${maxAttempts})...`;
             try {
                 const verifyUrl = `${data.imageUrl}?_t=${Date.now()}`;
                 const checkRes = await fetch(verifyUrl, {
@@ -1679,14 +1679,14 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
 
         if (!isAvailable) {
             if (catImageInput) catImageInput.value = previousImageValue;
-            btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
+            btn.textContent = '????? ?????? - ?? ????? ???';
             btn.style.backgroundColor = '#c62828';
-            alert('تم الرفع إلى GitHub بنجاح، ولكن انتهت مهلة الانتظار. سيتم استخدام الصورة السابقة مؤقتاً.');
+            alert('?? ????? ??? GitHub ?????? ???? ????? ???? ????????. ???? ??????? ?????? ??????? ??????.');
             return;
         }
 
         if (catImageInput) catImageInput.value = data.path;
-        btn.textContent = 'تم توفر الصورة بنجاح!';
+        btn.textContent = '?? ???? ?????? ?????!';
         btn.style.backgroundColor = '#2e7d32';
 
         setTimeout(() => {
@@ -1696,10 +1696,10 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
 
     } catch (err) {
         if (catImageInput) catImageInput.value = previousImageValue;
-        btn.textContent = 'فشل الرفع!';
+        btn.textContent = '??? ?????!';
         btn.style.backgroundColor = '#c62828';
         console.error("Upload Error:", err);
-        alert('حدث خطأ أثناء الرفع: ' + err.message);
+        alert('??? ??? ????? ?????: ' + err.message);
     } finally {
         isUploadingImage = false;
         setTimeout(() => {
@@ -1744,17 +1744,17 @@ window.seedDraftCatalog = async function() {
     });
 
     if (newCatsCount === 0 && newProdsCount === 0) {
-        alert('جميع السجلات موجودة مسبقاً. لم يتم العثور على سجلات جديدة لرفعها.');
+        alert('???? ??????? ?????? ??????. ?? ??? ?????? ??? ????? ????? ??????.');
         return;
     }
 
-    if (!confirm(`معاينة قبل الرفع:\n- أقسام جديدة (مسودات): ${newCatsCount}\n- منتجات جديدة (مسودات): ${newProdsCount}\n- سجلات موجودة مسبقاً (تم تجاهلها): ${existingCount}\n\nهل أنت متأكد من الرفع؟ لا تقلق، لن يتم استبدال أي بيانات حالية.`)) return;
+    if (!confirm(`?????? ??? ?????:\n- ????? ????? (??????): ${newCatsCount}\n- ?????? ????? (??????): ${newProdsCount}\n- ????? ?????? ?????? (?? ???????): ${existingCount}\n\n?? ??? ????? ?? ?????? ?? ????? ?? ??? ??????? ?? ?????? ?????.`)) return;
 
     try {
         await update(ref(db, '/'), updates);
-        alert('تم إضافة الكتالوگ كمسودات بنجاح!');
+        alert('?? ????? ???????? ??????? ?????!');
     } catch(err) {
-        alert('خطأ أثناء الرفع: ' + err.message);
+        alert('??? ????? ?????: ' + err.message);
     }
 }
 
@@ -1768,7 +1768,7 @@ function renderReviewTable() {
     tbody.innerHTML = '';
 
     if (drafts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#888;">لا توجد مسودات بانتظار المراجعة.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#888;">?? ???? ?????? ??????? ????????.</td></tr>';
         return;
     }
 
@@ -1778,14 +1778,14 @@ function renderReviewTable() {
             <td><img src="${prod.image || '/images/default-product.svg'}" class="tp-img" alt="${prod.name}"></td>
             <td><strong>${prod.name}</strong><br><small>${getCategoryName(prod.categoryId || prod.category)}</small></td>
             <td><strong style="color:var(--primary);">${formatPrice(prod.price)}</strong></td>
-            <td><span class="status-badge status-pending">مسودة</span></td>
+            <td><span class="status-badge status-pending">?????</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="table-btn btn-edit" title="مراجعة وتعديل" onclick="openProductModal('${prod.id}')">
-                        <i class="fa-solid fa-pen-to-square"></i> مراجعة
+                    <button class="table-btn btn-edit" title="?????? ??????" onclick="openProductModal('${prod.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i> ??????
                     </button>
-                    <button class="table-btn btn-toggle" title="نشر فوراً" onclick="publishDraft('${prod.id}')" style="background:#10b981; color:white; border-color:#10b981;">
-                        <i class="fa-solid fa-check"></i> نشر
+                    <button class="table-btn btn-toggle" title="??? ?????" onclick="publishDraft('${prod.id}')" style="background:#10b981; color:white; border-color:#10b981;">
+                        <i class="fa-solid fa-check"></i> ???
                     </button>
                 </div>
             </td>
@@ -1808,7 +1808,7 @@ window.publishDraft = async function(id) {
     try {
         await update(ref(db, 'products/' + id), { status: 'published', isHidden: false });
     } catch(err) {
-        alert('فشل النشر: ' + err.message);
+        alert('??? ?????: ' + err.message);
     }
 }
 
@@ -1828,8 +1828,8 @@ window.updateAllDashboardViews = function() {
 };
 
 // ================= SETTINGS MANAGEMENT =================
-const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: 'ما لكيت هذه المعلومة ضمن المنتجات المنشورة حالياً.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
-let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: '??? ??? ?? ?????? ??\n???? ???? ?????? ??????', welcomeMessageEn: 'Welcome to SPIDER ??\nHow can I help you today?', suggestion1Ar: '???? ???? ??????', suggestion1En: 'I want to build a PC', suggestion2Ar: '???? ?? ????', suggestion2En: 'I am looking for a product', suggestion3Ar: '???? ????? ??????', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: '??????? ??? ???? ??????? ???? ??? ????? ??? ???.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: '?? ???? ??? ???????? ??? ???????? ???????? ??????.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
+let storeSettings = { storeNameAr: '?????? ????????????', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
 
 function chatbotFormValues() {
     const get = (id) => document.getElementById(id)?.value || '';
@@ -1883,14 +1883,14 @@ document.getElementById('chatbotSettingsForm')?.addEventListener('input', () => 
 document.getElementById('resetChatbotSettingsBtn')?.addEventListener('click', () => renderChatbotPreview(DEFAULT_CHATBOT_SETTINGS));
 document.getElementById('chatbotSettingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (isDemoMode) { alert('لا يمكن حفظ الإعدادات في وضع المعاينة.'); return; }
-    try { await update(ref(db, 'settings/chatbotSettings'), chatbotFormValues()); alert('تم حفظ إعدادات المساعد بنجاح.'); } catch (err) { alert('فشل حفظ إعدادات المساعد: ' + err.message); }
+    if (isDemoMode) { alert('?? ???? ??? ????????? ?? ??? ????????.'); return; }
+    try { await update(ref(db, 'settings/chatbotSettings'), chatbotFormValues()); alert('?? ??? ??????? ??????? ?????.'); } catch (err) { alert('??? ??? ??????? ???????: ' + err.message); }
 });
 
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (isDemoMode) {
-        alert('لا يمكن حفظ الإعدادات في وضع المعاينة.');
+        alert('?? ???? ??? ????????? ?? ??? ????????.');
         return;
     }
 
@@ -1915,9 +1915,9 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
             deliveryFee: df
         });
-        alert('تم حفظ الإعدادات بنجاح.');
+        alert('?? ??? ????????? ?????.');
     } catch(err) {
-        alert('فشل حفظ الإعدادات: ' + err.message);
+        alert('??? ??? ?????????: ' + err.message);
     }
 });
 
@@ -1985,7 +1985,7 @@ window.renderManagersTable = function() {
     let html = '';
     combined.forEach(m => {
         const email = m.email || '';
-        const name = m.name || m.email || 'غير معروف';
+        const name = m.name || m.email || '??? ?????';
         const phone = m.phone || '';
 
         if (search && !name.toLowerCase().includes(search) && !email.toLowerCase().includes(search) && !(phone).includes(search)) return;
@@ -1999,16 +1999,16 @@ window.renderManagersTable = function() {
 
         let actions = '';
         if (m.isSuper) {
-            actions = '<span class="badge" style="background:#4b5563;color:white;"><i class="fa-solid fa-lock"></i> محمي</span>';
+            actions = '<span class="badge" style="background:#4b5563;color:white;"><i class="fa-solid fa-lock"></i> ????</span>';
         } else {
             actions = `
-                <button class="btn btn-sm btn-outline" title="تعديل / الصلاحيات" onclick="editManager('${m.id}', '${m.type}')"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn btn-sm btn-outline" title="تفعيل / تعطيل" onclick="toggleManagerStatus('${m.id}', '${m.type}', '${m.status}')"><i class="fa-solid fa-power-off"></i></button>
-                <button class="btn btn-sm btn-outline btn-danger" title="حذف" onclick="deleteManager('${m.id}', '${m.type}')"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-sm btn-outline" title="????? / ?????????" onclick="editManager('${m.id}', '${m.type}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline" title="????? / ?????" onclick="toggleManagerStatus('${m.id}', '${m.type}', '${m.status}')"><i class="fa-solid fa-power-off"></i></button>
+                <button class="btn btn-sm btn-outline btn-danger" title="???" onclick="deleteManager('${m.id}', '${m.type}')"><i class="fa-solid fa-trash"></i></button>
             `;
         }
 
-        let permissionsCount = m.isSuper ? 'الكل' : (m.permissions ? Object.keys(m.permissions).length : 0);
+        let permissionsCount = m.isSuper ? '????' : (m.permissions ? Object.keys(m.permissions).length : 0);
         let addedAt = m.addedAt ? new Date(m.addedAt).toLocaleDateString('ar-IQ') : '---';
         let updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleDateString('ar-IQ') : '---';
 
@@ -2019,7 +2019,7 @@ window.renderManagersTable = function() {
             statusBadge = m.status === 'active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Disabled</span>';
         }
 
-        let roleBadge = m.isSuper ? '<span class="badge" style="background:#e63946;color:white;"><i class="fa-solid fa-crown"></i> Super Admin / المالك</span>' : `<span class="badge">${m.role || 'Admin'}</span>`;
+        let roleBadge = m.isSuper ? '<span class="badge" style="background:#e63946;color:white;"><i class="fa-solid fa-crown"></i> Super Admin / ??????</span>' : `<span class="badge">${m.role || 'Admin'}</span>`;
 
         html += `
             <tr>
@@ -2041,8 +2041,8 @@ window.renderManagersTable = function() {
 };
 
 window.openManagerModal = function() {
-    document.getElementById('managerModalTitle').textContent = 'إضافة مدير جديد';
-    document.getElementById('saveManagerBtn').textContent = 'إضافة المدير';
+    document.getElementById('managerModalTitle').textContent = '????? ???? ????';
+    document.getElementById('saveManagerBtn').textContent = '????? ??????';
     document.getElementById('managerForm').reset();
     document.getElementById('managerId').value = '';
     document.getElementById('managerModalError').style.display = 'none';
@@ -2074,7 +2074,7 @@ window.closeManagerModal = function() {
 
 window.toggleManagerStatus = async function(id, type, currentStatus) {
     if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff) {
-        alert('عذراً، لا تملك صلاحية تعديل المشرفين.');
+        alert('?????? ?? ???? ?????? ????? ????????.');
         return;
     }
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -2096,16 +2096,16 @@ window.toggleManagerStatus = async function(id, type, currentStatus) {
 
     } catch (err) {
         console.error(err);
-        alert('حدث خطأ أثناء تغيير الحالة.');
+        alert('??? ??? ????? ????? ??????.');
     }
 };
 
 window.deleteManager = async function(id, type) {
     if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff) {
-        alert('عذراً، لا تملك صلاحية تعديل المشرفين.');
+        alert('?????? ?? ???? ?????? ????? ????????.');
         return;
     }
-    if (!confirm('هل أنت متأكد من حذف هذا المدير نهائياً؟')) return;
+    if (!confirm('?? ??? ????? ?? ??? ??? ?????? ????????')) return;
 
     const path = type === 'active' ? `admins/${id}` : `pending_admins/${id}`;
     try {
@@ -2120,13 +2120,13 @@ window.deleteManager = async function(id, type) {
 
     } catch (err) {
         console.error(err);
-        alert('حدث خطأ أثناء الحذف.');
+        alert('??? ??? ????? ?????.');
     }
 };
 
 window.editManager = function(id, type) {
-    document.getElementById('managerModalTitle').textContent = 'تحديث المدير';
-    document.getElementById('saveManagerBtn').textContent = 'تحديث المدير';
+    document.getElementById('managerModalTitle').textContent = '????? ??????';
+    document.getElementById('saveManagerBtn').textContent = '????? ??????';
     document.getElementById('managerModalError').style.display = 'none';
 
     let data = type === 'active' ? allAdminsData[id] : allPendingAdminsData[id];
@@ -2171,7 +2171,7 @@ window.editManager = function(id, type) {
 document.getElementById('managerForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!window.isSuperAdmin && !window.currentAdminPermissions.manage_staff) {
-        alert('ليس لديك صلاحية لإدارة الموظفين.');
+        alert('??? ???? ?????? ?????? ????????.');
         return;
     }
 
@@ -2183,7 +2183,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
     const email = document.getElementById('managerEmail').value.trim();
     const phone = document.getElementById('managerPhone').value.trim();
     if (!email && !phone) {
-        alert('يرجى إدخال البريد الإلكتروني أو رقم الهاتف على الأقل.');
+        alert('???? ????? ?????? ?????????? ?? ??? ?????? ??? ?????.');
         return;
     }
 
@@ -2209,7 +2209,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
     const btn = document.getElementById('saveManagerBtn');
     const originalText = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'جاري الحفظ...';
+    btn.textContent = '???? ?????...';
     document.getElementById('managerModalError').style.display = 'none';
 
     try {
@@ -2252,9 +2252,9 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
 
         closeManagerModal();
         if (window.showToast) {
-            showToast('تم حفظ البيانات بنجاح!');
+            showToast('?? ??? ???????? ?????!');
         } else {
-            alert('تم حفظ البيانات بنجاح!');
+            alert('?? ??? ???????? ?????!');
         }
 
         // Refresh table manually in case onValue doesn't trigger fast enough or if we want to ensure immediate feedback
@@ -2266,7 +2266,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
     } catch (err) {
         console.error(err);
         const errDiv = document.getElementById('managerModalError');
-        errDiv.textContent = 'تعذر حفظ التعديلات. ' + (err.message || '');
+        errDiv.textContent = '???? ??? ?????????. ' + (err.message || '');
         errDiv.style.display = 'block';
     } finally {
         btn.disabled = false;
@@ -2286,3 +2286,103 @@ window.deselectAllPermissions = function() {
     });
 };
 
+
+
+
+window.deleteCustomer = async function(uid) {
+    if (!currentAdminUser) return;
+    const isSuperAdmin = currentAdminUser.uid === SUPER_ADMIN_UID;
+    const canDelete = isSuperAdmin || currentAdminUser.permissions?.customers_delete;
+    if (!canDelete) {
+        alert("??? ???? ?????? ???? ???????.");
+        return;
+    }
+
+    if (!confirm("?? ??? ????? ?? ??? ??? ???????\n?????: ???? ?????/??? ?????? ?????? ???????? ??? ??????? ??????? ???? ??????? ???????? ?? ????? ?????? ????? ????? ??????.")) return;
+
+    try {
+        const auditKey = push(ref(db, 'auditLogs')).key;
+        await update(ref(db), {
+            [profiles/ + uid]: null,
+            [uditLogs/ + auditKey]: {
+                action: 'delete_customer',
+                targetUid: uid,
+                actorUid: currentAdminUser.uid,
+                timestamp: Date.now()
+            }
+        });
+        alert('?? ??? ?????? ?????.');
+    } catch (e) {
+        alert('??? ??? ??????.');
+    }
+};
+
+window.openResetPinModal = function(uid) {
+    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    const customer = customers.find(c => c.uid === uid);
+    if (!customer) return;
+
+    document.getElementById('resetPinUid').value = uid;
+    document.getElementById('resetPinName').value = customer.name || customer.displayName || '??? ?????';
+    document.getElementById('resetPinPhone').value = customer.phone || customer.phoneNumber || '??? ?????';
+    document.getElementById('resetPinNew').value = '';
+    document.getElementById('resetPinConfirm').value = '';
+    document.getElementById('resetPinError').classList.add('hidden');
+
+    document.getElementById('resetPinModal').classList.add('open');
+};
+
+window.closeResetPinModal = function() {
+    document.getElementById('resetPinModal').classList.remove('open');
+};
+
+document.getElementById('resetPinForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+
+    const uid = document.getElementById('resetPinUid').value;
+    const newPin = document.getElementById('resetPinNew').value;
+    const confirmPin = document.getElementById('resetPinConfirm').value;
+    const errorDiv = document.getElementById('resetPinError');
+    const submitBtn = document.getElementById('resetPinSubmitBtn');
+
+    if (newPin !== confirmPin) {
+        errorDiv.textContent = '??? PIN ??? ??????!';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+
+    if (!/^\d{4}$/.test(newPin)) {
+        errorDiv.textContent = '????? ??? ?? ???? 4 ?????.';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+
+    errorDiv.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ???? ???????...';
+
+    try {
+        const idToken = await auth.currentUser.getIdToken();
+        const res = await fetch(SPIDER_BACKEND_ENDPOINT + '/api/auth/admin-reset-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': Bearer  + idToken },
+            body: JSON.stringify({ targetUid: uid, newPin: newPin, confirmPin: confirmPin })
+        });
+
+        const data = await res.json().catch(()=>null);
+        if (res.ok && data?.success) {
+            alert('?? ????? ????? ????? ?????!');
+            closeResetPinModal();
+        } else {
+            errorDiv.textContent = '???? ????? ?????: ' + (data?.error || '??? ??? ?????');
+            errorDiv.classList.remove('hidden');
+        }
+    } catch (err) {
+        errorDiv.textContent = '??? ?? ??????? ???????.';
+        errorDiv.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-key"></i> ????? ?????';
+    }
+});

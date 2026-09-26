@@ -26,7 +26,7 @@
       ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true)",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
-        ".write": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        ".write": "(auth != null && auth.uid === $uid && newData.exists()) || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true && newData.exists()) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers_delete').val() === true && !newData.exists())",
         "role": {
           ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
         },
@@ -48,7 +48,7 @@
       ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true)",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
-        ".write": "auth != null && (auth.uid === $uid || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true))",
+        ".write": "(auth != null && auth.uid === $uid && newData.exists()) || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true && newData.exists()) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers_delete').val() === true && !newData.exists())",
         "role": {
           ".validate": "auth.uid !== $uid || (data.val() === newData.val()) || !newData.exists()"
         },
@@ -213,7 +213,7 @@
     "profile_credentials": {
       ".read": false,
       "$uid": {
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": false
       }
     }
   }
