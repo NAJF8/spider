@@ -38,6 +38,10 @@ let activeOrderTab = 'all';
 let isDemoMode = false;
 let currentProcessedImageBase64 = null;
 let currentProcessedImageName = null;
+let originalProductImageFile = null;
+let originalCategoryImageFile = null;
+let productImageObjectUrl = null;
+let categoryImageObjectUrl = null;
 let isUploadingImage = false;
 let salesChart = null;
 let categoriesChart = null;
@@ -404,7 +408,7 @@ function loadDashboardData() {
     onValue(ref(db, 'profiles'), (snapshot) => {
         if (isDemoMode) return;
         customers = [];
-        if (snapshot.exists()) snapshot.forEach((child) => customers.push({ uid: child.key, ...child.val() }));
+        if (snapshot.exists()) { snapshot.forEach((child) => { customers.push({ uid: child.key, ...child.val() }); }); }
         renderCustomers();
     });
 
@@ -1349,7 +1353,11 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
-// ================= SECURE IMAGE UPLOAD & VERIFICATION =================
+/* ================= LEGACY IMAGE UPLOAD (REMOVED) =================
+   The original implementation compressed every file to WebP and waited for
+   a fixed deployment polling timeout. It is intentionally disabled below;
+   the original-file flow is implemented after this block. */
+/*
 // (currentProcessedImageBase64, currentProcessedImageName, isUploadingImage declared at top of file)
 
 document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
@@ -1712,7 +1720,154 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
     }
 });
 
+*/
 // ================= CATALOG REVIEW (DRAFTS) =================
+
+// Original-file upload flow. The legacy handlers above are intercepted in the
+// capture phase so existing unrelated Admin flows remain untouched.
+const IMAGE_UPLOAD_MIME_TYPES = new Set([
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif',
+    'image/bmp', 'image/heic', 'image/heif'
+]);
+
+function imageUploadErrorMessage(code) {
+    const messages = {
+        AUTH_REQUIRED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
+        IMAGE_REQUIRED: 'لم يتم اختيار صورة.',
+        IMAGE_TYPE_UNSUPPORTED: 'نوع الصورة غير مدعوم أو لا يطابق محتوى الملف.',
+        IMAGE_TOO_LARGE: 'حجم الصورة أكبر من الحد المسموح به للخدمة.',
+        GITHUB_UPLOAD_NOT_CONFIGURED: 'خدمة تخزين الصور غير مهيأة.',
+        GITHUB_UPLOAD_FAILED: 'فشل تخزين الصورة في الخدمة.',
+        AUTH_INVALID: 'تعذر التحقق من صلاحية الحساب.',
+        FORBIDDEN: 'لا تملك صلاحية رفع الصور.',
+        NETWORK_ERROR: 'انقطع الاتصال أثناء رفع الصورة.'
+    };
+    return messages[code] || `فشل رفع الصورة: ${code || 'خطأ غير معروف'}`;
+}
+
+function safeImageName(name, fallback = 'image') {
+    const parts = String(name || '').split('.');
+    const extension = parts.length > 1 ? parts.pop().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+    const base = parts.join('.').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || fallback;
+    return `${base}.${extension || 'img'}`;
+}
+
+function prepareOriginalImage(file, previewId, detailsId, containerId, kind) {
+    if (!file || !String(file.type || '').toLowerCase().startsWith('image/')) {
+        throw new Error('IMAGE_TYPE_UNSUPPORTED');
+    }
+    if (file.type && !IMAGE_UPLOAD_MIME_TYPES.has(file.type.toLowerCase())) {
+        throw new Error('IMAGE_TYPE_UNSUPPORTED');
+    }
+    const nextUrl = URL.createObjectURL(file);
+    const previousUrl = kind === 'product' ? productImageObjectUrl : categoryImageObjectUrl;
+    if (previousUrl) URL.revokeObjectURL(previousUrl);
+    if (kind === 'product') {
+        productImageObjectUrl = nextUrl;
+        originalProductImageFile = file;
+    } else {
+        categoryImageObjectUrl = nextUrl;
+        originalCategoryImageFile = file;
+    }
+    const preview = document.getElementById(previewId);
+    const details = document.getElementById(detailsId);
+    const container = document.getElementById(containerId);
+    preview.src = nextUrl;
+    preview.onload = () => {
+        details.textContent = `الأبعاد الأصلية: ${preview.naturalWidth}×${preview.naturalHeight} بكسل | الحجم الأصلي: ${(file.size / 1024 / 1024).toFixed(2)} MB | MIME: ${file.type || 'غير معروف'}`;
+    };
+    preview.onerror = () => {
+        details.textContent = `تم اختيار الملف الأصلي (${(file.size / 1024 / 1024).toFixed(2)} MB). المعاينة تعتمد على دعم المتصفح لهذا النوع.`;
+    };
+    container.style.display = 'block';
+}
+
+function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progressId, statusId, kind) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!file) throw new Error('IMAGE_REQUIRED');
+            const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+            if (!token) throw new Error('AUTH_REQUIRED');
+            const formData = new FormData();
+            const filename = `${kind === 'category' ? 'category' : 'product'}-${Date.now()}-${safeImageName(file.name)}`;
+            formData.append('image', file, file.name);
+            formData.append('filename', filename);
+            formData.append('contentType', file.type || '');
+
+            const xhr = new XMLHttpRequest();
+            const button = document.getElementById(buttonId);
+            const prepButton = document.getElementById(prepButtonId);
+            const progress = document.getElementById(progressId);
+            const status = document.getElementById(statusId);
+            const previousValue = document.getElementById(targetInputId)?.value || '';
+            progress.hidden = false;
+            progress.value = 0;
+            status.textContent = 'جاري رفع الصورة... 0%';
+            button.disabled = true;
+            prepButton.disabled = true;
+            xhr.upload.onprogress = (event) => {
+                if (!event.lengthComputable) return;
+                const percent = Math.round((event.loaded / event.total) * 100);
+                progress.value = percent;
+                status.textContent = `جاري رفع الصورة... ${percent}%`;
+            };
+            xhr.onerror = () => reject(new Error('NETWORK_ERROR'));
+            xhr.onload = () => {
+                let data = {};
+                try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* handled below */ }
+                if (xhr.status < 200 || xhr.status >= 300 || !data.success) {
+                    const error = new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+                    error.previousValue = previousValue;
+                    reject(error);
+                    return;
+                }
+                document.getElementById(targetInputId).value = data.path || data.imageUrl;
+                progress.value = 100;
+                status.textContent = 'تم رفع الصورة الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
+                resolve(data);
+            };
+            xhr.open('POST', `${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`);
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            xhr.send(formData);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+document.addEventListener('click', (event) => {
+    const target = event.target.closest?.('#uploadImageBtn, #uploadCatImageBtn, #confirmUploadBtn, #confirmCatUploadBtn');
+    if (!target) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const product = target.id.includes('Cat') === false;
+    if (target.id === 'uploadImageBtn' || target.id === 'uploadCatImageBtn') {
+        const file = document.getElementById(product ? 'prodImageFile' : 'catImageFile')?.files?.[0];
+        try {
+            prepareOriginalImage(file, product ? 'imagePreview' : 'catImagePreview', product ? 'imageDetails' : 'catImageDetails', product ? 'imagePreviewContainer' : 'catImagePreviewContainer', product ? 'product' : 'category');
+        } catch (error) {
+            console.error('Image preview failed:', error);
+            alert(imageUploadErrorMessage(error.message));
+        }
+        return;
+    }
+    const file = product ? originalProductImageFile : originalCategoryImageFile;
+    if (!file || isUploadingImage) {
+        alert('الرجاء اختيار الصورة ومعاينتها أولاً.');
+        return;
+    }
+    isUploadingImage = true;
+    uploadOriginalImage(file, product ? 'prodImage' : 'catImage', target.id, product ? 'uploadImageBtn' : 'uploadCatImageBtn', product ? 'imageUploadProgress' : 'catImageUploadProgress', product ? 'imageUploadStatus' : 'catImageUploadStatus', product ? 'product' : 'category')
+        .then(() => {
+            const preview = document.getElementById(product ? 'imagePreviewContainer' : 'catImagePreviewContainer');
+            if (preview) preview.style.display = 'block';
+        })
+        .catch((error) => {
+            console.error('Original image upload failed:', error);
+            alert(imageUploadErrorMessage(error.message));
+        })
+        .finally(() => { isUploadingImage = false; });
+}, true);
 
 window.seedDraftCatalog = async function() {
     let newCatsCount = 0;

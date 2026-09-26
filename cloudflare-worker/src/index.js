@@ -520,15 +520,23 @@ async function handleRequest(request, env) {
           return errorResponse('IMAGE_REQUIRED', 400);
         }
 
-        if (file.size > 5 * 1024 * 1024) {
+        // GitHub Contents API is the current image backend. Keep the limit
+        // aligned with the service rather than failing normal large originals.
+        if (file.size > 50 * 1024 * 1024) {
           return errorResponse('IMAGE_TOO_LARGE', 400);
         }
 
-        // Strict Filename Sanitization to prevent Path Traversal
-        filename = filename.replace(/[^a-zA-Z0-9.\-_]/g, '');
-        if (!filename.toLowerCase().endsWith('.webp') && !filename.toLowerCase().endsWith('.jpg') && !filename.toLowerCase().endsWith('.png')) {
-          filename += '.webp';
-        }
+        const suppliedMime = String(file.type || formData.get('contentType') || '').toLowerCase();
+        const supportedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp', 'image/heic', 'image/heif']);
+        if (!supportedMimeTypes.has(suppliedMime)) return errorResponse('IMAGE_TYPE_UNSUPPORTED', 400);
+
+        // Sanitize while preserving the original extension. The MIME and
+        // magic bytes below are authoritative; the extension is only a name.
+        const originalExtension = String(filename || file.name || '').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+        const extensionByMime = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'image/heic': 'heic', 'image/heif': 'heif' };
+        const extension = originalExtension || extensionByMime[suppliedMime];
+        const basename = String(filename || file.name || 'image').replace(/\.[^.]*$/, '').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'image';
+        filename = `${basename}.${extension}`;
         
         // Enforce prefix and randomness to prevent overwriting other files blindly
         if (!filename.startsWith('product-')) {
@@ -544,22 +552,27 @@ async function handleRequest(request, env) {
         const buffer = await file.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         
-        // Basic Magic Byte Check for WebP, JPEG, PNG
-        let validImage = false;
-        if (bytes.length > 4) {
-          // WebP: RIFF...WEBP
-          if (bytes[0]===0x52 && bytes[1]===0x49 && bytes[2]===0x46 && bytes[3]===0x46 && bytes[8]===0x57 && bytes[9]===0x45) validImage = true;
-          // PNG: 89 50 4e 47
-          if (bytes[0]===0x89 && bytes[1]===0x50 && bytes[2]===0x4E && bytes[3]===0x47) validImage = true;
-          // JPEG: FF D8 FF
-          if (bytes[0]===0xFF && bytes[1]===0xD8 && bytes[2]===0xFF) validImage = true;
-        }
+        const ascii = (start, length) => String.fromCharCode(...bytes.slice(start, start + length));
+        const isFtyp = (brand) => bytes.length >= 12 && ascii(4, 4) === 'ftyp' && ascii(8, 4) === brand;
+        let detectedMime = null;
+        if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) detectedMime = 'image/jpeg';
+        else if (bytes.length >= 8 && ascii(0, 8) === '\x89PNG\r\n\x1a\n') detectedMime = 'image/png';
+        else if (bytes.length >= 12 && ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') detectedMime = 'image/webp';
+        else if (bytes.length >= 6 && (ascii(0, 6) === 'GIF87a' || ascii(0, 6) === 'GIF89a')) detectedMime = 'image/gif';
+        else if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) detectedMime = 'image/bmp';
+        else if (isFtyp('avif') || isFtyp('avis')) detectedMime = 'image/avif';
+        else if (isFtyp('heic') || isFtyp('heix') || isFtyp('hevc') || isFtyp('hevx') || isFtyp('mif1') || isFtyp('msf1')) detectedMime = 'image/heic';
 
-        if (!validImage) {
+        if (!detectedMime || (detectedMime !== suppliedMime && !(suppliedMime === 'image/heif' && detectedMime === 'image/heic'))) {
            return errorResponse('IMAGE_TYPE_UNSUPPORTED', 400);
         }
 
-        const base64Content = btoa(String.fromCharCode(...bytes));
+        // Avoid spreading a large file into one call stack frame. The bytes
+        // remain unchanged; this only encodes them for GitHub's JSON API.
+        let base64Content = '';
+        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+          base64Content += btoa(String.fromCharCode(...bytes.slice(offset, offset + 0x8000)));
+        }
         const path = `public/images/products/${filename}`;
         const githubUrl = `https://api.github.com/repos/NAJF8/spider/contents/${path}`;
 

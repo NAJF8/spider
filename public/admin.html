@@ -815,16 +815,18 @@
                     <div class="form-group">
                         <label>صورة المنتج</label>
                         <div class="image-upload-row">
-                            <input type="file" id="prodImageFile" accept="image/png, image/jpeg, image/webp">
-                            <button type="button" id="uploadImageBtn" class="btn btn-dark">معاينة وضغط</button>
+                            <input type="file" id="prodImageFile" accept="image/*">
+                            <button type="button" id="uploadImageBtn" class="btn btn-dark">معاينة الصورة</button>
                         </div>
                         <div id="imagePreviewContainer" class="image-preview-box" style="display:none;">
                             <img id="imagePreview" src="" alt="Preview">
                             <div id="imageDetails" class="image-details-text"></div>
+                            <progress id="imageUploadProgress" max="100" value="0" hidden></progress>
+                            <div id="imageUploadStatus" class="image-details-text" aria-live="polite"></div>
                             <button type="button" id="confirmUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
                         </div>
                         <input type="hidden" id="prodImage" placeholder="/images/products/...">
-                        <small class="form-hint">يتم ضغط الصورة محلياً وتحويلها إلى WebP لسرعة المتجر، ثم رفعها عبر الخادم الخلفي الآمن.</small>
+                        <small class="form-hint">يتم رفع الملف الأصلي كما اختاره المستخدم، مع عرض معاينة محلية فقط.</small>
                     </div>
                     <div class="form-group">
                         <label>حالة المنتج <span class="req">*</span></label>
@@ -861,12 +863,14 @@
                     <div class="form-group">
                         <label>صورة القسم <span class="req">*</span></label>
                         <div class="image-upload-row">
-                            <input type="file" id="catImageFile" accept="image/png, image/jpeg, image/webp">
-                            <button type="button" id="uploadCatImageBtn" class="btn btn-dark">معاينة وضغط</button>
+                            <input type="file" id="catImageFile" accept="image/*">
+                            <button type="button" id="uploadCatImageBtn" class="btn btn-dark">معاينة الصورة</button>
                         </div>
                         <div id="catImagePreviewContainer" class="image-preview-box" style="display:none;">
                             <img id="catImagePreview" src="" alt="Preview">
                             <div id="catImageDetails" class="image-details-text"></div>
+                            <progress id="catImageUploadProgress" max="100" value="0" hidden></progress>
+                            <div id="catImageUploadStatus" class="image-details-text" aria-live="polite"></div>
                             <button type="button" id="confirmCatUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
                         </div>
                         <input type="hidden" id="catImage" placeholder="/images/products/..." required>
@@ -900,7 +904,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=8"></script>
+    <script type="module" src="admin.js?v=9"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">
