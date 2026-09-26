@@ -634,72 +634,10 @@
                 </div>
 
                 
-                <!-- Reset PIN Modal -->
-                <div class="modal-overlay" id="resetPinModal">
-                    <div class="modal-content" style="max-width: 400px;">
-                        <div class="modal-header">
-                            <h2>إعادة تعيين رمز PIN</h2>
-                            <button class="close-btn" onclick="closeResetPinModal()"><i class="fa-solid fa-xmark"></i></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="resetPinForm">
-                                <input type="hidden" id="resetPinUid">
-                                <div class="form-group">
-                                    <label>العميل</label>
-                                    <input type="text" id="resetPinName" readonly style="background: #f1f5f9; color: #64748b; font-weight: bold;">
-                                </div>
-                                <div class="form-group">
-                                    <label>رقم الهاتف</label>
-                                    <input type="text" id="resetPinPhone" readonly dir="ltr" style="background: #f1f5f9; color: #64748b; font-weight: bold;">
-                                </div>
-                                <div class="form-group">
-                                    <label>رمز PIN الجديد (4 أرقام) <span class="req">*</span></label>
-                                    <input type="password" id="resetPinNew" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
-                                </div>
-                                <div class="form-group">
-                                    <label>تأكيد الرمز <span class="req">*</span></label>
-                                    <input type="password" id="resetPinConfirm" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
-                                </div>
-                                <div id="resetPinError" class="error-msg hidden" style="text-align: center; margin-bottom: 15px;"></div>
-                                <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> تحديث الرمز</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+                
 
                 
-                <!-- Reset PIN Modal -->
-                <div class="modal-overlay" id="resetPinModal">
-                    <div class="modal-content" style="max-width: 400px;">
-                        <div class="modal-header">
-                            <h2>إعادة تعيين رمز PIN</h2>
-                            <button class="close-btn" onclick="closeResetPinModal()"><i class="fa-solid fa-xmark"></i></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="resetPinForm">
-                                <input type="hidden" id="resetPinUid">
-                                <div class="form-group">
-                                    <label>العميل</label>
-                                    <input type="text" id="resetPinName" readonly style="background: #f1f5f9; color: #64748b; font-weight: bold;">
-                                </div>
-                                <div class="form-group">
-                                    <label>رقم الهاتف</label>
-                                    <input type="text" id="resetPinPhone" readonly dir="ltr" style="background: #f1f5f9; color: #64748b; font-weight: bold;">
-                                </div>
-                                <div class="form-group">
-                                    <label>رمز PIN الجديد (4 أرقام) <span class="req">*</span></label>
-                                    <input type="password" id="resetPinNew" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
-                                </div>
-                                <div class="form-group">
-                                    <label>تأكيد الرمز <span class="req">*</span></label>
-                                    <input type="password" id="resetPinConfirm" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
-                                </div>
-                                <div id="resetPinError" class="error-msg hidden" style="text-align: center; margin-bottom: 15px;"></div>
-                                <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> تحديث الرمز</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+                
 
                 <!-- Manager Modal -->
                 <div class="modal-overlay" id="managerModal">
@@ -962,7 +900,41 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=7"></script>
+    <script type="module" src="admin.js?v=8"></script>
+
+    <!-- Reset PIN Modal -->
+    <div class="modal-overlay" id="resetPinModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>إعادة تعيين رمز PIN</h2>
+                <button class="close-btn" onclick="closeResetPinModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="resetPinForm">
+                    <input type="hidden" id="resetPinUid">
+                    <div class="form-group">
+                        <label>العميل</label>
+                        <input type="text" id="resetPinName" readonly style="background: #f1f5f9; color: #64748b; font-weight: bold;">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم الهاتف</label>
+                        <input type="text" id="resetPinPhone" readonly dir="ltr" style="background: #f1f5f9; color: #64748b; font-weight: bold;">
+                    </div>
+                    <div class="form-group">
+                        <label>رمز PIN الجديد (4 أرقام) <span class="req">*</span></label>
+                        <input type="password" id="resetPinNew" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                    </div>
+                    <div class="form-group">
+                        <label>تأكيد الرمز <span class="req">*</span></label>
+                        <input type="password" id="resetPinConfirm" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                    </div>
+                    <div id="resetPinError" class="error-msg hidden" style="text-align: center; margin-bottom: 15px;"></div>
+                    <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> تحديث الرمز</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
 
