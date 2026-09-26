@@ -526,15 +526,18 @@ async function handleRequest(request, env) {
 
         // Super Admin remains unrestricted. Other users must have an active
         // admin record with the permission matching the upload target.
+        let adminData = null;
+        let permissionResult = uid === env.ADMIN_UID ? 'super_admin' : 'not_checked';
         if (uid !== env.ADMIN_UID) {
-          let adminData;
           try {
             adminData = await readServiceDatabase(env, `admins/${encodeURIComponent(uid)}.json`);
           } catch (error) {
             console.error(JSON.stringify({ code: 'IMAGE_UPLOAD_AUTH_LOOKUP_FAILED', message: error.message }));
             return errorResponse('FORBIDDEN', 403);
           }
-          if (!canUploadImage({ uid, adminUid: env.ADMIN_UID, kind, operation, adminData })) return errorResponse('FORBIDDEN', 403);
+          permissionResult = canUploadImage({ uid, adminUid: env.ADMIN_UID, kind, operation, adminData });
+          if (!permissionResult) return errorResponse('FORBIDDEN', 403);
+          permissionResult = 'allowed';
         }
 
         if (!file || typeof file.arrayBuffer !== 'function') {
@@ -593,8 +596,11 @@ async function handleRequest(request, env) {
         // Avoid spreading a large file into one call stack frame. The bytes
         // remain unchanged; this only encodes them for GitHub's JSON API.
         let base64Content = '';
-        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-          base64Content += btoa(String.fromCharCode(...bytes.slice(offset, offset + 0x8000)));
+        // Every chunk must be a multiple of 3 bytes. Otherwise btoa adds
+        // padding in the middle of the concatenated value and GitHub rejects
+        // the final JSON field as invalid Base64.
+        for (let offset = 0; offset < bytes.length; offset += 0x7ffe) {
+          base64Content += btoa(String.fromCharCode(...bytes.slice(offset, offset + 0x7ffe)));
         }
         const assetDirectory = kind === 'category' ? 'categories' : 'products';
         const path = `public/images/${assetDirectory}/${filename}`;
@@ -606,17 +612,49 @@ async function handleRequest(request, env) {
           path,
           commitMessage: `chore: upload ${kind} image ${filename}`,
           contentLength: bytes.length,
+          encodedContentLength: base64Content.length,
           contentEncoding: 'base64',
           fileExtension: extension,
           suppliedMime,
           detectedMime,
           sha: null,
+          fileExisted: false,
           author: null,
           committer: null,
           kind,
           operation,
-          authUid: uid
+          authUid: uid,
+          adminEmail: typeof verifyData.users?.[0]?.email === 'string' ? verifyData.users[0].email : '',
+          role: adminData?.role || (uid === env.ADMIN_UID ? 'Super Admin' : ''),
+          permissionResult
         };
+        console.info(JSON.stringify({ code: 'GITHUB_UPLOAD_REQUEST', ...githubRequestDiagnostics }));
+
+        const existingGithubRes = await fetch(githubUrl, {
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${githubToken}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Spider-Najaf-Image-Uploader'
+          }
+        });
+        let existingSha = null;
+        if (existingGithubRes.ok) {
+          const existingGithubBody = await existingGithubRes.json().catch(() => ({}));
+          existingSha = typeof existingGithubBody?.sha === 'string' ? existingGithubBody.sha : null;
+          githubRequestDiagnostics.sha = existingSha;
+          githubRequestDiagnostics.fileExisted = Boolean(existingSha);
+        } else if (existingGithubRes.status !== 404) {
+          console.error(JSON.stringify({ code: 'GITHUB_EXISTING_FILE_LOOKUP_FAILED', status: existingGithubRes.status, request: githubRequestDiagnostics }));
+          return errorResponse('GITHUB_UPLOAD_FAILED', existingGithubRes.status, { upstreamStatus: existingGithubRes.status });
+        }
+
+        const githubPayload = {
+          message: `chore: upload ${kind} image ${filename}`,
+          content: base64Content,
+          branch: 'main'
+        };
+        if (existingSha) githubPayload.sha = existingSha;
         console.info(JSON.stringify({ code: 'GITHUB_UPLOAD_REQUEST', ...githubRequestDiagnostics }));
 
         const githubRes = await fetch(githubUrl, {
@@ -628,11 +666,7 @@ async function handleRequest(request, env) {
             'User-Agent': 'Spider-Najaf-Image-Uploader',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            message: `chore: upload ${kind} image ${filename}`,
-            content: base64Content,
-            branch: 'main'
-          })
+          body: JSON.stringify(githubPayload)
         });
 
         if (!githubRes.ok) {
@@ -677,7 +711,11 @@ async function handleRequest(request, env) {
             documentation_url: typeof githubBody?.documentation_url === 'string' ? githubBody.documentation_url : undefined,
             request: githubRequestDiagnostics
           }));
-          return errorResponse(failureCode, 502, { message: publicMessage, upstreamStatus: githubRes.status });
+          return errorResponse(failureCode, githubRes.status, {
+            message: githubMessage,
+            errors: githubErrors,
+            upstreamStatus: githubRes.status
+          });
         }
 
         // Success
