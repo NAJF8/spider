@@ -1124,34 +1124,40 @@ function readCart() {
 function saveCart() { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.cart)); }
 function cartProduct(item) { return state.products.find((p) => p.id === item.id); }
 
-function addToCart(productId) {
+function _addItemToCartLogic(productId) {
   const product = state.products.find((p) => p.id === productId);
-  if (!product) return;
-  if (!isAvailable(product) || productPrice(product) <= 0) { openAvailability(productId); return; }
+  if (!product) return false;
+  if (!isAvailable(product) || productPrice(product) <= 0) { openAvailability(productId); return false; }
   const item = state.cart.find((e) => e.id === productId);
   if (item) item.qty = Math.min(100, item.qty + 1);
   else state.cart.push({ id: productId, qty: 1 });
-  renderCart();
-  openCart();
-  showToast(t('added'));
+  return true;
+}
+
+function addToCart(productId) {
+  if (_addItemToCartLogic(productId)) {
+    renderCart();
+    openCart();
+    showToast(t('added'));
+  }
 }
 window.addToCart = addToCart;
-  function addMultipleToCart(productIds, successMsg) {
-    if (!productIds.length) return;
-    let added = false;
-    const addedIds = new Set();
-    productIds.forEach((productId) => {
-      if (addedIds.has(productId)) return; // prevent loop bug duplicate
-      addedIds.add(productId);
-      const product = state.products.find((p) => p.id === productId);
-      if (!product || !isAvailable(product) || productPrice(product) <= 0) return;
-      const item = state.cart.find((e) => e.id === productId);
-      if (item) item.qty = Math.min(100, item.qty + 1);
-      else state.cart.push({ id: productId, qty: 1 });
-      added = true;
-    });
-    if (added) { renderCart(); openCart(); showToast(successMsg); }
+
+function addMultipleToCart(productIds, successMsg) {
+  if (!productIds || !productIds.length) return;
+  let added = false;
+  const addedIds = new Set();
+  productIds.forEach((productId) => {
+    if (addedIds.has(productId)) return; // prevent loop bug duplicate
+    addedIds.add(productId);
+    if (_addItemToCartLogic(productId)) added = true;
+  });
+  if (added) {
+    renderCart();
+    openCart();
+    showToast(successMsg);
   }
+}
 
 
 function renderCart() {
@@ -1505,7 +1511,7 @@ function bindBuilderPageEvents() {
   $('builderCatalogSearch')?.addEventListener('input', (event) => { state.builderCatalog.search = event.target.value; renderBuilderCatalog(); });
   $('builderCatalogCategory')?.addEventListener('change', (event) => { state.builderCatalog.category = event.target.value; renderBuilderCatalog(); });
   $('builderCatalogBrand')?.addEventListener('change', (event) => { state.builderCatalog.brand = event.target.value; renderBuilderCatalog(); });
-  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), $1); });
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), language === 'en' ? 'Builder added to cart.' : 'تمت إضافة التجميعة إلى السلة'); });
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
@@ -1643,7 +1649,7 @@ function bindEvents() {
   $('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChat(); });
   $('chatQuickReplies').querySelectorAll('[data-chat]').forEach((btn) => btn.addEventListener('click', () => { $('chatInput').value = btn.dataset.chat; handleChat(); }));
 
-  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), $1); });
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), language === 'en' ? 'Builder added to cart.' : 'تمت إضافة التجميعة إلى السلة'); });
   $('quoteBuilderBtn')?.addEventListener('click', () => openQuote());
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(t('copyQuote')); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
