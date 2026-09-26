@@ -34,7 +34,7 @@ const state = {
   compare: ['', ''],
   comparePickerSlot: 0,
   builder: {},
-  upgrade: {},
+  upgrade: {}, upgradeIsNew: {},
   builderCatalog: { part: '', category: '', brand: '', search: '' },
   upgradeCatalog: { category: '', brand: '', search: '' },
   availabilityProductId: '',
@@ -454,7 +454,7 @@ function availabilityMarkup(p) {
   return `<span class="stock ${tone}">${label}</span>`;
 }
 
-function productCard(p) {
+function productCard(p, ctx) {
   const [label] = stockLabel(p);
   const fav = state.favorites.includes(p.id);
   return `<article class="product-card ${!isAvailable(p) ? 'is-out' : ''}">
@@ -479,6 +479,7 @@ function productCard(p) {
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> ${t('notify')}</button>`
         }
         <button class="btn btn-outline" type="button" data-details="${esc(p.id)}">${t('details')}</button>
+          ${ctx === 'upgrade' && isAvailable(p) ? `<button class="btn btn-outline" type="button" data-upgrade-select="${esc(p.id)}"><i class="fa-solid fa-check"></i> ${language === 'en' ? 'Choose' : 'اختيار'}</button>` : ''}
       </div>
     </div>
   </article>`;
@@ -884,7 +885,7 @@ function renderBuilder() {
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
       <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>
-      <div class="builder-part-actions"><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
+      <div class="builder-part-actions"><button class="btn btn-primary builder-add-cart" type="button" data-builder-cart="${esc(part.id)}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
     </article>`;
   }).join('');
 
@@ -892,10 +893,12 @@ function renderBuilder() {
   // cards always retain working تغيير/مسح and selection controls.
   list.onclick = (event) => {
     const remove = event.target.closest('[data-builder-remove]');
-    const change = event.target.closest('[data-builder-change]');
-    const partId = remove?.dataset.builderRemove || change?.dataset.builderChange;
-    if (!partId) return;
-    if (change) { openBuilderPicker(partId); return; }
+      const change = event.target.closest('[data-builder-change]');
+      const cart = event.target.closest('[data-builder-cart]');
+      const partId = remove?.dataset.builderRemove || change?.dataset.builderChange || cart?.dataset.builderCart;
+      if (!partId) return;
+      if (cart) { addToCart(state.builder[partId]); return; }
+      if (change) { openBuilderPicker(partId); return; }
     delete state.builder[partId];
     saveBuilder();
     renderBuilder();
@@ -914,8 +917,11 @@ function saveBuilder() { localStorage.setItem(BUILDER_STORAGE_KEY, JSON.stringif
 function readUpgrade() {
   try { const saved = JSON.parse(localStorage.getItem(UPGRADE_STORAGE_KEY) || '{}'); state.upgrade = saved && typeof saved === 'object' ? saved : {}; }
   catch { state.upgrade = {}; }
+  try { const savedNew = JSON.parse(localStorage.getItem('spider.upgrade.isnew.v1') || '{}'); state.upgradeIsNew = savedNew && typeof savedNew === 'object' ? savedNew : {}; }
+  catch { state.upgradeIsNew = {}; }
 }
 function saveUpgrade() { localStorage.setItem(UPGRADE_STORAGE_KEY, JSON.stringify(state.upgrade)); }
+  localStorage.setItem('spider.upgrade.isnew.v1', JSON.stringify(state.upgradeIsNew));
 
 function selectedBuilderProducts() {
   return Object.values(state.builder)
@@ -1047,8 +1053,7 @@ function renderUpgradePickerGrid() {
   const products = upgradeProductsFor(field).filter((p) => !query || productText(p).includes(query));
   grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
   grid.querySelectorAll('[data-upgrade-pick]').forEach((button) => button.addEventListener('click', () => {
-    state.upgrade[state.upgradePickerField] = button.dataset.upgradePick;
-    saveUpgrade();
+    state.upgrade[state.upgradePickerField] = button.dataset.upgradePick; state.upgradeIsNew[state.upgradePickerField] = false; saveUpgrade();
     renderUpgrade();
     modal('upgradePickerModal', false);
   }));
@@ -1075,9 +1080,10 @@ function renderUpgradeSelectionPreviews() {
       return;
     }
     const specs = topSpecs(product);
-    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions"><button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
-    preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
-    preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; saveUpgrade(); renderUpgrade(); });
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions">${state.upgradeIsNew[field.id] ? `<button class="btn btn-primary" type="button" data-upgrade-cart="${field.id}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button>` : ''}<button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
+    preview.querySelector('[data-upgrade-cart]')?.addEventListener('click', () => { addToCart(product.id); });
+      preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
+    preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; delete state.upgradeIsNew[field.id]; saveUpgrade(); renderUpgrade(); });
   });
 }
 
@@ -1089,8 +1095,21 @@ function renderUpgradeResults() {
   const usedIds = new Set(selected.map((p) => p.id));
   const filter = state.upgradeCatalog;
   const recs = state.products.filter((p) => !usedIds.has(p.id) && isAvailable(p)).filter((p) => /gpu|gpus|كرت|ram|ذاكرة|storage|تخزين|ssd|hdd|cpu|cpus|معالج|motherboard|لوحة|power|طاقة|cooling|تبريد|case|صندوق/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`)).filter((p) => productCategoryMatch(p, filter.category)).filter((p) => !filter.brand || String(p.brand || '').toLowerCase() === filter.brand.toLowerCase()).filter((p) => !filter.search || productText(p).includes(filter.search.toLowerCase())).slice(0, 8);
-  $('upgradeResults').innerHTML = `<p class="upgrade-note">${language === 'en' ? 'Suggestions use only published categories and specifications; compatibility is not guaranteed when device data is incomplete.' : 'الاقتراحات مبنية على القسم والمواصفات المتاحة فقط؛ لا ندّعي التوافق الكامل عند نقص بيانات جهازك.'}</p>${recs.length ? recs.map(productCard).join('') : `<div class="empty-state">${language === 'en' ? 'No matching published upgrade is available.' : 'لا توجد ترقية منشورة مطابقة حالياً.'}</div>`}`;
+  $('upgradeResults').innerHTML = `<p class="upgrade-note">${language === 'en' ? 'Suggestions use only published categories and specifications; compatibility is not guaranteed when device data is incomplete.' : 'الاقتراحات مبنية على القسم والمواصفات المتاحة فقط؛ لا ندّعي التوافق الكامل عند نقص بيانات جهازك.'}</p>${recs.length ? recs.map(p => productCard(p, 'upgrade')).join('') : `<div class="empty-state">${language === 'en' ? 'No matching published upgrade is available.' : 'لا توجد ترقية منشورة مطابقة حالياً.'}</div>`}`;
   bindProductActions($('upgradeResults'));
+    $('upgradeResults').querySelectorAll('[data-upgrade-select]').forEach(btn => btn.addEventListener('click', () => {
+      const pid = btn.dataset.upgradeSelect;
+      const p = state.products.find(x => x.id === pid);
+      if (!p) return;
+      const field = upgradeFields().find(f => f.match.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name}`));
+      if (field) {
+        state.upgrade[field.id] = pid;
+        state.upgradeIsNew[field.id] = true;
+        saveUpgrade();
+        renderUpgrade();
+        showToast(language === 'en' ? 'Part selected for upgrade.' : 'تم اختيار القطعة للترقية.');
+      }
+    }));
 }
 
 // ===== CART =====
@@ -1117,6 +1136,23 @@ function addToCart(productId) {
   showToast(t('added'));
 }
 window.addToCart = addToCart;
+  function addMultipleToCart(productIds, successMsg) {
+    if (!productIds.length) return;
+    let added = false;
+    const addedIds = new Set();
+    productIds.forEach((productId) => {
+      if (addedIds.has(productId)) return; // prevent loop bug duplicate
+      addedIds.add(productId);
+      const product = state.products.find((p) => p.id === productId);
+      if (!product || !isAvailable(product) || productPrice(product) <= 0) return;
+      const item = state.cart.find((e) => e.id === productId);
+      if (item) item.qty = Math.min(100, item.qty + 1);
+      else state.cart.push({ id: productId, qty: 1 });
+      added = true;
+    });
+    if (added) { renderCart(); openCart(); showToast(successMsg); }
+  }
+
 
 function renderCart() {
   if (!$('cartItemsList')) return;
@@ -1469,7 +1505,7 @@ function bindBuilderPageEvents() {
   $('builderCatalogSearch')?.addEventListener('input', (event) => { state.builderCatalog.search = event.target.value; renderBuilderCatalog(); });
   $('builderCatalogCategory')?.addEventListener('change', (event) => { state.builderCatalog.category = event.target.value; renderBuilderCatalog(); });
   $('builderCatalogBrand')?.addEventListener('change', (event) => { state.builderCatalog.brand = event.target.value; renderBuilderCatalog(); });
-  $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast(language === 'en' ? 'Published parts were added to the cart.' : 'تمت إضافة القطع المنشورة إلى السلة.'); });
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), $1); });
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
@@ -1477,6 +1513,11 @@ function bindBuilderPageEvents() {
 }
 
 function bindUpgradePageEvents() {
+  $('addUpgradeToCartBtn')?.addEventListener('click', () => {
+    const pids = Object.keys(state.upgrade).filter(k => state.upgradeIsNew[k]).map(k => state.upgrade[k]);
+    addMultipleToCart(pids, language === 'en' ? 'Upgrades added to cart.' : 'تمت إضافة التجميعة إلى السلة');
+  });
+
   $('openCartBtn')?.addEventListener('click', openCart);
   $('floatingCartBtn')?.addEventListener('click', openCart);
   $('closeCartBtn')?.addEventListener('click', closeCart);
@@ -1602,7 +1643,7 @@ function bindEvents() {
   $('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleChat(); });
   $('chatQuickReplies').querySelectorAll('[data-chat]').forEach((btn) => btn.addEventListener('click', () => { $('chatInput').value = btn.dataset.chat; handleChat(); }));
 
-  $('addBuilderToCartBtn')?.addEventListener('click', () => { selectedBuilderProducts().forEach((p) => addToCart(p.id)); showToast(t('buildAdded')); });
+  $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), $1); });
   $('quoteBuilderBtn')?.addEventListener('click', () => openQuote());
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(t('copyQuote')); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
