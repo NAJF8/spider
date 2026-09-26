@@ -354,6 +354,7 @@
                                     <th>الأيقونة</th>
                                     <th>اسم القسم</th>
                                     <th>معرف القسم (ID)</th>
+                                    <th>القسم الأب</th>
                                     <th>الترتيب</th>
                                     <th>عدد المنتجات</th>
                                     <th>الحالة</th>
@@ -361,7 +362,7 @@
                                 </tr>
                             </thead>
                             <tbody id="categoriesFullTableBody">
-                                <tr><td colspan="7" class="text-center">جاري تحميل الأقسام...</td></tr>
+                                <tr><td colspan="8" class="text-center">جاري تحميل الأقسام...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -862,6 +863,13 @@
                         <input type="number" id="catOrder" value="1" min="1" step="1" placeholder="مثال: 1, 2, 3">
                     </div>
                     <div class="form-group">
+                        <label for="catParent">القسم الأب</label>
+                        <select id="catParent">
+                            <option value="">بدون قسم أب / قسم رئيسي</option>
+                        </select>
+                        <small style="color:#777;display:block;margin-top:5px;">المستوى المدعوم حاليًا: قسم رئيسي ← أقسام فرعية.</small>
+                    </div>
+                    <div class="form-group">
                         <label>صورة القسم <span class="req">*</span></label>
                         <div class="image-upload-row">
                             <input type="file" id="catImageFile" accept="image/*">
@@ -905,7 +913,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=11"></script>
+    <script type="module" src="admin.js?v=12"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">

@@ -1026,6 +1026,74 @@ function sortCategoriesForOrder(items) {
     return [...items].sort((a, b) => categoryOrderValue(a) - categoryOrderValue(b) || String(a.id || '').localeCompare(String(b.id || '')));
 }
 
+function categoryParentId(category) {
+    const value = category && Object.prototype.hasOwnProperty.call(category, 'parentId')
+        ? category.parentId
+        : category?.parentCategory ?? category?.parent
+            ?? categories.find((parent) => (parent.subcategoryIds || []).includes(category?.id))?.id;
+    return value === undefined || value === null || value === '' ? null : String(value);
+}
+
+function categoryChildrenOf(parentId, items = categories) {
+    return items.filter((category) => categoryParentId(category) === String(parentId)
+        || items.some((parent) => parent.id === parentId && (parent.subcategoryIds || []).includes(category.id)));
+}
+
+function categoryIsChild(category, items = categories) {
+    return !!categoryParentId(category) || items.some((parent) => (parent.subcategoryIds || []).includes(category.id));
+}
+
+function categoryHasCycle(categoryId, parentId, items = categories) {
+    if (!parentId) return false;
+    const byId = new Map(items.map((category) => [category.id, category]));
+    let current = String(parentId);
+    const visited = new Set();
+    while (current) {
+        if (current === String(categoryId) || visited.has(current)) return true;
+        visited.add(current);
+        current = categoryParentId(byId.get(current));
+    }
+    return false;
+}
+
+function categoryGroup(items, parentId) {
+    return sortCategoriesForOrder(items.filter((category) => categoryParentId(category) === (parentId || null)));
+}
+
+function reorderCategoryGroup(items, movingId, requestedPosition, parentId) {
+    const ordered = categoryGroup(items, parentId);
+    const movingIndex = ordered.findIndex((category) => category.id === movingId);
+    const moving = movingIndex === -1 ? null : ordered.splice(movingIndex, 1)[0];
+    if (!moving) return ordered;
+    const position = clampCategoryPosition(requestedPosition, ordered.length + 1);
+    ordered.splice(position - 1, 0, moving);
+    return ordered.map((category, index) => ({ ...category, order: index + 1 }));
+}
+
+function categoryOrderUpdatesForGroups(items, parentIds) {
+    const updates = {};
+    [...new Set(parentIds.map((parentId) => parentId || null))].forEach((parentId) => {
+        categoryGroup(items, parentId).forEach((category, index) => {
+            updates[`categories/${category.id}/order`] = index + 1;
+        });
+    });
+    return updates;
+}
+
+function updateCategoryParentSelect(currentId = null, selectedParentId = null) {
+    const select = document.getElementById('catParent');
+    if (!select) return;
+    const candidates = sortCategoriesForOrder(categories).filter((category) => {
+        if (category.id === currentId) return false;
+        // Level-one hierarchy only: a child cannot become a parent.
+        return !categoryIsChild(category, categories) && !categoryHasCycle(currentId, category.id, categories);
+    });
+    select.innerHTML = '<option value="">بدون قسم أب / قسم رئيسي</option>' + candidates
+        .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name || category.id)}</option>`)
+        .join('');
+    select.value = selectedParentId || '';
+}
+
 function clampCategoryPosition(value, max) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return max;
@@ -1062,7 +1130,7 @@ function renderCategoriesManagementTable() {
     categories = sortCategoriesForOrder(categories);
 
     if (categories.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:40px;color:#888;">لا توجد أقسام مسجلة. انقر على "إضافة قسم جديد" للبدء</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:40px;color:#888;">لا توجد أقسام مسجلة. انقر على "إضافة قسم جديد" للبدء</td></tr>';
         return;
     }
 
@@ -1076,6 +1144,7 @@ function renderCategoriesManagementTable() {
             <td><img src="${imageUrl}" class="tp-img" alt="${cat.name}" style="border-radius:4px;"></td>
             <td><strong>${cat.name}</strong><br><small style="color:#777;">${cat.description || 'لا يوجد وصف'}</small></td>
             <td><code>${cat.id}</code></td>
+            <td>${escapeHtml(categoryParentId(cat) ? getCategoryName(categoryParentId(cat)) : 'قسم رئيسي')}</td>
             <td><strong>${Number(cat.order) || '—'}</strong></td>
             <td><strong style="color:var(--dark);">${prodCount} منتج</strong></td>
             <td>
@@ -1113,6 +1182,7 @@ window.openCategoryModal = function(id = null) {
     const form = document.getElementById('categoryForm');
     form.reset();
     document.getElementById('catId').value = '';
+    updateCategoryParentSelect();
 
     if (id) {
         document.getElementById('categoryModalTitle').textContent = 'تعديل القسم';
@@ -1122,6 +1192,7 @@ window.openCategoryModal = function(id = null) {
             document.getElementById('catName').value = cat.name || '';
             document.getElementById('catImage').value = cat.image || '';
             document.getElementById('catOrder').value = Number.isFinite(Number(cat.order)) && Number(cat.order) >= 1 ? Number(cat.order) : '';
+            updateCategoryParentSelect(cat.id, categoryParentId(cat));
             document.getElementById('catDesc').value = cat.description || '';
             document.getElementById('catHidden').checked = !!cat.isHidden;
         }
@@ -1129,6 +1200,7 @@ window.openCategoryModal = function(id = null) {
         document.getElementById('categoryModalTitle').textContent = 'إضافة قسم جديد';
         document.getElementById('catImage').value = '';
         document.getElementById('catOrder').value = categories.length + 1;
+        updateCategoryParentSelect();
         document.getElementById('catHidden').checked = false;
     }
 
@@ -1142,15 +1214,27 @@ window.closeCategoryModal = function() {
 document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('catId').value;
+    const parentId = document.getElementById('catParent')?.value || null;
+    if (id && parentId === id) {
+        alert('لا يمكن للقسم أن يختار نفسه كقسم أب.');
+        return;
+    }
+    if (categoryHasCycle(id, parentId, categories)) {
+        alert('العلاقة المطلوبة تسبب تداخلاً دائريًا غير مسموح.');
+        return;
+    }
     const orderInput = document.getElementById('catOrder')?.value.trim();
     const requestedOrder = orderInput === '' ? categories.length + 1 : Number(orderInput);
-    const maxPosition = id ? Math.max(categories.length, 1) : categories.length + 1;
+    const existingParentId = id ? categoryParentId(categories.find((category) => category.id === id)) : null;
+    const siblingCount = categoryGroup(categories.filter((category) => category.id !== id), parentId).length;
+    const maxPosition = Math.max(siblingCount + 1, 1);
     const rawOrder = clampCategoryPosition(requestedOrder, maxPosition);
     const catData = {
         name: document.getElementById('catName').value.trim(),
         image: document.getElementById('catImage').value,
         description: document.getElementById('catDesc').value.trim(),
         isHidden: document.getElementById('catHidden').checked,
+        parentId,
         order: rawOrder,
         updatedAt: Date.now()
     };
@@ -1158,11 +1242,19 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
     if (isDemoMode) {
         if (id) {
             const current = categories.find((category) => category.id === id);
-            if (current) categories = reorderCategories(categories.map((category) => category.id === id ? { ...category, ...catData } : category), id, rawOrder);
+            if (current) {
+                const next = categories.map((category) => category.id === id ? { ...category, ...catData } : category);
+                const reordered = reorderCategoryGroup(next, id, rawOrder, parentId);
+                categories = next.map((category) => reordered.find((item) => item.id === category.id) || category);
+                const oldGroup = categoryGroup(categories, existingParentId);
+                oldGroup.forEach((category, index) => { category.order = index + 1; });
+            }
             alert('تم تعديل القسم بنجاح في الذاكرة (وضع العرض التجريبي).');
         } else {
             const newId = 'demo-cat-' + Date.now();
-            categories = reorderCategories([...categories, { id: newId, ...catData, createdAt: Date.now() }], newId, rawOrder);
+            const next = [...categories, { id: newId, ...catData, createdAt: Date.now() }];
+            const reordered = reorderCategoryGroup(next, newId, rawOrder, parentId);
+            categories = next.map((category) => reordered.find((item) => item.id === category.id) || category);
             alert('تمت إضافة القسم بنجاح إلى قائمة المعاينة (وضع العرض التجريبي).');
         }
         updateAllDashboardViews();
@@ -1172,17 +1264,21 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
 
     try {
         if (id) {
-            const ordered = reorderCategories(categories.map((category) => category.id === id ? { ...category, ...catData } : category), id, rawOrder);
-            await update(ref(db), categoryOrderUpdates(ordered, categoryDataUpdates(id, catData)));
-            categories = ordered;
+            const next = categories.map((category) => category.id === id ? { ...category, ...catData } : category);
+            const reordered = reorderCategoryGroup(next, id, rawOrder, parentId);
+            const updates = { ...categoryDataUpdates(id, catData), ...categoryOrderUpdatesForGroups(next, [existingParentId, parentId]) };
+            await update(ref(db), updates);
+            categories = next.map((category) => reordered.find((item) => item.id === category.id) || category);
+            categoryGroup(categories, existingParentId).forEach((category, index) => { category.order = index + 1; });
             alert('تم تعديل القسم بنجاح!');
         } else {
             catData.createdAt = Date.now();
             const categoryRef = push(ref(db, 'categories'));
             const newCategory = { id: categoryRef.key, ...catData };
-            const ordered = reorderCategories([...categories, newCategory], categoryRef.key, rawOrder);
-            await update(ref(db), categoryOrderUpdates(ordered, categoryDataUpdates(categoryRef.key, catData)));
-            categories = ordered;
+            const next = [...categories, newCategory];
+            const reordered = reorderCategoryGroup(next, categoryRef.key, rawOrder, parentId);
+            await update(ref(db), { ...categoryDataUpdates(categoryRef.key, catData), ...categoryOrderUpdatesForGroups(next, [parentId]) });
+            categories = next.map((category) => reordered.find((item) => item.id === category.id) || category);
             alert('تمت إضافة القسم بنجاح!');
         }
         updateAllDashboardViews();
@@ -1210,26 +1306,29 @@ window.toggleCategoryVisibility = async function(id, currentHidden) {
 
 window.deleteCategory = async function(id) {
     const relatedCount = products.filter(p => p.categoryId === id || p.category === id).length;
+    const childCategories = categoryChildrenOf(id, categories);
     let msg = 'هل أنت متأكد من حذف هذا القسم؟';
+    if (childCategories.length > 0) {
+        msg = `هذا القسم يحتوي ${childCategories.length} أقسامًا فرعية. سيتم تحويلها إلى أقسام رئيسية دون حذفها. هل تريد المتابعة؟`;
+    }
     if (relatedCount > 0) {
         msg = `تحذير: يوجد ${relatedCount} منتج مرتبط بهذا القسم! هل أنت متأكد من حذفه؟`;
     }
     if (!confirm(msg)) return;
 
     if (isDemoMode) {
-        categories = categories.filter(c => c.id !== id);
-        categories = categories.map((category, index) => ({ ...category, order: index + 1 }));
+        const remaining = categories.filter(c => c.id !== id).map((category) => categoryParentId(category) === id ? { ...category, parentId: null } : category);
+        categories = remaining;
+        categoryGroup(categories, null).forEach((category, index) => { category.order = index + 1; });
         updateAllDashboardViews();
         alert('تم حذف القسم بنجاح من قائمة المعاينة.');
         return;
     }
 
     try {
-        const remaining = sortCategoriesForOrder(categories).filter((category) => category.id !== id);
-        const updates = { [`categories/${id}`]: null };
-        remaining.forEach((category, index) => {
-            updates[`categories/${category.id}/order`] = index + 1;
-        });
+        const remaining = categories.filter((category) => category.id !== id).map((category) => categoryParentId(category) === id ? { ...category, parentId: null } : category);
+        const updates = { [`categories/${id}`]: null, ...categoryOrderUpdatesForGroups(remaining, [null]) };
+        childCategories.forEach((child) => { updates[`categories/${child.id}/parentId`] = null; });
         await update(ref(db), updates);
         alert('تم حذف القسم بنجاح.');
     } catch (err) {

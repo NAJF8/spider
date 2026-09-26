@@ -4,6 +4,8 @@ export const INITIAL_CATEGORIES = [
         name: "أجهزة الكمبيوتر",
         icon: "fa-desktop",
         description: "لابتوبات وتجميعات جاهزة",
+        parentId: null,
+        order: 1,
         isHidden: false,
         status: "draft"
     },
@@ -12,6 +14,8 @@ export const INITIAL_CATEGORIES = [
         name: "الهارد والتخزين",
         icon: "fa-hard-drive",
         description: "أقراص HDD و SSD و NVMe",
+        parentId: "cat-pc-parts",
+        order: 5,
         isHidden: false,
         status: "draft"
     },
@@ -20,6 +24,8 @@ export const INITIAL_CATEGORIES = [
         name: "الرامات",
         icon: "fa-memory",
         description: "ذواكر الوصول العشوائي",
+        parentId: "cat-pc-parts",
+        order: 4,
         isHidden: false,
         status: "draft"
     },
@@ -28,6 +34,8 @@ export const INITIAL_CATEGORIES = [
         name: "الشاشات وأجهزة العرض",
         icon: "fa-tv",
         description: "شاشات ألعاب وشاشات تصميم",
+        parentId: null,
+        order: 3,
         isHidden: false,
         status: "draft"
     },
@@ -36,6 +44,8 @@ export const INITIAL_CATEGORIES = [
         name: "الطابعات والماسحات الضوئية",
         icon: "fa-print",
         description: "طابعات ليزرية وملونة وماسحات",
+        parentId: null,
+        order: 5,
         isHidden: false,
         status: "draft"
     },
@@ -44,6 +54,8 @@ export const INITIAL_CATEGORIES = [
         name: "الشبكات",
         icon: "fa-network-wired",
         description: "موزعات الشبكة والراوترات",
+        parentId: null,
+        order: 4,
         isHidden: false,
         status: "draft"
     },
@@ -54,6 +66,8 @@ export const INITIAL_CATEGORIES = [
         description: "معالجات، كروت شاشة، لوحات أم، وغيرها",
         isHidden: false,
         isParent: true,
+        parentId: null,
+        order: 2,
         subcategoryIds: ["cat-cpus", "cat-gpus", "cat-motherboards", "cat-psu", "cat-cooling", "cat-cases"],
         status: "draft"
     },
@@ -62,6 +76,8 @@ export const INITIAL_CATEGORIES = [
         name: "المعالجات",
         icon: "fa-microchip",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 2,
         isHidden: false,
         status: "draft"
     },
@@ -70,6 +86,8 @@ export const INITIAL_CATEGORIES = [
         name: "كروت الشاشة",
         icon: "fa-microchip",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 1,
         isHidden: false,
         status: "draft"
     },
@@ -78,6 +96,8 @@ export const INITIAL_CATEGORIES = [
         name: "اللوحات الأم",
         icon: "fa-border-all",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 3,
         isHidden: false,
         status: "draft"
     },
@@ -86,6 +106,8 @@ export const INITIAL_CATEGORIES = [
         name: "مجهز الطاقة",
         icon: "fa-plug",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 6,
         isHidden: false,
         status: "draft"
     },
@@ -94,6 +116,8 @@ export const INITIAL_CATEGORIES = [
         name: "أنظمة التبريد",
         icon: "fa-fan",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 7,
         isHidden: false,
         status: "draft"
     },
@@ -102,6 +126,8 @@ export const INITIAL_CATEGORIES = [
         name: "صندوق الحاسبة",
         icon: "fa-box",
         parentCategory: "cat-pc-parts",
+        parentId: "cat-pc-parts",
+        order: 8,
         isHidden: false,
         status: "draft"
     },
@@ -110,6 +136,8 @@ export const INITIAL_CATEGORIES = [
         name: "ملحقات الكمبيوتر",
         icon: "fa-headphones",
         description: "ماوسات، كيبوردات، وسماعات",
+        parentId: null,
+        order: 6,
         isHidden: false,
         status: "draft"
     },
@@ -118,6 +146,8 @@ export const INITIAL_CATEGORIES = [
         name: "الطاقة",
         icon: "fa-battery-full",
         description: "UPS وبطاريات ومثبتات الفولتية",
+        parentId: null,
+        order: 7,
         isHidden: false,
         status: "draft"
     },
@@ -126,6 +156,8 @@ export const INITIAL_CATEGORIES = [
         name: "الكاميرات وأنظمة الأمان",
         icon: "fa-video",
         description: "كاميرات مراقبة وأجهزة تسجيل",
+        parentId: null,
+        order: 8,
         isHidden: false,
         status: "draft"
     }

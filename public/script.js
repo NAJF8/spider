@@ -239,24 +239,31 @@ function compareCategoryOrder(a, b) {
 }
 function orderedCategories(categories = state.categories) {
   return [...categories]
-    .filter((cat) => cat && cat.enabled !== false)
+    .filter((cat) => cat && cat.enabled !== false && cat.isHidden !== true)
     .sort(compareCategoryOrder);
 }
+function categoryParentId(category) {
+  if (!category) return null;
+  const value = Object.prototype.hasOwnProperty.call(category, 'parentId') ? category.parentId : (category.parentCategory ?? category.parent);
+  return value === undefined || value === null || value === '' ? null : String(value);
+}
+function categoryChildren(parentId, categories = state.categories) {
+  return categories.filter((category) => categoryParentId(category) === String(parentId)
+    || categories.some((parent) => parent.id === parentId && (parent.subcategoryIds || []).includes(category.id)));
+}
+function categoryIsTopLevel(category, categories = state.categories) {
+  return !categoryParentId(category) && !categories.some((parent) => (parent.subcategoryIds || []).includes(category.id));
+}
+function categorySiblings(parentId, categories = state.categories) {
+  return orderedCategories(categories.filter((category) => categoryParentId(category) === (parentId || null)));
+}
 function sidebarCategories() {
-  const categoryMap = new Map(state.categories.filter(Boolean).map((category) => [category.id, category]));
-  const visible = new Map();
-  const addCategory = (category) => {
-    if (category && category.enabled !== false) visible.set(category.id, category);
-  };
-
-  // Start with every visible category, then resolve subcategoryIds through the
-  // same object map. The final flat list is deduplicated and sorted once.
-  orderedCategories().forEach(addCategory);
-  state.categories.forEach((category) => {
-    (category.subcategoryIds || []).forEach((id) => addCategory(categoryMap.get(id)));
-  });
-
-  return [...visible.values()].sort(compareCategoryOrder);
+  const visible = orderedCategories();
+  const topLevel = visible.filter((category) => categoryIsTopLevel(category, visible));
+  return topLevel.map((parent) => ({
+    ...parent,
+    children: categoryChildren(parent.id, visible).filter((child) => child.id !== parent.id).sort(compareCategoryOrder),
+  }));
 }
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
@@ -353,7 +360,7 @@ function productCategoryMatch(product, categoryId) {
   const pc = categoryIdFor(product);
   return pc === categoryId ||
     selected?.subcategoryIds?.includes(pc) ||
-    state.categories.find((c) => c.id === pc)?.parentCategory === categoryId;
+    categoryParentId(state.categories.find((c) => c.id === pc)) === String(categoryId);
 }
 
 function filteredProducts() {
@@ -424,7 +431,7 @@ function applySettings(settings = {}) {
 // ===== Categories — Circular Row =====
 function renderCategories() {
   if (!$('categoriesRow')) return;
-  const categories = orderedCategories();
+  const categories = orderedCategories().filter((cat) => categoryIsTopLevel(cat));
   const row = $('categoriesRow');
 
   // Always show categories (no toggle)
@@ -451,24 +458,35 @@ function renderCategories() {
     btn.addEventListener('click', () => filterProductsByCategory(btn.dataset.categoryId))
   );
 
-  // Sidebar nav: all visible categories share one final order, regardless of
-  // whether they came from a parent list or a subcategoryIds relationship.
   const sidebarItems = sidebarCategories();
   $('sidebarNav').innerHTML = sidebarItems.map((cat) => {
     const imgHtml = `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
+    const children = cat.children || [];
+    const childMarkup = children.length ? `<ul class="sidebar-sub" data-subcategory-of="${esc(cat.id)}">${children.map((child) => `<li><button type="button" data-category-id="${esc(child.id)}"><span><i class="fa-solid ${esc(child.icon || 'fa-folder')}"></i> ${esc(categoryLabel(child))}</span></button></li>`).join('')}</ul>` : '';
     return `<li>
-      <button type="button" data-category-id="${esc(cat.id)}">
-        <span>${imgHtml} ${esc(categoryLabel(cat))}</span>
-      </button>
+      <button type="button" data-category-id="${esc(cat.id)}" ${children.length ? 'aria-expanded="false"' : ''}>
+        <span>${imgHtml} ${esc(categoryLabel(cat))}</span>${children.length ? '<i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>' : ''}
+      </button>${childMarkup}
     </li>`;
   }).join('');
 
-  $('sidebarNav').querySelectorAll('[data-category-id]').forEach((btn) => {
+  $('sidebarNav').querySelectorAll(':scope > li > button[data-category-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      filterProductsByCategory(btn.dataset.categoryId);
-      closeSidebar();
+      const sub = btn.parentElement.querySelector(':scope > .sidebar-sub');
+      if (sub) {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!expanded));
+        sub.classList.toggle('open', !expanded);
+      } else {
+        filterProductsByCategory(btn.dataset.categoryId);
+        closeSidebar();
+      }
     });
   });
+  $('sidebarNav').querySelectorAll('.sidebar-sub [data-category-id]').forEach((btn) => btn.addEventListener('click', () => {
+    filterProductsByCategory(btn.dataset.categoryId);
+    closeSidebar();
+  }));
 }
 
 // ===== Products =====
@@ -1688,10 +1706,13 @@ function bindEvents() {
 
 // ===== Firebase Listeners =====
 onValue(ref(db, 'categories'), (snapshot) => {
-  state.categories = [];
-  if (snapshot.exists()) snapshot.forEach((child) => {
-    const cat = { id: child.key, ...child.val() };
-    if (!cat.isHidden && !/^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) state.categories.push(cat);
+  const allCategories = [];
+  if (snapshot.exists()) snapshot.forEach((child) => allCategories.push({ id: child.key, ...child.val() }));
+  const hiddenIds = new Set(allCategories.filter((cat) => cat.isHidden === true || cat.enabled === false).map((cat) => cat.id));
+  state.categories = allCategories.filter((cat) => {
+    if (cat.isHidden || cat.enabled === false || /^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) return false;
+    const parentId = Object.prototype.hasOwnProperty.call(cat, 'parentId') ? cat.parentId : (cat.parentCategory ?? cat.parent);
+    return !hiddenIds.has(parentId) && !allCategories.some((parent) => hiddenIds.has(parent.id) && (parent.subcategoryIds || []).includes(cat.id));
   });
   renderCategories();
   renderBuilder();
