@@ -50,6 +50,12 @@ let pendingPricingIdentities = {};
 window.currentAdminPermissions = {};
 window.isSuperAdmin = false;
 
+function isAdminActive(record) {
+    if (!record) return false;
+    if (record.status === 'disabled' || record.active === false || record.enabled === false) return false;
+    return record.status === 'active' || record.active === true || record.enabled === true;
+}
+
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentAdminUser = user;
@@ -68,37 +74,38 @@ onAuthStateChanged(auth, async (user) => {
             try {
                 // Check admins
                 const adminRef = ref(db, `admins/${user.uid}`);
-                const adminSnap = await get(adminRef);
+                let adminSnap = await get(adminRef);
                 
-                if (adminSnap.exists() && adminSnap.val().status === 'active') {
+                if (!adminSnap.exists() || !isAdminActive(adminSnap.val())) {
+                    // Check pending admins securely on the server
+                    if (user.email) {
+                        try {
+                            const token = await user.getIdToken();
+                            const claimRes = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/claim-pending`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (claimRes.ok) {
+                                const claimData = await claimRes.json();
+                                if (claimData.linked || claimData.alreadyAdmin) {
+                                    adminSnap = await get(adminRef); // Re-read
+                                }
+                            }
+                        } catch (err) {
+                            console.error("Error claiming pending admin", err);
+                        }
+                    }
+                }
+
+                if (adminSnap.exists() && isAdminActive(adminSnap.val())) {
                     isAuthorized = true;
                     role = adminSnap.val().role || 'مشرف';
                     roleIcon = '<i class="fa-solid fa-shield-halved"></i>';
                     window.currentAdminPermissions = adminSnap.val().permissions || {};
-                } else {
-                    // Check pending admins
-                    if (user.email) {
-                        const emailKey = btoa(user.email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                        const pendingRef = ref(db, `pending_admins/${emailKey}`);
-                        const pendingSnap = await get(pendingRef);
-                        if (pendingSnap.exists() && pendingSnap.val().status === 'active') {
-                            const data = pendingSnap.val();
-                            await set(ref(db, `admins/${user.uid}`), {
-                                email: user.email,
-                                name: user.displayName || '',
-                                role: data.role,
-                                permissions: data.permissions || {},
-                                status: data.status,
-                                addedAt: Date.now(),
-                                uid: user.uid
-                            });
-                            await remove(pendingRef);
-                            isAuthorized = true;
-                            role = data.role;
-                            roleIcon = '<i class="fa-solid fa-shield-halved"></i>';
-                            window.currentAdminPermissions = data.permissions || {};
-                        }
-                    }
                 }
             } catch (e) {
                 console.error("Auth check failed", e);

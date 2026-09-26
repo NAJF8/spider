@@ -747,6 +747,63 @@ async function handleRequest(request, env) {
       }
     }
 
+    if (url.pathname === '/api/admin/claim-pending' && request.method === 'POST') {
+      try {
+        const token = authToken(request);
+        if (!token) return jsonResponse({ code: "INVALID_TOKEN" }, 401);
+        
+        const user = await verifyFirebaseIdToken(token, env);
+        if (!user || !user.uid || !user.email) return jsonResponse({ code: "INVALID_TOKEN" }, 401);
+        
+        const emailKey = btoa(user.email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const pendingRefPath = `pending_admins/${emailKey}.json`;
+        
+        const pendingResponse = await serviceDatabaseResponse(env, pendingRefPath);
+        const pendingData = pendingResponse.ok ? await pendingResponse.json() : null;
+        
+        if (!pendingData || typeof pendingData !== 'object' || !pendingData.email || pendingData.linked) {
+            return jsonResponse({ code: "NO_PENDING_ADMIN" }, 404);
+        }
+        
+        if (pendingData.email.toLowerCase() !== user.email.toLowerCase()) {
+            return jsonResponse({ code: "EMAIL_MISMATCH" }, 403);
+        }
+
+        const adminRefPath = `admins/${user.uid}.json`;
+        
+        const existingAdminRes = await serviceDatabaseResponse(env, adminRefPath);
+        const existingAdmin = existingAdminRes.ok ? await existingAdminRes.json() : null;
+        if (existingAdmin && (existingAdmin.status === 'active' || existingAdmin.active === true || existingAdmin.enabled === true)) {
+            return jsonResponse({ alreadyAdmin: true });
+        }
+
+        const newAdminData = {
+            email: user.email,
+            name: user.displayName || pendingData.name || '',
+            phone: pendingData.phone || '',
+            role: pendingData.role,
+            permissions: pendingData.permissions || {},
+            status: pendingData.status || 'active',
+            active: pendingData.active ?? true,
+            enabled: pendingData.enabled ?? true,
+            createdAt: pendingData.createdAt || Date.now(),
+            updatedAt: Date.now(),
+            uid: user.uid
+        };
+        
+        const saveRes = await writeServiceDatabase(env, adminRefPath, newAdminData, 'PUT');
+        if (!saveRes.ok) throw new Error('ADMIN_SAVE_FAILED');
+        
+        const markLinkedData = { ...pendingData, linked: true, linkedUid: user.uid };
+        await writeServiceDatabase(env, pendingRefPath, markLinkedData, 'PUT');
+        
+        return jsonResponse({ linked: true });
+      } catch (err) {
+        console.error("Claim Pending Error:", err.message);
+        return errorResponse('CLAIM_ERROR', 500);
+      }
+    }
+
     return errorResponse('NOT_FOUND', 404);
 }
 
