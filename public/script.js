@@ -229,6 +229,15 @@ const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === unde
 const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out']; const s = productStock(p); if (s !== undefined && Number(s) <= lowStockThreshold) return [t('limited'), 'limited']; return [t('available'), 'in']; };
 const imageFor = (p) => p?.image || 'images/default-product.svg';
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
+function orderedCategories(categories = state.categories) {
+  return [...categories].sort((a, b) => {
+    const ao = Number(a.order);
+    const bo = Number(b.order);
+    const aOrder = Number.isFinite(ao) && ao >= 1 ? ao : Number.POSITIVE_INFINITY;
+    const bOrder = Number.isFinite(bo) && bo >= 1 ? bo : Number.POSITIVE_INFINITY;
+    return aOrder - bOrder || String(a.id || '').localeCompare(String(b.id || ''));
+  });
+}
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
 const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = englishDigits(msg); t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
@@ -385,7 +394,7 @@ function applySettings(settings = {}) {
 // ===== Categories — Circular Row =====
 function renderCategories() {
   if (!$('categoriesRow')) return;
-  const categories = [...state.categories].sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  const categories = orderedCategories();
   const row = $('categoriesRow');
 
   // Always show categories (no toggle)
@@ -399,7 +408,7 @@ function renderCategories() {
 
 
   row.innerHTML = categories.map((cat) => {
-    const imgSrc = CUSTOM_ICONS[cat.id] || cat.image || categoryFallback(cat);
+    const imgSrc = cat.image || CUSTOM_ICONS[cat.id] || categoryFallback(cat);
     const fallback = categoryFallback(cat);
     const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     return `<button class="cat-circle-item" type="button" data-category-id="${esc(cat.id)}" title="${esc(categoryLabel(cat))}">
@@ -415,10 +424,7 @@ function renderCategories() {
   // Sidebar nav
   $('sidebarNav').innerHTML = categories.map((cat) => {
     const hasSubs = cat.subcategoryIds && cat.subcategoryIds.length > 0;
-    const customImg = cat.image;
-    const imgHtml = customImg
-      ? `<img class="cat-icon" src="${esc(customImg)}" alt="">`
-      : `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
+    const imgHtml = `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
     return `<li>
       <button type="button" data-category-id="${esc(cat.id)}" ${hasSubs ? `aria-expanded="false"` : ''}>
         <span>${imgHtml} ${esc(categoryLabel(cat))}</span>
@@ -579,7 +585,7 @@ function renderSuggestions(query) {
 function populateCompareFilters() {
   if (!$('compareCategorySelect')) return;
   $('compareCategorySelect').innerHTML = `<option value="">${t('allCategories')}</option>` +
-    state.categories.map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
+    orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort();
   $('compareBrandSelect').innerHTML = `<option value="">${t('allBrands')}</option>` +
     brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
@@ -798,7 +804,7 @@ function renderBuilderCatalogFilters() {
   if (!category || !brand) return;
   const currentCategory = state.builderCatalog.category;
   const currentBrand = state.builderCatalog.brand;
-  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + state.categories.map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
+  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
   brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.filter((p) => builderPartForProduct(p)).map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
   category.value = currentCategory;
   brand.value = currentBrand;
@@ -1063,7 +1069,7 @@ function renderUpgradeCatalogFilters() {
   const category = $('upgradeCatalogCategory');
   const brand = $('upgradeCatalogBrand');
   if (!category || !brand) return;
-  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + state.categories.map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
+  category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
   brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
   category.value = state.upgradeCatalog.category;
   brand.value = state.upgradeCatalog.brand;

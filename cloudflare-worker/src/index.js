@@ -515,6 +515,7 @@ async function handleRequest(request, env) {
         const formData = await request.formData();
         const file = formData.get('image');
         let filename = formData.get('filename') || '';
+        const kind = String(formData.get('kind') || 'product').toLowerCase() === 'category' ? 'category' : 'product';
 
         if (!file || typeof file.arrayBuffer !== 'function') {
           return errorResponse('IMAGE_REQUIRED', 400);
@@ -539,11 +540,13 @@ async function handleRequest(request, env) {
         filename = `${basename}.${extension}`;
         
         // Enforce prefix and randomness to prevent overwriting other files blindly
-        if (!filename.startsWith('product-')) {
-          filename = `product-${Date.now()}-${filename}`;
+        const requiredPrefix = `${kind}-`;
+        if (!filename.startsWith(requiredPrefix)) {
+          filename = `${requiredPrefix}${Date.now()}-${filename}`;
         }
 
-        // 3. Upload strictly to NAJF8/spider in public/images/products
+        // 3. Upload to a kind-specific public path so category replacements
+        // never overwrite product assets or reuse their URL.
         const githubToken = String(env.GITHUB_TOKEN || '').trim();
         if (!githubToken) {
           return errorResponse('GITHUB_UPLOAD_NOT_CONFIGURED', 500);
@@ -573,7 +576,8 @@ async function handleRequest(request, env) {
         for (let offset = 0; offset < bytes.length; offset += 0x8000) {
           base64Content += btoa(String.fromCharCode(...bytes.slice(offset, offset + 0x8000)));
         }
-        const path = `public/images/products/${filename}`;
+        const assetDirectory = kind === 'category' ? 'categories' : 'products';
+        const path = `public/images/${assetDirectory}/${filename}`;
         const githubUrl = `https://api.github.com/repos/NAJF8/spider/contents/${path}`;
 
         const githubRes = await fetch(githubUrl, {
@@ -586,7 +590,7 @@ async function handleRequest(request, env) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: `chore: upload product image ${filename}`,
+            message: `chore: upload ${kind} image ${filename}`,
             content: base64Content,
             branch: 'main'
           })
@@ -600,9 +604,9 @@ async function handleRequest(request, env) {
         // Success
         return new Response(JSON.stringify({
           success: true,
-          imageUrl: `https://spider-aaa19.web.app/images/products/${filename}`,
-          rawUrl: `https://raw.githubusercontent.com/NAJF8/spider/main/public/images/products/${filename}`,
-          path: `/images/products/${filename}`
+          imageUrl: `https://spider-aaa19.web.app/images/${assetDirectory}/${filename}`,
+          rawUrl: `https://raw.githubusercontent.com/NAJF8/spider/main/public/images/${assetDirectory}/${filename}`,
+          path: `/images/${assetDirectory}/${filename}`
         }), {
           headers: {
             'Content-Type': 'application/json',

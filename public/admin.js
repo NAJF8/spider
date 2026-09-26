@@ -1022,8 +1022,15 @@ function renderCategoriesManagementTable() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // Sort categories by order
-    categories.sort((a, b) => (a.order || 0) - (b.order || 0));
+    // Keep categories without an explicit order after ordered categories and
+    // use the id as a deterministic tie-breaker.
+    categories.sort((a, b) => {
+        const ao = Number(a.order);
+        const bo = Number(b.order);
+        const aOrder = Number.isFinite(ao) && ao >= 1 ? ao : Number.POSITIVE_INFINITY;
+        const bOrder = Number.isFinite(bo) && bo >= 1 ? bo : Number.POSITIVE_INFINITY;
+        return aOrder - bOrder || String(a.id || '').localeCompare(String(b.id || ''));
+    });
 
     if (categories.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:40px;color:#888;">لا توجد أقسام مسجلة. انقر على "إضافة قسم جديد" للبدء</td></tr>';
@@ -1033,7 +1040,7 @@ function renderCategoriesManagementTable() {
     categories.forEach(cat => {
         const prodCount = products.filter(p => p.categoryId === cat.id || p.category === cat.id).length;
         const isHidden = !!cat.isHidden;
-        const imageUrl = cat.image || '/images/default-product.svg';
+        const imageUrl = cat.image || '/images/default-category.svg';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1067,6 +1074,11 @@ function renderCategoriesManagementTable() {
 window.openCategoryModal = function(id = null) {
     closeProductModal();
     closeOrderModal();
+    originalCategoryImageFile = null;
+    if (categoryImageObjectUrl) {
+        URL.revokeObjectURL(categoryImageObjectUrl);
+        categoryImageObjectUrl = null;
+    }
 
     const form = document.getElementById('categoryForm');
     form.reset();
@@ -1079,12 +1091,14 @@ window.openCategoryModal = function(id = null) {
             document.getElementById('catId').value = cat.id;
             document.getElementById('catName').value = cat.name || '';
             document.getElementById('catImage').value = cat.image || '';
+            document.getElementById('catOrder').value = Number.isFinite(Number(cat.order)) && Number(cat.order) >= 1 ? Number(cat.order) : '';
             document.getElementById('catDesc').value = cat.description || '';
             document.getElementById('catHidden').checked = !!cat.isHidden;
         }
     } else {
         document.getElementById('categoryModalTitle').textContent = 'إضافة قسم جديد';
         document.getElementById('catImage').value = '';
+        document.getElementById('catOrder').value = 1;
         document.getElementById('catHidden').checked = false;
     }
 
@@ -1098,12 +1112,18 @@ window.closeCategoryModal = function() {
 document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('catId').value;
+    const rawOrder = Number(document.getElementById('catOrder')?.value);
+    if (!Number.isInteger(rawOrder) || rawOrder < 1) {
+        alert('ترتيب القسم يجب أن يكون رقمًا صحيحًا يبدأ من 1.');
+        document.getElementById('catOrder')?.focus();
+        return;
+    }
     const catData = {
         name: document.getElementById('catName').value.trim(),
         image: document.getElementById('catImage').value,
         description: document.getElementById('catDesc').value.trim(),
         isHidden: document.getElementById('catHidden').checked,
-        order: document.getElementById('catOrder') ? Number(document.getElementById('catOrder').value) || 0 : 0,
+        order: rawOrder,
         updatedAt: Date.now()
     };
 
@@ -1126,13 +1146,24 @@ document.getElementById('categoryForm')?.addEventListener('submit', async (e) =>
 
     try {
         if (id) {
-            await update(ref(db, 'categories/' + id), catData);
+            const categoryRef = ref(db, 'categories/' + id);
+            await update(categoryRef, catData);
+            const saved = await get(categoryRef);
+            if (!saved.exists() || Number(saved.val()?.order) !== rawOrder || (saved.val()?.image || '') !== catData.image) {
+                throw new Error('CATEGORY_WRITE_VERIFICATION_FAILED');
+            }
+            categories = categories.map((category) => category.id === id ? { id, ...saved.val() } : category);
             alert('تم تعديل القسم بنجاح!');
         } else {
             catData.createdAt = Date.now();
-            await set(push(ref(db, 'categories')), catData);
+            const categoryRef = push(ref(db, 'categories'));
+            await set(categoryRef, catData);
+            const saved = await get(categoryRef);
+            if (!saved.exists()) throw new Error('CATEGORY_WRITE_VERIFICATION_FAILED');
+            categories.push({ id: categoryRef.key, ...saved.val() });
             alert('تمت إضافة القسم بنجاح!');
         }
+        updateAllDashboardViews();
         closeCategoryModal();
     } catch (err) {
         alert('خطأ أثناء حفظ القسم: ' + err.message);
@@ -1789,10 +1820,12 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
             if (!token) throw new Error('AUTH_REQUIRED');
             const formData = new FormData();
-            const filename = `${kind === 'category' ? 'category' : 'product'}-${Date.now()}-${safeImageName(file.name)}`;
+            const uniqueSuffix = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12);
+            const filename = `${kind === 'category' ? 'category' : 'product'}-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
             formData.append('image', file, file.name);
             formData.append('filename', filename);
             formData.append('contentType', file.type || '');
+            formData.append('kind', kind);
 
             const xhr = new XMLHttpRequest();
             const button = document.getElementById(buttonId);
