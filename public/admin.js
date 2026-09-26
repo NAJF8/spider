@@ -2035,17 +2035,34 @@ window.renderManagersTable = function() {
 
 window.openManagerModal = function() {
     document.getElementById('managerModalTitle').textContent = 'إضافة مدير جديد';
+    document.getElementById('saveManagerBtn').textContent = 'إضافة المدير';
     document.getElementById('managerForm').reset();
     document.getElementById('managerId').value = '';
+    document.getElementById('managerModalError').style.display = 'none';
+    
+    const emailInput = document.getElementById('managerEmail');
+    emailInput.readOnly = false;
+    document.getElementById('managerEmailNote').style.display = 'none';
     
     // Clear permissions
     document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => cb.checked = false);
     
-    document.getElementById('managerModal').style.display = 'flex';
+    const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
+    if (!canManagePerms) {
+        document.getElementById('permissionsSectionWrapper').style.display = 'none';
+    } else {
+        document.getElementById('permissionsSectionWrapper').style.display = 'block';
+    }
+    
+    const modal = document.getElementById('managerModal');
+    modal.classList.add('open');
+    modal.style.display = 'flex';
 };
 
 window.closeManagerModal = function() {
-    document.getElementById('managerModal').style.display = 'none';
+    const modal = document.getElementById('managerModal');
+    modal.classList.remove('open');
+    setTimeout(() => { modal.style.display = 'none'; }, 200);
 };
 
 window.toggleManagerStatus = async function(id, type, currentStatus) {
@@ -2101,14 +2118,28 @@ window.deleteManager = async function(id, type) {
 };
 
 window.editManager = function(id, type) {
-    document.getElementById('managerModalTitle').textContent = 'تعديل مدير';
+    document.getElementById('managerModalTitle').textContent = 'تحديث المدير';
+    document.getElementById('saveManagerBtn').textContent = 'تحديث المدير';
+    document.getElementById('managerModalError').style.display = 'none';
     
     let data = type === 'active' ? allAdminsData[id] : allPendingAdminsData[id];
     if (!data) return;
     
     document.getElementById('managerId').value = type === 'active' ? id : 'pending_' + id;
     document.getElementById('managerName').value = data.name || '';
-    document.getElementById('managerEmail').value = data.email || '';
+    
+    const emailInput = document.getElementById('managerEmail');
+    emailInput.value = data.email || '';
+    
+    // If active and has UID, email is generally safer as readOnly to avoid accidental duplicate account creation, etc.
+    if (type === 'active') {
+        emailInput.readOnly = true;
+        document.getElementById('managerEmailNote').style.display = 'block';
+    } else {
+        emailInput.readOnly = false;
+        document.getElementById('managerEmailNote').style.display = 'none';
+    }
+    
     document.getElementById('managerPhone').value = data.phone || '';
     document.getElementById('managerRole').value = data.role || 'Admin';
     document.getElementById('managerStatus').value = data.status || 'active';
@@ -2118,7 +2149,16 @@ window.editManager = function(id, type) {
         cb.checked = !!(data.permissions && data.permissions[cb.value]);
     });
     
-    document.getElementById('managerModal').style.display = 'flex';
+    const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
+    if (!canManagePerms) {
+        document.getElementById('permissionsSectionWrapper').style.display = 'none';
+    } else {
+        document.getElementById('permissionsSectionWrapper').style.display = 'block';
+    }
+    
+    const modal = document.getElementById('managerModal');
+    modal.classList.add('open');
+    modal.style.display = 'flex';
 };
 
 document.getElementById('managerForm')?.addEventListener('submit', async (e) => {
@@ -2140,11 +2180,6 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         return;
     }
 
-    let perms = {};
-    document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
-        if (cb.checked) perms[cb.value] = true;
-    });
-
     const data = {
         name: document.getElementById('managerName').value.trim(),
         email: email,
@@ -2152,9 +2187,23 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         role: document.getElementById('managerRole').value,
         status: document.getElementById('managerStatus').value,
         notes: document.getElementById('managerNotes').value.trim(),
-        permissions: perms,
         updatedAt: Date.now()
     };
+    
+    const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
+    if (canManagePerms) {
+        let perms = {};
+        document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
+            if (cb.checked) perms[cb.value] = true;
+        });
+        data.permissions = perms;
+    }
+    
+    const btn = document.getElementById('saveManagerBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'جاري الحفظ...';
+    document.getElementById('managerModalError').style.display = 'none';
     
     try {
         if (!isEdit) {
@@ -2195,10 +2244,38 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         });
         
         closeManagerModal();
-        alert('تم حفظ البيانات بنجاح!');
+        if (window.showToast) {
+            showToast('تم حفظ البيانات بنجاح!');
+        } else {
+            alert('تم حفظ البيانات بنجاح!');
+        }
+        
+        // Refresh table manually in case onValue doesn't trigger fast enough or if we want to ensure immediate feedback
+        if (typeof renderManagersTable === 'function') {
+            // Give Firebase a tiny moment to sync
+            setTimeout(renderManagersTable, 300);
+        }
+        
     } catch (err) {
         console.error(err);
-        alert('حدث خطأ أثناء الحفظ. تأكد من صلاحياتك.');
+        const errDiv = document.getElementById('managerModalError');
+        errDiv.textContent = 'تعذر حفظ التعديلات. ' + (err.message || '');
+        errDiv.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 });
 
+\n
+window.selectAllPermissions = function() {
+    document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
+        if (!cb.disabled) cb.checked = true;
+    });
+};
+
+window.deselectAllPermissions = function() {
+    document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
+        if (!cb.disabled) cb.checked = false;
+    });
+};
