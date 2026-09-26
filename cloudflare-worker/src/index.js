@@ -17,7 +17,8 @@ export {
   parseServiceAccount,
   createGoogleOAuthAssertion,
   getFirebaseDatabaseAccessToken,
-  writeServiceDatabase
+  writeServiceDatabase,
+  canUploadImage
 };
 
 const PHONE_LOGIN_LIMIT = 6;
@@ -173,6 +174,16 @@ async function firebaseCustomToken(uid, env) {
 
 function authToken(request) {
   return (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+}
+
+function canUploadImage({ uid, adminUid, kind = 'product', operation = '', adminData = null }) {
+  if (uid === adminUid) return true;
+  const active = adminData && adminData.status !== 'disabled' && adminData.active !== false && adminData.enabled !== false;
+  const permissions = active && adminData.permissions && typeof adminData.permissions === 'object' ? adminData.permissions : {};
+  if (kind === 'category') return permissions.categories === true;
+  if (operation === 'edit') return permissions.products_edit === true;
+  if (operation === 'add') return permissions.products_add === true;
+  return permissions.products_add === true || permissions.products_edit === true;
 }
 
 async function verifyFirebaseIdToken(token, env) {
@@ -505,17 +516,26 @@ async function handleRequest(request, env) {
         }
 
         const uid = verifyData.users[0].localId;
-        
-        // Strict Admin UID Check
-        if (uid !== env.ADMIN_UID) {
-          return errorResponse('FORBIDDEN', 403);
-        }
 
         // 2. Parse FormData & Validate File
         const formData = await request.formData();
         const file = formData.get('image');
         let filename = formData.get('filename') || '';
         const kind = String(formData.get('kind') || 'product').toLowerCase() === 'category' ? 'category' : 'product';
+        const operation = String(formData.get('operation') || '').toLowerCase();
+
+        // Super Admin remains unrestricted. Other users must have an active
+        // admin record with the permission matching the upload target.
+        if (uid !== env.ADMIN_UID) {
+          let adminData;
+          try {
+            adminData = await readServiceDatabase(env, `admins/${encodeURIComponent(uid)}.json`);
+          } catch (error) {
+            console.error(JSON.stringify({ code: 'IMAGE_UPLOAD_AUTH_LOOKUP_FAILED', message: error.message }));
+            return errorResponse('FORBIDDEN', 403);
+          }
+          if (!canUploadImage({ uid, adminUid: env.ADMIN_UID, kind, operation, adminData })) return errorResponse('FORBIDDEN', 403);
+        }
 
         if (!file || typeof file.arrayBuffer !== 'function') {
           return errorResponse('IMAGE_REQUIRED', 400);

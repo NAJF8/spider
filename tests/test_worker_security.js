@@ -39,6 +39,19 @@ try {
 async function runWorkerSecurityTests() {
     const workerModule = await import('../cloudflare-worker/src/index.js');
     const worker = workerModule.default;
+    const { canUploadImage } = workerModule;
+
+    const managerWithProductPermissions = {
+        status: 'active',
+        permissions: { products_add: true, products_edit: true, categories: true }
+    };
+    assert.strictEqual(canUploadImage({ uid: 'manager-1', adminUid: 'super-1', kind: 'product', operation: 'add', adminData: managerWithProductPermissions }), true);
+    assert.strictEqual(canUploadImage({ uid: 'manager-1', adminUid: 'super-1', kind: 'product', operation: 'edit', adminData: managerWithProductPermissions }), true);
+    assert.strictEqual(canUploadImage({ uid: 'manager-1', adminUid: 'super-1', kind: 'category', operation: 'category', adminData: managerWithProductPermissions }), true);
+    assert.strictEqual(canUploadImage({ uid: 'viewer-1', adminUid: 'super-1', kind: 'product', operation: 'add', adminData: { status: 'active', permissions: {} } }), false);
+    assert.strictEqual(canUploadImage({ uid: 'manager-2', adminUid: 'super-1', kind: 'product', operation: 'edit', adminData: { status: 'active', permissions: { products_add: true } } }), false);
+    assert.strictEqual(canUploadImage({ uid: 'super-1', adminUid: 'super-1', kind: 'product', operation: 'edit', adminData: null }), true);
+    console.log('✓ نجح الاختبار: ربط product add/edit وcategory بالصلاحيات، مع إبقاء Super Admin مفتوحاً');
 
     const env = {
         FIREBASE_API_KEY: 'mock-key',
@@ -103,7 +116,8 @@ async function runWorkerSecurityTests() {
     const req3 = {
         method: 'POST',
         url: 'https://worker.test/api/admin/products/upload-image',
-        headers: new Map([['Authorization', 'Bearer normal-user-token']])
+        headers: new Map([['Authorization', 'Bearer normal-user-token']]),
+        formData: async () => new MockFormData()
     };
     const res3 = await worker.fetch(req3, env);
     const body3 = await res3.json();

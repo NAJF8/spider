@@ -1817,15 +1817,24 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
     return new Promise(async (resolve, reject) => {
         try {
             if (!file) throw new Error('IMAGE_REQUIRED');
+            const isCategory = kind === 'category';
+            const permission = isCategory
+                ? 'categories'
+                : (document.getElementById('prodId')?.value ? 'products_edit' : 'products_add');
+            if (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true) {
+                throw new Error('FORBIDDEN');
+            }
             const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
             if (!token) throw new Error('AUTH_REQUIRED');
             const formData = new FormData();
             const uniqueSuffix = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12);
-            const filename = `${kind === 'category' ? 'category' : 'product'}-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
+            const operation = isCategory ? 'category' : (permission === 'products_edit' ? 'edit' : 'add');
+            const filename = `${isCategory ? 'category' : 'product'}-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
             formData.append('image', file, file.name);
             formData.append('filename', filename);
             formData.append('contentType', file.type || '');
             formData.append('kind', kind);
+            formData.append('operation', operation);
 
             const xhr = new XMLHttpRequest();
             const button = document.getElementById(buttonId);
