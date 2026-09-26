@@ -1,0 +1,70 @@
+{
+  "rules": {
+    "products": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "categories": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "offers": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "settings": {
+      ".read": true,
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "users": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "reports": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "admins": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'"
+    },
+    "orders": {
+      ".read": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+      "$orderId": {
+        ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
+        ".validate": "newData.hasChildren(['orderNumber', 'customerName', 'customerPhone', 'governorate', 'city', 'subtotal', 'grandTotal', 'timestamp'])",
+        
+        "orderNumber": { ".validate": "newData.isString() && newData.val().length < 50" },
+        "customerName": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 100" },
+        "customerPhone": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 30" },
+        "governorate": { ".validate": "newData.isString() && newData.val().length < 50" },
+        "city": { ".validate": "newData.isString() && newData.val().length < 50" },
+        "address": { ".validate": "newData.isString() && newData.val().length < 300" },
+        "notes": { ".validate": "newData.isString() && newData.val().length < 1000" },
+        "subtotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+        "deliveryFee": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000" },
+        "grandTotal": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+        "timestamp": { ".validate": "newData.isNumber()" },
+        "status": { 
+          ".validate": "newData.isString() && (newData.val() === 'pending' || newData.val() === 'completed' || newData.val() === 'cancelled')" 
+        },
+        
+        "items": {
+          "$itemIndex": {
+             ".validate": "newData.hasChildren(['id', 'name', 'price', 'quantity'])",
+             "id": { ".validate": "newData.isString() && newData.val().length < 100" },
+             "name": { ".validate": "newData.isString() && newData.val().length < 200" },
+             "price": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000" },
+             "quantity": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 100" },
+             "$other": { ".validate": "false" }
+          }
+        },
+        
+        "$other": {
+          ".validate": "false"
+        }
+      }
+    }
+  }
+}
+

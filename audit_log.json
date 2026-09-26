@@ -1,0 +1,8 @@
+{
+  "actor": "System Automation",
+  "targetEmail": "yosef.alkawaz@gmail.com",
+  "action": "CREATE_PENDING_MANAGER",
+  "role": "Manager",
+  "permissionsAssigned": ["dashboard", "products_view", "products_add", "products_edit", "products_delete", "categories", "public_prices", "special_prices", "wholesale_prices", "pricing_customers", "orders", "customers", "chatbot", "store_settings", "reports", "audit_logs", "manage_staff", "manage_permissions"],
+  "timestamp": 1790294164250
+}

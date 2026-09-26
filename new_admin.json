@@ -1,0 +1,26 @@
+{
+  "email": "yosef.alkawaz@gmail.com",
+  "role": "Manager",
+  "status": "active",
+  "permissions": {
+    "dashboard": true,
+    "products_view": true,
+    "products_add": true,
+    "products_edit": true,
+    "products_delete": true,
+    "categories": true,
+    "public_prices": true,
+    "special_prices": true,
+    "wholesale_prices": true,
+    "pricing_customers": true,
+    "orders": true,
+    "customers": true,
+    "chatbot": true,
+    "store_settings": true,
+    "reports": true,
+    "audit_logs": true,
+    "manage_staff": true,
+    "manage_permissions": true
+  },
+  "addedAt": 1790294164250
+}

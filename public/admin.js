@@ -50,10 +50,17 @@ let pendingPricingIdentities = {};
 window.currentAdminPermissions = {};
 window.isSuperAdmin = false;
 
-function isAdminActive(record) {
-    if (!record) return false;
-    if (record.status === 'disabled' || record.active === false || record.enabled === false) return false;
-    return record.status === 'active' || record.active === true || record.enabled === true;
+function isAdminActive(admin) {
+    if (!admin) return false;
+    if (admin.status === 'disabled') return false;
+    if (admin.active === false) return false;
+    if (admin.enabled === false) return false;
+  
+    return (
+      admin.status === 'active' ||
+      admin.active === true ||
+      admin.enabled === true
+    );
 }
 
 function getAdminDisplayName(user, adminData) {
