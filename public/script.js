@@ -230,13 +230,15 @@ const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out'
 const imageFor = (p) => p?.image || 'images/default-product.svg';
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
 function orderedCategories(categories = state.categories) {
-  return [...categories].sort((a, b) => {
-    const ao = Number(a.order);
-    const bo = Number(b.order);
-    const aOrder = Number.isFinite(ao) && ao >= 1 ? ao : Number.POSITIVE_INFINITY;
-    const bOrder = Number.isFinite(bo) && bo >= 1 ? bo : Number.POSITIVE_INFINITY;
-    return aOrder - bOrder || String(a.id || '').localeCompare(String(b.id || ''));
-  });
+  return [...categories]
+    .filter((cat) => cat && cat.enabled !== false)
+    .sort((a, b) => {
+      const ao = Number(a.order);
+      const bo = Number(b.order);
+      const aOrder = Number.isFinite(ao) ? ao : 9999;
+      const bOrder = Number.isFinite(bo) ? bo : 9999;
+      return aOrder - bOrder || String(a.id || '').localeCompare(String(b.id || ''));
+    });
 }
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
 const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...Object.values(p?.specifications || {})].filter(Boolean).join(' ').toLowerCase();
@@ -433,17 +435,18 @@ function renderCategories() {
 
   // Sidebar nav
   $('sidebarNav').innerHTML = categories.map((cat) => {
-    const hasSubs = cat.subcategoryIds && cat.subcategoryIds.length > 0;
+    const subcategories = orderedCategories((cat.subcategoryIds || [])
+      .map((sid) => state.categories.find((candidate) => candidate.id === sid))
+      .filter(Boolean));
+    const hasSubs = subcategories.length > 0;
     const imgHtml = `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
     return `<li>
       <button type="button" data-category-id="${esc(cat.id)}" ${hasSubs ? `aria-expanded="false"` : ''}>
         <span>${imgHtml} ${esc(categoryLabel(cat))}</span>
         ${hasSubs ? '<i class="fa-solid fa-chevron-down chevron"></i>' : ''}
       </button>
-      ${hasSubs ? `<ul class="sidebar-sub" id="sub-${esc(cat.id)}">${cat.subcategoryIds.map(sid => {
-        const sub = state.categories.find(c => c.id === sid);
-        if (!sub) return '';
-        return `<li><button type="button" data-category-id="${esc(sid)}">${esc(categoryLabel(sub))}</button></li>`;
+      ${hasSubs ? `<ul class="sidebar-sub" id="sub-${esc(cat.id)}">${subcategories.map((sub) => {
+        return `<li><button type="button" data-category-id="${esc(sub.id)}">${esc(categoryLabel(sub))}</button></li>`;
       }).join('')}</ul>` : ''}
     </li>`;
   }).join('');
