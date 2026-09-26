@@ -56,12 +56,20 @@ function isAdminActive(record) {
     return record.status === 'active' || record.active === true || record.enabled === true;
 }
 
+function getAdminDisplayName(user, adminData) {
+    if (adminData?.name?.trim()) return adminData.name.trim();
+    if (user?.displayName?.trim()) return user.displayName.trim();
+    if (user?.email) return user.email.split('@')[0];
+    return 'المستخدم';
+}
+
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentAdminUser = user;
         let isAuthorized = false;
         let role = '';
         let roleIcon = '';
+        let currentAdminData = null;
         
         if (user.uid === SUPER_ADMIN_UID) {
             isAuthorized = true;
@@ -69,6 +77,7 @@ onAuthStateChanged(auth, async (user) => {
             role = 'سوبر مشرف';
             roleIcon = '<i class="fa-solid fa-crown"></i>';
             window.currentAdminPermissions = { _super: true };
+            currentAdminData = { name: 'محمد مسلم' };
         } else {
             window.isSuperAdmin = false;
             try {
@@ -102,10 +111,11 @@ onAuthStateChanged(auth, async (user) => {
                 }
 
                 if (adminSnap.exists() && isAdminActive(adminSnap.val())) {
+                    currentAdminData = adminSnap.val();
                     isAuthorized = true;
-                    role = adminSnap.val().role || 'مشرف';
+                    role = currentAdminData.role || 'مشرف';
                     roleIcon = '<i class="fa-solid fa-shield-halved"></i>';
-                    window.currentAdminPermissions = adminSnap.val().permissions || {};
+                    window.currentAdminPermissions = currentAdminData.permissions || {};
                 }
             } catch (e) {
                 console.error("Auth check failed", e);
@@ -121,7 +131,11 @@ onAuthStateChanged(auth, async (user) => {
             adminScreen.classList.remove('hidden');
             errorMsg.classList.add('hidden');
             
-            adminName.textContent = user.displayName || user.email || 'مسؤول';
+            const displayName = getAdminDisplayName(user, currentAdminData);
+            adminName.textContent = displayName;
+            const greetingName = document.getElementById('dashboardGreetingName');
+            if (greetingName) greetingName.textContent = displayName;
+            
             adminRole.innerHTML = `${roleIcon} ${role}`;
             if (user.photoURL) adminAvatar.src = user.photoURL;
             
@@ -177,6 +191,8 @@ document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
     if (banner) banner.style.display = 'flex';
     
     adminName.textContent = 'محمد مسلم (معاينة تجريبية)';
+    const greetingName = document.getElementById('dashboardGreetingName');
+    if (greetingName) greetingName.textContent = 'محمد مسلم';
     adminRole.innerHTML = '<i class="fa-solid fa-crown"></i> سوبر مشرف <span style="font-size:0.75rem;opacity:0.85;">(وضع المعاينة)</span>';
     
     categories = JSON.parse(JSON.stringify(DEMO_CATEGORIES));

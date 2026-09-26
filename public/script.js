@@ -415,7 +415,7 @@ function renderCategories() {
   // Sidebar nav
   $('sidebarNav').innerHTML = categories.map((cat) => {
     const hasSubs = cat.subcategoryIds && cat.subcategoryIds.length > 0;
-    const customImg = CUSTOM_ICONS[cat.id] || cat.image;
+    const customImg = cat.image;
     const imgHtml = customImg
       ? `<img class="cat-icon" src="${esc(customImg)}" alt="">`
       : `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
