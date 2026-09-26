@@ -252,9 +252,19 @@ function setScrollLock(locked) {
     return;
   }
   if (scrollLockDepth === 0 || --scrollLockDepth > 0) return;
+  const restoreScrollY = lockedScrollY;
+  const root = document.documentElement;
+  const previousScrollBehavior = root.style.scrollBehavior;
+  // html{scroll-behavior:smooth} must not animate the lock restore.
+  root.style.scrollBehavior = 'auto';
   document.body.classList.remove('overlay-open');
   document.body.style.top = '';
-  window.scrollTo(0, lockedScrollY);
+  root.style.removeProperty('--scrollbar-width');
+  void document.body.offsetHeight;
+  root.scrollTop = restoreScrollY;
+  document.body.scrollTop = restoreScrollY;
+  window.scrollTo({ left: 0, top: restoreScrollY, behavior: 'auto' });
+  requestAnimationFrame(() => { root.style.scrollBehavior = previousScrollBehavior; });
 }
 const modal = (id, open) => {
   const element = $(id);
