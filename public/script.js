@@ -259,6 +259,19 @@ const modal = (id, open) => {
 // ===== Category fallbacks =====
 // Firebase keeps any valid custom image URL. These local GitHub-hosted assets
 // are used only when that URL is absent or fails to load.
+
+const CUSTOM_ICONS = {
+  'cat-storage': 'assets/icon_1.png',
+  'cat-ram': 'assets/icon_2.png',
+  'cat-printers': 'assets/icon_3.png',
+  'cat-psu': 'assets/icon_4.png',
+  'cat-network': 'assets/icon_5.png',
+  'cat-monitors': 'assets/icon_6.png',
+  'cat-motherboards': 'assets/icon_7.png',
+  'cat-cpus': 'assets/icon_8.png',
+  'cat-cases': 'assets/icon_9.png'
+};
+
 const FALLBACK_IMAGES = {
   'cat-computers': 'assets/category-fallbacks/computer.svg',
   'cat-storage': 'assets/category-fallbacks/storage.svg?v=1',
@@ -386,7 +399,7 @@ function renderCategories() {
 
 
   row.innerHTML = categories.map((cat) => {
-    const imgSrc = cat.image || categoryFallback(cat);
+    const imgSrc = CUSTOM_ICONS[cat.id] || cat.image || categoryFallback(cat);
     const fallback = categoryFallback(cat);
     const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     return `<button class="cat-circle-item" type="button" data-category-id="${esc(cat.id)}" title="${esc(categoryLabel(cat))}">
@@ -402,8 +415,9 @@ function renderCategories() {
   // Sidebar nav
   $('sidebarNav').innerHTML = categories.map((cat) => {
     const hasSubs = cat.subcategoryIds && cat.subcategoryIds.length > 0;
-    const imgHtml = cat.image
-      ? `<img class="cat-icon" src="${esc(cat.image)}" alt="">`
+    const customImg = CUSTOM_ICONS[cat.id] || cat.image;
+    const imgHtml = customImg
+      ? `<img class="cat-icon" src="${esc(customImg)}" alt="">`
       : `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
     return `<li>
       <button type="button" data-category-id="${esc(cat.id)}" ${hasSubs ? `aria-expanded="false"` : ''}>
