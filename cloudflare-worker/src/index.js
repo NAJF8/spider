@@ -599,6 +599,25 @@ async function handleRequest(request, env) {
         const assetDirectory = kind === 'category' ? 'categories' : 'products';
         const path = `public/images/${assetDirectory}/${filename}`;
         const githubUrl = `https://api.github.com/repos/NAJF8/spider/contents/${path}`;
+        const githubRequestDiagnostics = {
+          owner: 'NAJF8',
+          repo: 'spider',
+          branch: 'main',
+          path,
+          commitMessage: `chore: upload ${kind} image ${filename}`,
+          contentLength: bytes.length,
+          contentEncoding: 'base64',
+          fileExtension: extension,
+          suppliedMime,
+          detectedMime,
+          sha: null,
+          author: null,
+          committer: null,
+          kind,
+          operation,
+          authUid: uid
+        };
+        console.info(JSON.stringify({ code: 'GITHUB_UPLOAD_REQUEST', ...githubRequestDiagnostics }));
 
         const githubRes = await fetch(githubUrl, {
           method: 'PUT',
@@ -623,6 +642,14 @@ async function handleRequest(request, env) {
           const githubMessage = typeof githubBody?.message === 'string'
             ? githubBody.message
             : rawGithubBody.slice(0, 500);
+          const githubErrors = Array.isArray(githubBody?.errors)
+            ? githubBody.errors.slice(0, 20).map((item) => ({
+                resource: typeof item?.resource === 'string' ? item.resource : undefined,
+                field: typeof item?.field === 'string' ? item.field : undefined,
+                code: typeof item?.code === 'string' ? item.code : undefined,
+                message: typeof item?.message === 'string' ? item.message : undefined
+              }))
+            : [];
           const failureCode = githubRes.status === 401
             ? 'GITHUB_UNAUTHORIZED'
             : githubRes.status === 403
@@ -646,9 +673,9 @@ async function handleRequest(request, env) {
             code: failureCode,
             status: githubRes.status,
             message: githubMessage,
+            errors: githubErrors,
             documentation_url: typeof githubBody?.documentation_url === 'string' ? githubBody.documentation_url : undefined,
-            kind,
-            path
+            request: githubRequestDiagnostics
           }));
           return errorResponse(failureCode, 502, { message: publicMessage, upstreamStatus: githubRes.status });
         }
