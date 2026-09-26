@@ -2274,7 +2274,6 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
     }
 });
 
-\n
 window.selectAllPermissions = function() {
     document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
         if (!cb.disabled) cb.checked = true;
