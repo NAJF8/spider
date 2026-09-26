@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم | SPIDER NAJAF</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
@@ -23,7 +23,7 @@
                 <i class="fa-brands fa-google"></i> تسجيل الدخول باستخدام Google
             </button>
             <small class="login-hint">الدخول محصور لحساب سوبر مشرف المعتمد فقط.</small>
-            
+
             <div class="demo-login-box" style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px;">
                 <button id="demo-preview-btn" class="btn" style="background: rgba(230, 57, 70, 0.15); border: 1px solid var(--primary-red); color: white; width: 100%; padding: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
                     <i class="fa-solid fa-eye"></i> معاينة لوحة الإدارة (وضع العرض التجريبي)
@@ -49,7 +49,7 @@
                 </div>
                 <button class="sidebar-close-btn" id="sidebarCloseBtn"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
+
             <ul class="nav-links">
                 <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
@@ -68,7 +68,7 @@
                 <li><a href="#" class="nav-item" data-view="view-managers"><i class="fa-solid fa-users-gear"></i> <span>المدراء والمشرفين</span></a></li>
                 <li><a href="#" class="nav-item nav-item-disabled" data-view="view-placeholder" data-title="إعدادات المتجر"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span> <span class="badge-sub">قريباً</span></a></li>
             </ul>
-            
+
             <div class="sidebar-help">
                 <i class="fa-solid fa-shield-halved"></i>
                 <p><strong>حساب سوبر مشرف</strong><br>كامل الصلاحيات مفعلة</p>
@@ -483,14 +483,88 @@
 
             <!-- ================= VIEW: PLACEHOLDER (COMING SOON) ================= -->
             <section id="view-customers" class="admin-view">
-                <div class="view-header"><div><h2>إدارة العملاء</h2><p>النوع يحدده المشرف فقط من خلال ملف UID الموثوق.</p></div><div class="view-header-actions"><input id="customerSearch" class="admin-search-input" placeholder="ابحث بالاسم أو البريد أو UID..."></div></div>
-                <div class="box"><div class="table-responsive"><table class="modern-table customers-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>UID</th><th>نوع الحساب</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead><tbody id="customersTableBody"><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-users"></i> إدارة العملاء</h2>
+                        <p>عرض وتعديل بيانات العملاء المسجلين</p>
+                    </div>
+                </div>
+                <div class="filter-bar box">
+                    <div class="search-input-group" style="flex: 1; max-width: 400px;">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" id="customerSearch" placeholder="ابحث بالاسم أو البريد أو UID..." dir="auto">
+                    </div>
+                </div>
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table customers-mgmt-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>البريد</th>
+                                    <th>الهاتف</th>
+                                    <th>UID</th>
+                                    <th>نوع الحساب</th>
+                                    <th>تاريخ التسجيل</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                <tr><td colspan="7" class="text-center">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="view-pricing-customers" class="admin-view">
-                <div class="view-header"><div><h2><i class="fa-solid fa-user-tag"></i> فئات العملاء</h2><p>تعديل التصنيف الموثوق للعملاء المسجلين، أو إنشاء هوية سعر معلقة قبل التسجيل.</p></div></div>
-                <div class="box" style="padding:18px;margin-bottom:18px"><form id="pendingPricingForm" class="filter-bar"><input id="pendingPricingIdentity" required placeholder="UID أو البريد أو رقم الهاتف"><select id="pendingPricingTier"><option value="special">Special / سعر خاص</option><option value="wholesale">Wholesale / سعر جملة</option><option value="public">Public / عام</option></select><input id="pendingPricingNotes" placeholder="ملاحظات اختيارية"><button class="btn btn-primary" type="submit">حفظ التصنيف</button></form></div>
-                <div class="box"><div class="table-responsive"><table class="modern-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>UID</th><th>نوع السعر</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="pricingCustomersTableBody"><tr><td colspan="7" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-user-tag"></i> فئات العملاء</h2>
+                        <p>إدارة الأسعار الخاصة وتصنيف العملاء</p>
+                    </div>
+                </div>
+                <div class="box" style="margin-bottom: 24px;">
+                    <div class="box-header" style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <h3 style="margin: 0; font-size: 1.1rem;">تعيين فئة سعرية للعميل</h3>
+                    </div>
+                    <form id="pendingPricingForm" class="customer-category-form" style="padding: 20px;">
+                        <div class="form-group" style="margin: 0;">
+                            <input type="text" id="pendingPricingIdentity" required placeholder="البحث / UID أو البريد أو الهاتف" dir="auto" class="ltr-field-if-email">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <select id="pendingPricingTier">
+                                <option value="public">Public / عام</option>
+                                <option value="special">Special / سعر خاص</option>
+                                <option value="wholesale">Wholesale / سعر جملة</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <input type="text" id="pendingPricingNotes" placeholder="ملاحظات">
+                        </div>
+                        <button class="btn btn-primary save-category-btn" type="submit">حفظ التصنيف</button>
+                    </form>
+                </div>
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table customer-pricing-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>البريد</th>
+                                    <th>الهاتف</th>
+                                    <th>UID</th>
+                                    <th>نوع السعر</th>
+                                    <th>التاريخ</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pricingCustomersTableBody">
+                                <tr><td colspan="7" class="text-center">جاري التحميل...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="view-placeholder" class="admin-view">
@@ -505,7 +579,7 @@
                     <button class="btn btn-primary" onclick="switchView('view-dashboard')"><i class="fa-solid fa-house"></i> العودة إلى الرئيسية</button>
                 </div>
             </section>
-        
+
             <!-- ================= VIEW: MANAGERS & PERMISSIONS ================= -->
             <section id="view-managers" class="admin-view">
                 <div class="view-header">
@@ -568,10 +642,10 @@
                         </div>
                         <div class="modal-body">
                             <div id="managerModalError" style="display:none; color: white; background: var(--red); padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">تعذر حفظ التعديلات</div>
-                            
+
                             <form id="managerForm">
                                 <input type="hidden" id="managerId">
-                                
+
                                 <div class="form-section">
                                     <h3><i class="fa-solid fa-id-card"></i> معلومات الحساب</h3>
                                     <div class="form-grid manager-form-grid">
@@ -757,7 +831,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Category Modal (Add / Edit) -->
     <div class="modal-overlay" id="categoryModal">
         <div class="modal-content">
@@ -821,3 +895,5 @@
     <script type="module" src="admin.js?v=6"></script>
 </body>
 </html>
+
+

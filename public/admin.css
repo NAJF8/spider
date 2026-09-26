@@ -994,3 +994,246 @@ html[data-theme="dark"] .permissions-grid .checkbox-label {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==============================================================
+   Customer Management & Pricing Redesign 2026
+============================================================== */
+
+/* RTL fixes and Table Layouts */
+.customers-mgmt-table, .customer-pricing-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.customers-mgmt-table th, .customers-mgmt-table td,
+.customer-pricing-table th, .customer-pricing-table td {
+    padding: 14px 12px;
+    vertical-align: middle;
+}
+
+/* Set explicit column widths for better proportion */
+.customers-mgmt-table th:nth-child(1), .customer-pricing-table th:nth-child(1) { width: 18%; } /* Name */
+.customers-mgmt-table th:nth-child(2), .customer-pricing-table th:nth-child(2) { width: 20%; } /* Email */
+.customers-mgmt-table th:nth-child(3), .customer-pricing-table th:nth-child(3) { width: 14%; } /* Phone */
+.customers-mgmt-table th:nth-child(4), .customer-pricing-table th:nth-child(4) { width: 16%; } /* UID */
+.customers-mgmt-table th:nth-child(5), .customer-pricing-table th:nth-child(5) { width: 14%; } /* Type */
+.customers-mgmt-table th:nth-child(6), .customer-pricing-table th:nth-child(6) { width: 10%; } /* Date */
+.customers-mgmt-table th:nth-child(7), .customer-pricing-table th:nth-child(7) { width: 8%; min-width: 80px;} /* Action */
+
+.cell-content {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+}
+
+.ltr-field {
+    direction: ltr !important;
+    text-align: left !important;
+    font-family: monospace, sans-serif;
+}
+
+.uid-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #475569;
+}
+.uid-cell span {
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.btn-copy {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-copy:hover { color: var(--primary); }
+
+.pricing-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+.badge-public { background: #edf8f1; color: #1f9b5d; }
+.badge-special { background: #fef1f1; color: #e63946; }
+.badge-wholesale { background: #f0f5ff; color: #3b82f6; }
+.badge-pending { background: #fff8e1; color: #f59e0b; }
+
+.btn-edit-action {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.btn-edit-action:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #fdf2f2;
+}
+
+.action-save-btn {
+    padding: 6px 16px;
+    width: 100%;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+.account-type-select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    outline: none;
+    color: #334155;
+    background: #fff;
+    font-weight: 600;
+}
+.account-type-select:focus {
+    border-color: var(--primary);
+}
+
+/* Customer Category Form */
+.customer-category-form {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 2fr auto;
+    gap: 16px;
+    align-items: stretch;
+}
+.customer-category-form .form-group input,
+.customer-category-form .form-group select {
+    height: 42px;
+    margin: 0;
+}
+.save-category-btn {
+    height: 42px;
+    padding: 0 24px;
+    white-space: nowrap;
+}
+
+/* Mobile Responsive Cards for Tables */
+@media (max-width: 900px) {
+    .customer-category-form {
+        grid-template-columns: 1fr;
+    }
+
+    .customers-mgmt-table, .customer-pricing-table,
+    .customers-mgmt-table tbody, .customer-pricing-table tbody,
+    .customers-mgmt-table tr, .customer-pricing-table tr,
+    .customers-mgmt-table td, .customer-pricing-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .customers-mgmt-table thead, .customer-pricing-table thead {
+        display: none;
+    }
+
+    .customers-mgmt-table tr, .customer-pricing-table tr {
+        margin-bottom: 16px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .customers-mgmt-table td, .customer-pricing-table td {
+        padding: 8px 0;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .customers-mgmt-table td::before, .customer-pricing-table td::before {
+        font-weight: 700;
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .customers-mgmt-table td:nth-child(1)::before, .customer-pricing-table td:nth-child(1)::before { content: '?????:'; }
+    .customers-mgmt-table td:nth-child(2)::before, .customer-pricing-table td:nth-child(2)::before { content: '??????:'; }
+    .customers-mgmt-table td:nth-child(3)::before, .customer-pricing-table td:nth-child(3)::before { content: '??????:'; }
+    .customers-mgmt-table td:nth-child(4)::before, .customer-pricing-table td:nth-child(4)::before { content: 'UID:'; display: none; }
+    .customers-mgmt-table td:nth-child(5)::before { content: '??? ??????:'; }
+    .customer-pricing-table td:nth-child(5)::before { content: '??? ?????:'; }
+    .customers-mgmt-table td:nth-child(6)::before, .customer-pricing-table td:nth-child(6)::before { content: '???????:'; }
+    .customers-mgmt-table td:nth-child(7)::before, .customer-pricing-table td:nth-child(7)::before { display: none; }
+
+    .cell-content, .uid-cell {
+        max-width: 70%;
+        text-align: right;
+        flex: 1;
+    }
+    .ltr-field {
+        text-align: left !important;
+        justify-content: flex-end;
+    }
+
+    .customers-mgmt-table td:nth-child(4), .customer-pricing-table td:nth-child(4) {
+        flex-direction: column;
+        align-items: stretch;
+        background: #f8fafc;
+        padding: 12px;
+        border-radius: 8px;
+        margin: 12px 0;
+        border: 1px dashed #cbd5e1;
+    }
+    .customers-mgmt-table td:nth-child(4)::before, .customer-pricing-table td:nth-child(4)::before {
+        display: block;
+        margin-bottom: 6px;
+        text-align: right;
+        color: #94a3b8;
+    }
+    .uid-cell {
+        max-width: 100%;
+        width: 100%;
+        justify-content: space-between;
+        background: #fff;
+    }
+
+    .customers-mgmt-table td:nth-child(7), .customer-pricing-table td:nth-child(7) {
+        flex-direction: column;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f1f5f9;
+    }
+    .action-save-btn, .btn-edit-action {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+    }
+}

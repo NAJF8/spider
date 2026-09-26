@@ -55,7 +55,7 @@ function isAdminActive(admin) {
     if (admin.status === 'disabled') return false;
     if (admin.active === false) return false;
     if (admin.enabled === false) return false;
-  
+
     return (
       admin.status === 'active' ||
       admin.active === true ||
@@ -77,7 +77,7 @@ onAuthStateChanged(auth, async (user) => {
         let role = '';
         let roleIcon = '';
         let currentAdminData = null;
-        
+
         if (user.uid === SUPER_ADMIN_UID) {
             isAuthorized = true;
             window.isSuperAdmin = true;
@@ -91,7 +91,7 @@ onAuthStateChanged(auth, async (user) => {
                 // Check admins
                 const adminRef = ref(db, `admins/${user.uid}`);
                 let adminSnap = await get(adminRef);
-                
+
                 if (!adminSnap.exists() || !isAdminActive(adminSnap.val())) {
                     // Check pending admins securely on the server
                     if (user.email) {
@@ -104,7 +104,7 @@ onAuthStateChanged(auth, async (user) => {
                                     'Content-Type': 'application/json'
                                 }
                             });
-                            
+
                             if (claimRes.ok) {
                                 const claimData = await claimRes.json();
                                 if (claimData.linked || claimData.alreadyAdmin) {
@@ -137,15 +137,15 @@ onAuthStateChanged(auth, async (user) => {
             loginScreen.classList.add('hidden');
             adminScreen.classList.remove('hidden');
             errorMsg.classList.add('hidden');
-            
+
             const displayName = getAdminDisplayName(user, currentAdminData);
             adminName.textContent = displayName;
             const greetingName = document.getElementById('dashboardGreetingName');
             if (greetingName) greetingName.textContent = displayName;
-            
+
             adminRole.innerHTML = `${roleIcon} ${role}`;
             if (user.photoURL) adminAvatar.src = user.photoURL;
-            
+
             loadDashboardData();
             if(window.initManagersModule) window.initManagersModule();
         } else {
@@ -193,19 +193,19 @@ document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
     loginScreen.classList.add('hidden');
     adminScreen.classList.remove('hidden');
     errorMsg.classList.add('hidden');
-    
+
     const banner = document.getElementById('adminDemoBanner');
     if (banner) banner.style.display = 'flex';
-    
+
     adminName.textContent = 'محمد مسلم (معاينة تجريبية)';
     const greetingName = document.getElementById('dashboardGreetingName');
     if (greetingName) greetingName.textContent = 'محمد مسلم';
     adminRole.innerHTML = '<i class="fa-solid fa-crown"></i> سوبر مشرف <span style="font-size:0.75rem;opacity:0.85;">(وضع المعاينة)</span>';
-    
+
     categories = JSON.parse(JSON.stringify(DEMO_CATEGORIES));
     products = JSON.parse(JSON.stringify(DEMO_PRODUCTS));
     orders = JSON.parse(JSON.stringify(DEMO_ORDERS));
-    
+
     updateAllDashboardViews();
 });
 
@@ -222,26 +222,26 @@ window.switchView = function(viewId, title = '') {
     // Deactivate all views
     document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-links .nav-item').forEach(link => link.classList.remove('active'));
-    
+
     // Activate requested view
     const targetView = document.getElementById(viewId);
     if (targetView) {
         targetView.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
+
     // Activate corresponding nav item
     const activeLink = document.querySelector(`.nav-links a[data-view="${viewId}"]`);
     if (activeLink) {
         activeLink.classList.add('active');
     }
-    
+
     // Handle placeholder titles
     if (viewId === 'view-placeholder') {
         const pTitle = document.getElementById('placeholderTitle');
         if (pTitle) pTitle.textContent = title || 'قسم قيد التطوير';
     }
-    
+
     // Close mobile drawer
     closeMobileSidebar();
 };
@@ -436,7 +436,7 @@ function renderCustomers() {
     if (stat) stat.textContent = customers.length;
     body.innerHTML = filtered.length ? filtered.map((customer) => {
         const type = ['retail', 'wholesale', 'special'].includes(customer.accountType) ? customer.accountType : 'retail';
-        return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td class="customer-uid" title="${escapeHtml(customer.uid)}">${escapeHtml(customer.uid.slice(0, 8))}…</td><td><select data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td>${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</td><td><button class="btn btn-primary" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button></td></tr>`;
+        return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}…</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="نسخ UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><button class="btn btn-primary action-save-btn" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button></td></tr>`;
     }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
     body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
     renderPricingCustomers();
@@ -583,18 +583,18 @@ function renderRecentOrders() {
     const tbody = document.getElementById('ordersTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    
+
     if (orders.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:30px;color:#888;">لا توجد أي طلبات مسجلة حتى الآن</td></tr>';
         return;
     }
-    
+
     const recent = orders.slice(0, 5);
     recent.forEach((order, idx) => {
         const statusClass = (order.status === 'pending' || order.status === 'جديد') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
         const statusText = (order.status === 'pending' || order.status === 'جديد') ? 'قيد التجهيز' : (order.status === 'cancelled' ? 'ملغي' : 'مكتمل');
         const itemsCount = order.items ? (Array.isArray(order.items) ? order.items.length : Object.keys(order.items).length) : 0;
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>#${order.orderNumber || idx + 1}</strong></td>
@@ -775,7 +775,7 @@ function formatCompactCurrency(value) {
 function renderProductsManagementTable() {
     const tbody = document.getElementById('productsFullTableBody');
     if (!tbody) return;
-    
+
     const searchVal = (document.getElementById('productSearchInput')?.value || '').toLowerCase().trim();
     const categoryVal = document.getElementById('productCategoryFilter')?.value || '';
     const statusVal = document.getElementById('productStatusFilter')?.value || '';
@@ -836,14 +836,14 @@ document.getElementById('productStatusFilter')?.addEventListener('change', rende
 window.openProductModal = function(id = null) {
     closeCategoryModal();
     closeOrderModal();
-    
+
     const form = document.getElementById('productForm');
     form.reset();
     document.getElementById('prodId').value = '';
     document.getElementById('imagePreviewContainer').style.display = 'none';
     currentProcessedImageBase64 = null;
     currentProcessedImageName = null;
-    
+
     if (id) {
         document.getElementById('productModalTitle').textContent = 'تعديل بيانات المنتج';
         const prod = products.find(p => p.id === id);
@@ -864,14 +864,14 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodDesc').value = prod.description || '';
             document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
             document.getElementById('prodImage').value = prod.image || '';
-            
+
             // Map legacy isHidden to status if status is not explicitly set
             let currentStatus = prod.status;
             if (!currentStatus) {
                 currentStatus = prod.isHidden ? 'hidden' : 'published';
             }
             document.getElementById('prodStatus').value = currentStatus;
-            
+
             if (prod.image) {
                 document.getElementById('imagePreview').src = prod.image;
                 document.getElementById('imageDetails').textContent = 'الصورة الحالية للمنتج';
@@ -882,7 +882,7 @@ window.openProductModal = function(id = null) {
         document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
         document.getElementById('prodStatus').value = 'published';
     }
-    
+
     document.getElementById('productModal').classList.add('open');
 };
 
@@ -941,7 +941,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         updatedAt: Date.now()
     };
     const privatePrices = { wholesale_price: wholesaleRaw ? Number(wholesaleRaw) : null, special_price: specialRaw ? Number(specialRaw) : null, updatedAt: Date.now(), updatedBy: currentAdminUser?.uid || null };
-    
+
     if (isDemoMode) {
         if (id) {
             const index = products.findIndex(p => p.id === id);
@@ -1017,7 +1017,7 @@ function renderCategoriesManagementTable() {
     const tbody = document.getElementById('categoriesFullTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    
+
     // Sort categories by order
     categories.sort((a, b) => (a.order || 0) - (b.order || 0));
 
@@ -1178,7 +1178,7 @@ window.deleteCategory = async function(id) {
 window.filterOrdersTab = function(status) {
     activeOrderTab = status;
     document.querySelectorAll('.order-status-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-    
+
     // Set active tab styling
     const tabs = document.querySelectorAll('.order-status-tabs .tab-btn');
     if (status === 'all') tabs[0]?.classList.add('active');
@@ -1211,7 +1211,7 @@ function renderOrdersManagementTable() {
     filtered.forEach((order, idx) => {
         const statusClass = (order.status === 'pending' || order.status === 'جديد') ? 'status-pending' : (order.status === 'cancelled' ? 'status-cancelled' : 'status-completed');
         const statusText = (order.status === 'pending' || order.status === 'جديد') ? 'قيد التجهيز' : (order.status === 'cancelled' ? 'ملغي' : 'مكتمل');
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>#${order.orderNumber || idx + 1}</strong></td>
@@ -1238,9 +1238,9 @@ window.viewOrder = function(orderId) {
 
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
-    
+
     const content = document.getElementById('orderDetailsContent');
-    
+
     let itemsHtml = '<ul style="list-style:none;padding:0;margin-top:12px;">';
     if (order.items) {
         const itemsArray = Array.isArray(order.items) ? order.items : Object.values(order.items);
@@ -1256,9 +1256,9 @@ window.viewOrder = function(orderId) {
         });
     }
     itemsHtml += '</ul>';
-    
+
     const currentStatus = order.status || 'pending';
-    
+
     content.innerHTML = `
         <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid #eee;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1270,10 +1270,10 @@ window.viewOrder = function(orderId) {
             <p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>
             ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>ملاحظات العميل:</strong> ${order.notes}</p>` : ''}
         </div>
-        
+
         <h4 style="font-weight:800;color:var(--dark);"><i class="fa-solid fa-boxes-packing"></i> المنتجات المطلوبة</h4>
         ${itemsHtml}
-        
+
         <div style="margin-top:20px;padding-top:15px;border-top:2px solid #eee;">
             <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>مجموع المنتجات:</span> <strong>${formatPrice(order.subtotal || 0)}</strong></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>أجور التوصيل:</span> <strong>${formatPrice(order.deliveryFee || 5000)}</strong></div>
@@ -1281,7 +1281,7 @@ window.viewOrder = function(orderId) {
                 <span>المبلغ الكلي:</span> <strong>${formatPrice(order.grandTotal || 0)}</strong>
             </div>
         </div>
-        
+
         <div style="margin-top:25px;background:#fff8e1;padding:16px;border-radius:8px;border:1px solid #ffe082;">
             <label style="font-weight:800;display:block;margin-bottom:8px;color:#f57f17;"><i class="fa-solid fa-pen-to-square"></i> تحديث حالة الطلب بصلاحية سوبر مشرف:</label>
             <div style="display:flex;gap:10px;">
@@ -1294,7 +1294,7 @@ window.viewOrder = function(orderId) {
             </div>
         </div>
     `;
-    
+
     document.getElementById('orderModal').classList.add('open');
 };
 
@@ -1315,7 +1315,7 @@ window.saveOrderStatus = async function(orderId) {
         return;
     }
     try {
-        await update(ref(db, 'orders/' + orderId), { 
+        await update(ref(db, 'orders/' + orderId), {
             status: newStatus,
             updatedAt: Date.now()
         });
@@ -1330,8 +1330,8 @@ window.saveOrderStatus = async function(orderId) {
 // ================= MODAL GLOBAL OUTSIDE CLICK & ESCAPE =================
 window.addEventListener('click', (e) => {
     const modals = [
-        document.getElementById('productModal'), 
-        document.getElementById('categoryModal'), 
+        document.getElementById('productModal'),
+        document.getElementById('categoryModal'),
         document.getElementById('orderModal')
     ];
     modals.forEach(modal => {
@@ -1358,13 +1358,13 @@ document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
         alert('الرجاء اختيار صورة أولاً.');
         return;
     }
-    
+
     const file = fileInput.files[0];
     if (!file.type.match(/image\/(png|jpeg|webp)/)) {
         alert('صيغة غير مدعومة. الرجاء اختيار صورة بصيغة PNG أو JPEG أو WebP.');
         return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
         alert('حجم الصورة كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.');
         return;
@@ -1398,19 +1398,19 @@ document.getElementById('uploadImageBtn')?.addEventListener('click', () => {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
-            
+
             const webpDataUrl = canvas.toDataURL('image/webp', 0.85);
             currentProcessedImageBase64 = webpDataUrl.split(',')[1];
-            
+
             const cleanName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
             const uniqueId = Date.now().toString(36);
             currentProcessedImageName = `product-${cleanName}-${uniqueId}.webp`;
-            
+
             document.getElementById('imagePreview').src = webpDataUrl;
-            
+
             const estimatedBytes = Math.round((currentProcessedImageBase64.length * 3) / 4);
             const kbSize = (estimatedBytes / 1024).toFixed(1);
-            
+
             document.getElementById('imageDetails').textContent = `الأبعاد: ${Math.round(width)}×${Math.round(height)} بكسل | الحجم المحسّن: ${kbSize} KB | الصيغة: WebP`;
             document.getElementById('imagePreviewContainer').style.display = 'block';
         };
@@ -1426,13 +1426,13 @@ document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
         alert('الرجاء اختيار صورة أولاً.');
         return;
     }
-    
+
     const file = fileInput.files[0];
     if (!file.type.match(/image\/(png|jpeg|webp)/)) {
         alert('صيغة غير مدعومة. الرجاء اختيار صورة بصيغة PNG أو JPEG أو WebP.');
         return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
         alert('حجم الصورة كبير جداً. الحد الأقصى المسموح به هو 5 ميجابايت.');
         return;
@@ -1466,20 +1466,20 @@ document.getElementById('uploadCatImageBtn')?.addEventListener('click', () => {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
-            
+
             const webpDataUrl = canvas.toDataURL('image/webp', 0.85);
             currentProcessedImageBase64 = webpDataUrl.split(',')[1];
-            
+
             const cleanName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
             const uniqueId = Date.now().toString(36);
             // using product prefix because CF worker expects it for some checks
             currentProcessedImageName = `product-cat-${cleanName}-${uniqueId}.webp`;
-            
+
             document.getElementById('catImagePreview').src = webpDataUrl;
-            
+
             const estimatedBytes = Math.round((currentProcessedImageBase64.length * 3) / 4);
             const kbSize = (estimatedBytes / 1024).toFixed(1);
-            
+
             document.getElementById('catImageDetails').textContent = `الأبعاد: ${Math.round(width)}×${Math.round(height)} بكسل | الحجم المحسّن: ${kbSize} KB | الصيغة: WebP`;
             document.getElementById('catImagePreviewContainer').style.display = 'block';
         };
@@ -1494,7 +1494,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
         alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
         return;
     }
-    
+
     isUploadingImage = true;
 
     const btn = document.getElementById('confirmUploadBtn');
@@ -1510,7 +1510,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
     try {
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         if (!idToken) throw new Error('AUTH_REQUIRED');
-        
+
         const byteCharacters = atob(currentProcessedImageBase64);
         const byteArrays = [];
         for (let offset = 0; offset < byteCharacters.length; offset += 512) {
@@ -1522,28 +1522,28 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
             byteArrays.push(new Uint8Array(byteNumbers));
         }
         const blob = new Blob(byteArrays, { type: 'image/webp' });
-        
+
         const formData = new FormData();
         formData.append('image', blob, currentProcessedImageName);
         formData.append('filename', currentProcessedImageName);
-        
+
         const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${idToken}` },
             body: formData
         });
-        
+
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) {
             throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
         }
-        
+
         btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
-        
+
         let attempts = 0;
         const maxAttempts = 15;
         let isAvailable = false;
-        
+
         while (attempts < maxAttempts) {
             attempts++;
             btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
@@ -1554,7 +1554,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
                     cache: 'no-store',
                     headers: { 'Accept': 'image/webp,image/*;q=0.8' }
                 });
-                
+
                 const contentType = (checkRes.headers.get('content-type') || '').toLowerCase();
                 if (checkRes.ok && (contentType.includes('image/webp') || contentType.startsWith('image/')) && !contentType.includes('text/html')) {
                     isAvailable = true;
@@ -1565,7 +1565,7 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
             }
             await new Promise(r => setTimeout(r, 4000));
         }
-        
+
         if (!isAvailable) {
             if (prodImageInput) prodImageInput.value = previousImageValue;
             btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
@@ -1577,14 +1577,14 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
         if (prodImageInput) prodImageInput.value = data.path;
         btn.textContent = 'تم توفر الصورة بنجاح!';
         btn.style.backgroundColor = '#2e7d32';
-        
+
         setTimeout(() => {
             const preview = document.getElementById('imagePreviewContainer');
             if (preview) preview.style.display = 'none';
             btn.textContent = originalText;
             btn.style.backgroundColor = '';
         }, 3000);
-        
+
     } catch (error) {
         if (prodImageInput) prodImageInput.value = previousImageValue;
         console.error("Upload failed:", error);
@@ -1605,7 +1605,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
         alert('الرجاء اختيار صورة ومعاينتها أولاً قبل الرفع.');
         return;
     }
-    
+
     isUploadingImage = true;
 
     const btn = document.getElementById('confirmCatUploadBtn');
@@ -1621,7 +1621,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
     try {
         const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         if (!idToken) throw new Error('AUTH_REQUIRED');
-        
+
         const byteCharacters = atob(currentProcessedImageBase64);
         const byteArrays = [];
         for (let offset = 0; offset < byteCharacters.length; offset += 512) {
@@ -1633,28 +1633,28 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
             byteArrays.push(new Uint8Array(byteNumbers));
         }
         const blob = new Blob(byteArrays, { type: 'image/webp' });
-        
+
         const formData = new FormData();
         formData.append('image', blob, currentProcessedImageName);
         formData.append('filename', currentProcessedImageName);
-        
+
         const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${idToken}` },
             body: formData
         });
-        
+
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) {
             throw new Error(data.error || 'IMAGE_UPLOAD_FAILED');
         }
-        
+
         btn.textContent = 'تم الرفع! بانتظار اكتمال النشر...';
-        
+
         let attempts = 0;
         const maxAttempts = 15;
         let isAvailable = false;
-        
+
         while (attempts < maxAttempts) {
             attempts++;
             btn.textContent = `جاري التحقق من النشر (${attempts}/${maxAttempts})...`;
@@ -1665,7 +1665,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
                     cache: 'no-store',
                     headers: { 'Accept': 'image/webp,image/*;q=0.8' }
                 });
-                
+
                 const contentType = (checkRes.headers.get('content-type') || '').toLowerCase();
                 if (checkRes.ok && (contentType.includes('image/webp') || contentType.startsWith('image/')) && !contentType.includes('text/html')) {
                     isAvailable = true;
@@ -1676,7 +1676,7 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
             }
             await new Promise(r => setTimeout(r, 4000));
         }
-        
+
         if (!isAvailable) {
             if (catImageInput) catImageInput.value = previousImageValue;
             btn.textContent = 'انتهت المهلة - لم تُنشر بعد';
@@ -1688,12 +1688,12 @@ document.getElementById('confirmCatUploadBtn')?.addEventListener('click', async 
         if (catImageInput) catImageInput.value = data.path;
         btn.textContent = 'تم توفر الصورة بنجاح!';
         btn.style.backgroundColor = '#2e7d32';
-        
+
         setTimeout(() => {
             const preview = document.getElementById('catImagePreviewContainer');
             if (preview) preview.style.display = 'none';
         }, 1500);
-        
+
     } catch (err) {
         if (catImageInput) catImageInput.value = previousImageValue;
         btn.textContent = 'فشل الرفع!';
@@ -1718,9 +1718,9 @@ window.seedDraftCatalog = async function() {
     let newCatsCount = 0;
     let newProdsCount = 0;
     let existingCount = 0;
-    
+
     const updates = {};
-    
+
     // Check existing categories
     INITIAL_CATEGORIES.forEach(cat => {
         const exists = categories.find(c => c.id === cat.id);
@@ -1731,7 +1731,7 @@ window.seedDraftCatalog = async function() {
             existingCount++;
         }
     });
-    
+
     // Check existing products
     INITIAL_PRODUCTS.forEach(prod => {
         const exists = products.find(p => p.id === prod.id);
@@ -1761,12 +1761,12 @@ window.seedDraftCatalog = async function() {
 function renderReviewTable() {
     const tbody = document.getElementById('reviewTableBody');
     if (!tbody) return;
-    
+
     // Only show products with status = 'draft'
     const drafts = products.filter(p => p.status === 'draft');
-    
+
     tbody.innerHTML = '';
-    
+
     if (drafts.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#888;">لا توجد مسودات بانتظار المراجعة.</td></tr>';
         return;
@@ -1804,7 +1804,7 @@ window.publishDraft = async function(id) {
         }
         return;
     }
-    
+
     try {
         await update(ref(db, 'products/' + id), { status: 'published', isHidden: false });
     } catch(err) {
@@ -1817,7 +1817,7 @@ const originalUpdateAllDashboardViews = updateAllDashboardViews;
 window.updateAllDashboardViews = function() {
     originalUpdateAllDashboardViews();
     renderReviewTable();
-    
+
     // Update review badge
     const badge = document.getElementById('reviewBadge');
     if (badge) {
@@ -1849,10 +1849,10 @@ onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
         storeSettings = { ...storeSettings, ...snapshot.val() };
     }
-    
+
     // Store in localStorage for storefront
     localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
-    
+
     // Update UI
     const fields = {
         settingStoreNameAr: storeSettings.storeNameAr || '',
@@ -1893,10 +1893,10 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
         alert('لا يمكن حفظ الإعدادات في وضع المعاينة.');
         return;
     }
-    
+
     const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
-    
+
     try {
         await update(ref(db, 'settings'), {
             storeNameAr: document.getElementById('settingStoreNameAr').value.trim(),
@@ -1947,7 +1947,7 @@ window.initManagersModule = function() {
             renderManagersTable();
         });
     }
-    
+
     document.getElementById('managersSearch').addEventListener('input', renderManagersTable);
     document.getElementById('managersRoleFilter').addEventListener('change', renderManagersTable);
     document.getElementById('managersStatusFilter').addEventListener('change', renderManagersTable);
@@ -1956,13 +1956,13 @@ window.initManagersModule = function() {
 window.renderManagersTable = function() {
     const tbody = document.getElementById('managersTableBody');
     if (!tbody) return;
-    
+
     const search = document.getElementById('managersSearch').value.toLowerCase();
     const roleFilter = document.getElementById('managersRoleFilter').value;
     const statusFilter = document.getElementById('managersStatusFilter').value;
 
     let combined = [];
-    
+
     // Add Super Admin explicitly
     combined.push({
         id: SUPER_ADMIN_UID,
@@ -1977,7 +1977,7 @@ window.renderManagersTable = function() {
     Object.keys(allAdminsData).forEach(uid => {
         combined.push({ id: uid, type: 'active', ...allAdminsData[uid] });
     });
-    
+
     Object.keys(allPendingAdminsData).forEach(key => {
         combined.push({ id: key, type: 'pending', ...allPendingAdminsData[key] });
     });
@@ -1987,10 +1987,10 @@ window.renderManagersTable = function() {
         const email = m.email || '';
         const name = m.name || m.email || 'غير معروف';
         const phone = m.phone || '';
-        
+
         if (search && !name.toLowerCase().includes(search) && !email.toLowerCase().includes(search) && !(phone).includes(search)) return;
         if (roleFilter && m.role !== roleFilter && !m.isSuper) return;
-        
+
         if (statusFilter) {
             if (statusFilter === 'pending' && m.type !== 'pending') return;
             if (statusFilter !== 'pending' && m.type === 'pending') return;
@@ -2007,7 +2007,7 @@ window.renderManagersTable = function() {
                 <button class="btn btn-sm btn-outline btn-danger" title="حذف" onclick="deleteManager('${m.id}', '${m.type}')"><i class="fa-solid fa-trash"></i></button>
             `;
         }
-        
+
         let permissionsCount = m.isSuper ? 'الكل' : (m.permissions ? Object.keys(m.permissions).length : 0);
         let addedAt = m.addedAt ? new Date(m.addedAt).toLocaleDateString('ar-IQ') : '---';
         let updatedAt = m.updatedAt ? new Date(m.updatedAt).toLocaleDateString('ar-IQ') : '---';
@@ -2018,7 +2018,7 @@ window.renderManagersTable = function() {
         } else {
             statusBadge = m.status === 'active' ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Disabled</span>';
         }
-        
+
         let roleBadge = m.isSuper ? '<span class="badge" style="background:#e63946;color:white;"><i class="fa-solid fa-crown"></i> Super Admin / المالك</span>' : `<span class="badge">${m.role || 'Admin'}</span>`;
 
         html += `
@@ -2046,21 +2046,21 @@ window.openManagerModal = function() {
     document.getElementById('managerForm').reset();
     document.getElementById('managerId').value = '';
     document.getElementById('managerModalError').style.display = 'none';
-    
+
     const emailInput = document.getElementById('managerEmail');
     emailInput.readOnly = false;
     document.getElementById('managerEmailNote').style.display = 'none';
-    
+
     // Clear permissions
     document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => cb.checked = false);
-    
+
     const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
     if (!canManagePerms) {
         document.getElementById('permissionsSectionWrapper').style.display = 'none';
     } else {
         document.getElementById('permissionsSectionWrapper').style.display = 'block';
     }
-    
+
     const modal = document.getElementById('managerModal');
     modal.classList.add('open');
     modal.style.display = 'flex';
@@ -2079,13 +2079,13 @@ window.toggleManagerStatus = async function(id, type, currentStatus) {
     }
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     const path = type === 'active' ? `admins/${id}` : `pending_admins/${id}`;
-    
+
     try {
         await update(ref(db, path), {
             status: newStatus,
             updatedAt: Date.now()
         });
-        
+
         await push(ref(db, 'auditLogs'), {
             actor: currentAdminUser.email || currentAdminUser.uid,
             action: 'TOGGLE_MANAGER_STATUS',
@@ -2093,7 +2093,7 @@ window.toggleManagerStatus = async function(id, type, currentStatus) {
             newStatus: newStatus,
             timestamp: Date.now()
         });
-        
+
     } catch (err) {
         console.error(err);
         alert('حدث خطأ أثناء تغيير الحالة.');
@@ -2106,18 +2106,18 @@ window.deleteManager = async function(id, type) {
         return;
     }
     if (!confirm('هل أنت متأكد من حذف هذا المدير نهائياً؟')) return;
-    
+
     const path = type === 'active' ? `admins/${id}` : `pending_admins/${id}`;
     try {
         await remove(ref(db, path));
-        
+
         await push(ref(db, 'auditLogs'), {
             actor: currentAdminUser.email || currentAdminUser.uid,
             action: 'DELETE_MANAGER',
             targetId: id,
             timestamp: Date.now()
         });
-        
+
     } catch (err) {
         console.error(err);
         alert('حدث خطأ أثناء الحذف.');
@@ -2128,16 +2128,16 @@ window.editManager = function(id, type) {
     document.getElementById('managerModalTitle').textContent = 'تحديث المدير';
     document.getElementById('saveManagerBtn').textContent = 'تحديث المدير';
     document.getElementById('managerModalError').style.display = 'none';
-    
+
     let data = type === 'active' ? allAdminsData[id] : allPendingAdminsData[id];
     if (!data) return;
-    
+
     document.getElementById('managerId').value = type === 'active' ? id : 'pending_' + id;
     document.getElementById('managerName').value = data.name || '';
-    
+
     const emailInput = document.getElementById('managerEmail');
     emailInput.value = data.email || '';
-    
+
     // If active and has UID, email is generally safer as readOnly to avoid accidental duplicate account creation, etc.
     if (type === 'active') {
         emailInput.readOnly = true;
@@ -2146,23 +2146,23 @@ window.editManager = function(id, type) {
         emailInput.readOnly = false;
         document.getElementById('managerEmailNote').style.display = 'none';
     }
-    
+
     document.getElementById('managerPhone').value = data.phone || '';
     document.getElementById('managerRole').value = data.role || 'Admin';
     document.getElementById('managerStatus').value = data.status || 'active';
     document.getElementById('managerNotes').value = data.notes || '';
-    
+
     document.querySelectorAll('#managerPermissions input[type="checkbox"]').forEach(cb => {
         cb.checked = !!(data.permissions && data.permissions[cb.value]);
     });
-    
+
     const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
     if (!canManagePerms) {
         document.getElementById('permissionsSectionWrapper').style.display = 'none';
     } else {
         document.getElementById('permissionsSectionWrapper').style.display = 'block';
     }
-    
+
     const modal = document.getElementById('managerModal');
     modal.classList.add('open');
     modal.style.display = 'flex';
@@ -2174,12 +2174,12 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         alert('ليس لديك صلاحية لإدارة الموظفين.');
         return;
     }
-    
+
     const idField = document.getElementById('managerId').value;
     const isEdit = !!idField;
     const isPendingEdit = idField.startsWith('pending_');
     const realId = isPendingEdit ? idField.replace('pending_', '') : idField;
-    
+
     const email = document.getElementById('managerEmail').value.trim();
     const phone = document.getElementById('managerPhone').value.trim();
     if (!email && !phone) {
@@ -2196,7 +2196,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         notes: document.getElementById('managerNotes').value.trim(),
         updatedAt: Date.now()
     };
-    
+
     const canManagePerms = window.isSuperAdmin || (window.currentAdminPermissions && window.currentAdminPermissions.manage_permissions);
     if (canManagePerms) {
         let perms = {};
@@ -2205,13 +2205,13 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
         });
         data.permissions = perms;
     }
-    
+
     const btn = document.getElementById('saveManagerBtn');
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'جاري الحفظ...';
     document.getElementById('managerModalError').style.display = 'none';
-    
+
     try {
         if (!isEdit) {
             // Check if email or phone already exists in admins
@@ -2219,7 +2219,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
             if (email || phone) {
                 existingUid = Object.keys(allAdminsData).find(uid => {
                     const u = allAdminsData[uid];
-                    return (email && u.email && u.email.toLowerCase() === email.toLowerCase()) || 
+                    return (email && u.email && u.email.toLowerCase() === email.toLowerCase()) ||
                            (phone && u.phone && u.phone === phone);
                 });
             }
@@ -2240,7 +2240,7 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
                 await update(ref(db, `admins/${realId}`), data);
             }
         }
-        
+
         // Log Audit
         await push(ref(db, 'auditLogs'), {
             actor: currentAdminUser.email || currentAdminUser.uid,
@@ -2249,20 +2249,20 @@ document.getElementById('managerForm')?.addEventListener('submit', async (e) => 
             role: data.role,
             timestamp: Date.now()
         });
-        
+
         closeManagerModal();
         if (window.showToast) {
             showToast('تم حفظ البيانات بنجاح!');
         } else {
             alert('تم حفظ البيانات بنجاح!');
         }
-        
+
         // Refresh table manually in case onValue doesn't trigger fast enough or if we want to ensure immediate feedback
         if (typeof renderManagersTable === 'function') {
             // Give Firebase a tiny moment to sync
             setTimeout(renderManagersTable, 300);
         }
-        
+
     } catch (err) {
         console.error(err);
         const errDiv = document.getElementById('managerModalError');
@@ -2285,3 +2285,4 @@ window.deselectAllPermissions = function() {
         if (!cb.disabled) cb.checked = false;
     });
 };
+
