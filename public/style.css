@@ -335,7 +335,7 @@ img{max-width:100%;display:block}
 }
 .product-title:hover{color:var(--red)}
 .product-model{font-size:11px;color:var(--muted)}
-.stock{font-size:10px;padding:3px 7px;border-radius:99px;width:max-content;font-weight:800}
+.stock{font-size:10px;padding:4px 8px;border-radius:99px;width:max-content;max-width:100%;font-weight:800;display:inline-block;margin-top:2px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stock.in{background:#e9f8ef;color:var(--green)}
 .stock.limited{background:#fff2df;color:var(--orange)}
 .stock.out{background:#ffe8e9;color:var(--red-dark)}

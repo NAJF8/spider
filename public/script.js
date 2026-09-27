@@ -320,6 +320,18 @@ const CUSTOM_ICONS = {
   'cat-cpus': 'assets/icon_8.png',
   'cat-cases': 'assets/icon_9.png'
 };
+const SIDEBAR_ICONS = {
+  'cat-storage': 'assets/icon_1.png',
+  'cat-ram': 'assets/icon_2.png',
+  'cat-printers': 'assets/icon_3.png',
+  'cat-psu': 'assets/icon_4.png',
+  'cat-network': 'assets/icon_5.png',
+  'cat-monitors': 'assets/icon_6.png',
+  'cat-motherboards': 'assets/icon_7.png',
+  'cat-cpus': 'assets/icon_8.png',
+  'cat-cases': 'assets/icon_9.png',
+  'cat-accessories': 'assets/headset.jpg'
+};
 
 const FALLBACK_IMAGES = {
   'cat-computers': 'assets/category-fallbacks/computer.svg',
@@ -1838,3 +1850,4 @@ renderAccount();
 // after Firebase updates, so the page never opens as an empty shell.
 renderBuilder();
 localizeDom();
+
