@@ -940,6 +940,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
         image: document.getElementById('prodImage').value.trim(),
+        images: window.currentProductGalleryImages || [],
         status: document.getElementById('prodStatus').value,
         isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
@@ -1741,6 +1742,19 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
         }
 
         if (prodImageInput) prodImageInput.value = data.path;
+        if (prodImageInput && document.getElementById('imagePreviewContainer')) {
+            if (!window.currentProductGalleryImages) window.currentProductGalleryImages = [];
+            if (window.currentProductGalleryImages.length < 5) {
+                window.currentProductGalleryImages.push(data.path);
+                // Make it primary if it's the first
+                if (window.currentProductGalleryImages.length === 1) {
+                    prodImageInput.value = data.path;
+                }
+                if (typeof renderAdminGallery === 'function') renderAdminGallery();
+            } else {
+                alert('لا يمكن إضافة أكثر من 5 صور للمنتج.');
+            }
+        }
         btn.textContent = 'تم توفر الصورة بنجاح!';
         btn.style.backgroundColor = '#2e7d32';
 
@@ -2719,3 +2733,59 @@ document.getElementById('resetPinForm')?.addEventListener('submit', async (e) =>
         submitBtn.innerHTML = '<i class="fa-solid fa-key"></i> تحديث الرمز';
     }
 });
+
+
+window.currentProductGalleryImages = [];
+window.renderAdminGallery = function() {
+    const container = document.getElementById('adminGalleryContainer');
+    if (!container) return;
+    const prodImageInput = document.getElementById('prodImage');
+    const primary = prodImageInput ? prodImageInput.value : '';
+    container.innerHTML = '';
+    
+    // Add limit check
+    const uploadBtn = document.getElementById('uploadImageBtn');
+    if (uploadBtn) {
+        uploadBtn.style.display = window.currentProductGalleryImages.length >= 5 ? 'none' : 'block';
+    }
+
+    window.currentProductGalleryImages.forEach((imgUrl, index) => {
+        const isPrimary = imgUrl === primary;
+        const item = document.createElement('div');
+        item.className = 'admin-gallery-item' + (isPrimary ? ' primary' : '');
+        item.innerHTML = `
+            ${isPrimary ? '<div class="admin-gallery-badge">الرئيسية</div>' : ''}
+            <img src="${String(imgUrl).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}">
+            <div class="admin-gallery-actions">
+                ${!isPrimary ? `<button type="button" class="admin-gallery-btn" onclick="setPrimaryImage('${imgUrl}')" title="جعلها الرئيسية"><i class="fa-solid fa-star"></i></button>` : ''}
+                <button type="button" class="admin-gallery-btn" onclick="removeGalleryImage('${imgUrl}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+};
+
+window.setPrimaryImage = function(url) {
+    const prodImageInput = document.getElementById('prodImage');
+    if (prodImageInput) prodImageInput.value = url;
+    
+    // Move primary image to index 0
+    const idx = window.currentProductGalleryImages.indexOf(url);
+    if (idx > -1) {
+        window.currentProductGalleryImages.splice(idx, 1);
+        window.currentProductGalleryImages.unshift(url);
+    }
+    renderAdminGallery();
+};
+
+window.removeGalleryImage = function(url) {
+    if (!confirm('هل أنت متأكد من إزالة هذه الصورة؟')) return;
+    const idx = window.currentProductGalleryImages.indexOf(url);
+    if (idx > -1) window.currentProductGalleryImages.splice(idx, 1);
+    
+    const prodImageInput = document.getElementById('prodImage');
+    if (prodImageInput && prodImageInput.value === url) {
+        prodImageInput.value = window.currentProductGalleryImages.length ? window.currentProductGalleryImages[0] : '';
+    }
+    renderAdminGallery();
+};

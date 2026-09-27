@@ -228,7 +228,7 @@ const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
 const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === undefined || Number(productStock(p)) > 0);
 const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out']; const s = productStock(p); if (s !== undefined && Number(s) <= lowStockThreshold) return [t('limited'), 'limited']; return [t('available'), 'in']; };
-const imageFor = (p) => p?.image || 'images/default-product.svg';
+const imageFor = (p) => (p && p.images && p.images.length ? p.images[0] : (p?.image || 'images/default-product.svg'));
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
 function categoryOrderValue(category) {
   const value = Number(category?.order);
@@ -1268,9 +1268,18 @@ function openProductDetails(id) {
   if (!p) return;
   const specs = Object.entries(p.specifications || {});
   $('modalProductTitle').textContent = englishDigits(productName(p));
-  $('productDetailsBody').innerHTML = `<div class="product-detail">
-    <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}">
-    <div>
+  
+    const productImages = Array.isArray(p.images) && p.images.length ? p.images : (p.image ? [p.image] : ['images/default-product.svg']);
+    $('productDetailsBody').innerHTML = `<div class="product-detail">
+      <div class="product-gallery">
+        <img src="${esc(productImages[0])}" alt="${esc(productName(p))}" id="productMainImage">
+        ${productImages.length > 1 ? `
+        <div class="product-thumbnails">
+          ${productImages.map((img, i) => `<img src="${esc(img)}" class="product-thumbnail ${i===0?'active':''}" onclick="document.getElementById('productMainImage').src='${esc(img)}'; document.querySelectorAll('.product-thumbnail').forEach(t=>t.classList.remove('active')); this.classList.add('active');">`).join('')}
+        </div>
+        ` : ''}
+      </div>
+      <div>
       <h3>${esc(productName(p))}</h3>
       <div class="detail-meta">${esc(p.brand || '')} ${p.model ? `· ${esc(p.model)}` : ''}</div>
       <div class="detail-price">${formatPrice(productPrice(p))}</div>
