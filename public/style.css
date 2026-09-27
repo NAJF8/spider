@@ -325,6 +325,7 @@ img{max-width:100%;display:block}
   background: transparent;
   display: grid; place-items: center; cursor: pointer;
   position: relative;
+  overflow: hidden;
 }
 .product-image img{width:100%;height:100%;object-fit:contain}
 .product-body{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
@@ -1348,4 +1349,64 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
 @media (max-width: 768px) {
   .product-detail { grid-template-columns: 1fr; }
   .product-gallery > img#productMainImage { height: 220px; }
+}
+
+/* ===== Visual Fixes: Sidebar Category Icons & Stock Badge ===== */
+.sidebar-category-icon {
+  width: 22px !important;
+  height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  object-fit: contain !important;
+  flex: 0 0 22px !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+.sidebar-category-fa {
+  font-size: 15px !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 22px !important;
+  color: inherit;
+}
+.sidebar-nav button span,
+.sidebar-sub button span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.sidebar-sub li button {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.product-stock-wrap {
+  display: flex;
+  align-items: center;
+  margin: 4px 0 2px;
+  min-height: 20px;
+}
+.product-card .stock {
+  position: static !important;
+  transform: none !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
+  padding: 3px 9px !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+  border-radius: 99px !important;
+  font-weight: 800 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
 }

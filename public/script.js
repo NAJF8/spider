@@ -329,9 +329,19 @@ const SIDEBAR_ICONS = {
   'cat-monitors': 'assets/icon_6.png',
   'cat-motherboards': 'assets/icon_7.png',
   'cat-cpus': 'assets/icon_8.png',
-  'cat-cases': 'assets/icon_9.png',
-  'cat-accessories': 'assets/headset.jpg'
+  'cat-cases': 'assets/icon_9.png'
 };
+
+function sidebarCategoryIcon(cat) {
+  if (cat.id === 'cat-accessories') {
+    return `<i class="fa-solid fa-headphones sidebar-category-fa"></i>`;
+  }
+  const iconSrc = SIDEBAR_ICONS[cat.id];
+  if (iconSrc) {
+    return `<img class="sidebar-category-icon" src="${esc(iconSrc)}" alt="">`;
+  }
+  return `<i class="fa-solid ${esc(cat.icon || 'fa-folder')} sidebar-category-fa"></i>`;
+}
 
 const FALLBACK_IMAGES = {
   'cat-computers': 'assets/category-fallbacks/computer.svg',
@@ -483,11 +493,10 @@ function renderCategories() {
 
   const sidebarItems = sidebarCategories();
   $('sidebarNav').innerHTML = sidebarItems.map((cat) => {
-    const imgParent = SIDEBAR_ICONS[cat.id] || cat.image; const imgHtml = imgParent ? `<img class="cat-icon" src="${esc(imgParent)}" alt="">` : `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
+    const imgHtml = sidebarCategoryIcon(cat);
     const children = cat.children || [];
     const childMarkup = children.length ? `<ul class="sidebar-sub" data-subcategory-of="${esc(cat.id)}">${children.map((child) => {
-      const childImg = SIDEBAR_ICONS[child.id] || child.image;
-      const childImgHtml = childImg ? `<img class="cat-icon" src="${esc(childImg)}" alt="">` : `<i class="fa-solid ${esc(child.icon || 'fa-folder')}"></i>`;
+      const childImgHtml = sidebarCategoryIcon(child);
       return `<li><button type="button" data-category-id="${esc(child.id)}"><span>${childImgHtml} ${esc(categoryLabel(child))}</span></button></li>`;
     }).join('')}</ul>` : '';
     return `<li>
@@ -535,8 +544,8 @@ function productCard(p, ctx) {
     <div class="product-body">
       <span class="product-brand">${esc(p.brand || 'سبايدر')}</span>
       <div class="product-title" data-details="${esc(p.id)}">${esc(productName(p))}</div>
-      <div class="product-model">${esc(p.model || p.subcategory || '')}</div>
-      <div>${availabilityMarkup(p)}</div>
+      ${p.model || p.subcategory ? `<div class="product-model">${esc(p.model || p.subcategory || '')}</div>` : ''}
+      <div class="product-stock-wrap">${availabilityMarkup(p)}</div>
       <div class="price-row">
         <strong class="product-price">${formatPrice(productPrice(p))}</strong>
         ${p.originalPrice ? `<span class="old-price">${formatPrice(p.originalPrice)}</span>` : ''}
