@@ -1,4 +1,4 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
@@ -25,6 +25,7 @@ const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === 
 const state = {
   products: [],
   categories: [],
+  categoryLoad: 'loading',
   cart: [],
   favorites: [],
   settings: {},
@@ -242,17 +243,19 @@ function orderedCategories(categories = state.categories) {
     .filter((cat) => cat && cat.enabled !== false && cat.isHidden !== true)
     .sort(compareCategoryOrder);
 }
+function normalizeCategoryRecord(id, value) {
+  return { id: String(id), ...(value && typeof value === 'object' ? value : {}) };
+}
 function categoryParentId(category) {
   if (!category) return null;
   const value = Object.prototype.hasOwnProperty.call(category, 'parentId') ? category.parentId : (category.parentCategory ?? category.parent);
   return value === undefined || value === null || value === '' ? null : String(value);
 }
 function categoryChildren(parentId, categories = state.categories) {
-  return categories.filter((category) => categoryParentId(category) === String(parentId)
-    || categories.some((parent) => parent.id === parentId && (parent.subcategoryIds || []).includes(category.id)));
+  return orderedCategories(categories).filter((category) => categoryParentId(category) === String(parentId));
 }
 function categoryIsTopLevel(category, categories = state.categories) {
-  return !categoryParentId(category) && !categories.some((parent) => (parent.subcategoryIds || []).includes(category.id));
+  return !categoryParentId(category);
 }
 function categorySiblings(parentId, categories = state.categories) {
   return orderedCategories(categories.filter((category) => categoryParentId(category) === (parentId || null)));
@@ -431,6 +434,14 @@ function applySettings(settings = {}) {
 // ===== Categories — Circular Row =====
 function renderCategories() {
   if (!$('categoriesRow')) return;
+  if (state.categoryLoad === 'loading') {
+    $('categoriesRow').innerHTML = `<div class="loading-state">${language === 'en' ? 'Loading categories...' : 'جاري تحميل الأقسام...'}</div>`;
+    return;
+  }
+  if (state.categoryLoad === 'error') {
+    $('categoriesRow').innerHTML = `<div class="loading-state">${language === 'en' ? 'Categories could not be loaded.' : 'تعذر تحميل الأقسام حالياً.'}</div>`;
+    return;
+  }
   const categories = orderedCategories().filter((cat) => categoryIsTopLevel(cat));
   const row = $('categoriesRow');
 
@@ -1705,19 +1716,66 @@ function bindEvents() {
 }
 
 // ===== Firebase Listeners =====
-onValue(ref(db, 'categories'), (snapshot) => {
+const categoriesRef = ref(db, 'categories');
+console.log('CATEGORY_DEBUG', {
+  firebaseProjectId: firebaseConfig.projectId,
+  databaseHost: new URL(firebaseConfig.databaseURL).hostname,
+  appName: app.name,
+  firebaseAppCount: getApps().length,
+  categoriesRefPath: categoriesRef.toString().split('/').slice(-1)[0] || 'categories',
+});
+onValue(categoriesRef, (snapshot) => {
   const allCategories = [];
-  if (snapshot.exists()) snapshot.forEach((child) => allCategories.push({ id: child.key, ...child.val() }));
+  const rawValue = snapshot.val();
+  if (snapshot.exists() && rawValue && typeof rawValue === 'object') {
+    Object.entries(rawValue).forEach(([id, value]) => allCategories.push(normalizeCategoryRecord(id, value)));
+  }
+  const enabledCategories = allCategories.filter((cat) => cat.enabled !== false && cat.isHidden !== true);
   const hiddenIds = new Set(allCategories.filter((cat) => cat.isHidden === true || cat.enabled === false).map((cat) => cat.id));
   state.categories = allCategories.filter((cat) => {
-    if (cat.isHidden || cat.enabled === false || /^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) return false;
+    if (cat.isHidden === true || cat.enabled === false || /^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) return false;
     const parentId = Object.prototype.hasOwnProperty.call(cat, 'parentId') ? cat.parentId : (cat.parentCategory ?? cat.parent);
-    return !hiddenIds.has(parentId) && !allCategories.some((parent) => hiddenIds.has(parent.id) && (parent.subcategoryIds || []).includes(cat.id));
+    return !hiddenIds.has(parentId);
+  });
+  const topLevelCategories = state.categories.filter((cat) => categoryIsTopLevel(cat, state.categories));
+  const childCategories = state.categories.filter((cat) => !!categoryParentId(cat));
+  state.categoryLoad = 'loaded';
+  console.log('CATEGORY_DEBUG', {
+    firebaseProjectId: firebaseConfig.projectId,
+    databaseHost: new URL(firebaseConfig.databaseURL).hostname,
+    categoriesRefPath: 'categories',
+    snapshotExists: snapshot.exists(),
+    rawType: rawValue === null ? 'null' : Array.isArray(rawValue) ? 'array' : typeof rawValue,
+    rawCount: allCategories.length,
+    enabledCount: enabledCategories.length,
+    topLevelCount: topLevelCategories.length,
+    childCount: childCategories.length,
+    renderedCount: topLevelCategories.length,
+    errorCode: null,
+    errorMessage: null,
   });
   renderCategories();
   renderBuilder();
   renderUpgrade();
   populateCompareFilters();
+}, (error) => {
+  state.categories = [];
+  state.categoryLoad = 'error';
+  console.error('CATEGORY_DEBUG', {
+    firebaseProjectId: firebaseConfig.projectId,
+    databaseHost: new URL(firebaseConfig.databaseURL).hostname,
+    categoriesRefPath: 'categories',
+    snapshotExists: false,
+    rawType: null,
+    rawCount: 0,
+    enabledCount: 0,
+    topLevelCount: 0,
+    childCount: 0,
+    renderedCount: 0,
+    errorCode: error?.code || null,
+    errorMessage: error?.message || String(error),
+  });
+  renderCategories();
 });
 
 onValue(ref(db, 'products'), (snapshot) => {
