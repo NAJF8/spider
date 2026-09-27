@@ -471,9 +471,13 @@ function renderCategories() {
 
   const sidebarItems = sidebarCategories();
   $('sidebarNav').innerHTML = sidebarItems.map((cat) => {
-    const imgHtml = `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
+    const imgParent = SIDEBAR_ICONS[cat.id] || cat.image; const imgHtml = imgParent ? `<img class="cat-icon" src="${esc(imgParent)}" alt="">` : `<i class="fa-solid ${esc(cat.icon || 'fa-folder')}"></i>`;
     const children = cat.children || [];
-    const childMarkup = children.length ? `<ul class="sidebar-sub" data-subcategory-of="${esc(cat.id)}">${children.map((child) => `<li><button type="button" data-category-id="${esc(child.id)}"><span><i class="fa-solid ${esc(child.icon || 'fa-folder')}"></i> ${esc(categoryLabel(child))}</span></button></li>`).join('')}</ul>` : '';
+    const childMarkup = children.length ? `<ul class="sidebar-sub" data-subcategory-of="${esc(cat.id)}">${children.map((child) => {
+      const childImg = SIDEBAR_ICONS[child.id] || child.image;
+      const childImgHtml = childImg ? `<img class="cat-icon" src="${esc(childImg)}" alt="">` : `<i class="fa-solid ${esc(child.icon || 'fa-folder')}"></i>`;
+      return `<li><button type="button" data-category-id="${esc(child.id)}"><span>${childImgHtml} ${esc(categoryLabel(child))}</span></button></li>`;
+    }).join('')}</ul>` : '';
     return `<li>
       <button type="button" data-category-id="${esc(cat.id)}" ${children.length ? 'aria-expanded="false"' : ''}>
         <span>${imgHtml} ${esc(categoryLabel(cat))}</span>${children.length ? '<i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>' : ''}
