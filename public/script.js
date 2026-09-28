@@ -309,37 +309,33 @@ const modal = (id, open) => {
 // Firebase keeps any valid custom image URL. These local GitHub-hosted assets
 // are used only when that URL is absent or fails to load.
 
-const CUSTOM_ICONS = {
-  'cat-storage': 'assets/icon_1.png',
-  'cat-ram': 'assets/icon_2.png',
-  'cat-printers': 'assets/icon_3.png',
-  'cat-psu': 'assets/icon_4.png',
-  'cat-network': 'assets/icon_5.png',
-  'cat-monitors': 'assets/icon_6.png',
-  'cat-motherboards': 'assets/icon_7.png',
-  'cat-cpus': 'assets/icon_8.png',
-  'cat-cases': 'assets/icon_9.png',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg'
-};
-const SIDEBAR_ICONS = {
+const UNIFIED_CATEGORY_ICONS = {
+  // Top-Level Categories
   'cat-computers': 'assets/category-fallbacks/computer.svg',
   'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg',
   'cat-security': 'assets/category-fallbacks/security.svg',
+  'cat-printers': 'assets/icon_3.png',
+  'cat-monitors': 'assets/icon_6.png',
+  'cat-network': 'assets/icon_5.png',
   'cat-power': 'assets/category-fallbacks/power.svg',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg',
+
+  // PC Parts Subcategories
   'cat-storage': 'assets/icon_1.png',
   'cat-ram': 'assets/icon_2.png',
-  'cat-printers': 'assets/icon_3.png',
-  'cat-psu': 'assets/icon_4.png',
-  'cat-network': 'assets/icon_5.png',
-  'cat-monitors': 'assets/icon_6.png',
   'cat-motherboards': 'assets/icon_7.png',
   'cat-cpus': 'assets/icon_8.png',
   'cat-cases': 'assets/icon_9.png',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg'
+  'cat-psu': 'assets/category-fallbacks/power.svg',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg'
 };
 
+const CUSTOM_ICONS = UNIFIED_CATEGORY_ICONS;
+const SIDEBAR_ICONS = UNIFIED_CATEGORY_ICONS;
+
 function sidebarCategoryIcon(cat) {
-  const iconSrc = SIDEBAR_ICONS[cat.id] || CUSTOM_ICONS[cat.id] || FALLBACK_IMAGES[cat.id];
+  const iconSrc = UNIFIED_CATEGORY_ICONS[cat.id] || cat.image || FALLBACK_IMAGES[cat.id];
   if (iconSrc) {
     return `<img class="sidebar-category-icon" src="${esc(iconSrc)}" alt="">`;
   }

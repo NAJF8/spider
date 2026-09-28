@@ -1,1 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><rect width="160" height="160" rx="80" fill="#fff7f7"/><rect x="25" y="55" width="110" height="54" rx="7" fill="#232a35"/><circle cx="55" cy="82" r="18" fill="#ed1c24"/><circle cx="55" cy="82" r="8" fill="#202632"/><circle cx="101" cy="82" r="18" fill="#ed1c24"/><circle cx="101" cy="82" r="8" fill="#202632"/><path d="M35 109v8h87v-8" stroke="#dcb44b" stroke-width="5"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <rect width="160" height="160" rx="80" fill="#fff7f7"/>
+  <!-- GPU Shroud Line-art -->
+  <rect x="26" y="52" width="108" height="56" rx="8" fill="none" stroke="#222a35" stroke-width="5"/>
+  <!-- Dual Fans in Red Line-art -->
+  <circle cx="56" cy="80" r="18" fill="none" stroke="#ed1c24" stroke-width="4"/>
+  <circle cx="56" cy="80" r="6" fill="#ed1c24"/>
+  <circle cx="104" cy="80" r="18" fill="none" stroke="#ed1c24" stroke-width="4"/>
+  <circle cx="104" cy="80" r="6" fill="#ed1c24"/>
+  <!-- PCIe Connector Fingers at Bottom -->
+  <path d="M40 108v8h50v-8" fill="none" stroke="#ed1c24" stroke-width="4" stroke-linecap="round"/>
+  <!-- Backplate Accent Lines -->
+  <line x1="78" y1="52" x2="82" y2="108" stroke="#222a35" stroke-width="3" stroke-dasharray="4 4"/>
+</svg>

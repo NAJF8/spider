@@ -1,1 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160"><rect width="160" height="160" rx="80" fill="#fff7f7"/><path d="M41 69h62l18 16v28H41z" fill="#27303b"/><path d="M103 69l16-15" stroke="#ed1c24" stroke-width="7" stroke-linecap="round"/><circle cx="81" cy="99" r="20" fill="#ed1c24"/><circle cx="81" cy="99" r="11" fill="#202632"/><circle cx="81" cy="99" r="4" fill="#fff"/><path d="M66 132h30" stroke="#27303b" stroke-width="7" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <rect width="160" height="160" rx="80" fill="#fff7f7"/>
+  <!-- Wall Mount Bracket -->
+  <path d="M30 50v42" stroke="#222a35" stroke-width="6" stroke-linecap="round"/>
+  <path d="M30 71h24" stroke="#222a35" stroke-width="6" stroke-linecap="round"/>
+  <path d="M54 62l14 18" stroke="#ed1c24" stroke-width="5" stroke-linecap="round"/>
+  <!-- Camera Body (Line-art housing) -->
+  <path d="M58 66 L118 44 L128 72 L68 94 Z" fill="none" stroke="#222a35" stroke-width="5" stroke-linejoin="round"/>
+  <!-- Sunshield Top Visor in Red -->
+  <path d="M54 64 L124 38" stroke="#ed1c24" stroke-width="5" stroke-linecap="round"/>
+  <!-- Front Lens Ring -->
+  <ellipse cx="123" cy="58" rx="8" ry="16" fill="none" stroke="#222a35" stroke-width="4.5"/>
+  <ellipse cx="124" cy="58" rx="4" ry="8" fill="#ed1c24"/>
+  <circle cx="124" cy="58" r="2" fill="#fff"/>
+  <!-- Infrared LED Ring Accents -->
+  <circle cx="120" cy="47" r="1.5" fill="#ed1c24"/>
+  <circle cx="125" cy="69" r="1.5" fill="#ed1c24"/>
+  <!-- Signal Waves below in Red & Dark -->
+  <path d="M78 112 C86 105, 98 105, 106 112" fill="none" stroke="#ed1c24" stroke-width="4" stroke-linecap="round"/>
+  <path d="M72 120 C84 110, 100 110, 112 120" fill="none" stroke="#222a35" stroke-width="4" stroke-linecap="round"/>
+</svg>
