@@ -29,6 +29,7 @@ const state = {
   cart: [],
   favorites: [],
   settings: {},
+  builderDiscounts: {},
   filters: { category: '', brand: '', search: '' },
   showCategories: false,
   showBrands: false,
@@ -223,6 +224,29 @@ const getEffectivePrice = (product, profile = null) => {
 };
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
+const builderDiscountRecord = (product) => {
+  const value = state.builderDiscounts?.[product?.id];
+  return value && typeof value === 'object'
+    ? { enabled: value.enabled === true, type: value.type === 'percentage' ? 'percentage' : 'fixed', value: Number(value.value) }
+    : { enabled: false, type: 'percentage', value: 0 };
+};
+const builderPriceDetails = (product) => {
+  const basePrice = productPrice(product);
+  const record = builderDiscountRecord(product);
+  const value = Number(record.value);
+  const discount = record.enabled && Number.isFinite(value) && value > 0
+    ? Math.min(basePrice, record.type === 'percentage' ? Math.round(basePrice * Math.min(100, value) / 100) : Math.round(value))
+    : 0;
+  return { basePrice, discount, finalPrice: Math.max(0, basePrice - discount), record };
+};
+const builderProductPrice = (product) => builderPriceDetails(product).finalPrice;
+const builderPriceMarkup = (product, variant = 'catalog') => {
+  const details = builderPriceDetails(product);
+  const priceClass = variant === 'part' ? 'builder-part-price' : 'builder-product-price';
+  if (!details.discount) return `<div class="${priceClass}"><strong>${formatPrice(details.basePrice)}</strong></div>`;
+  const label = details.record.type === 'percentage' ? `${details.record.value}%` : formatPrice(details.record.value);
+  return `<div class="${priceClass}"><del>${formatPrice(details.basePrice)}</del><strong>${formatPrice(details.finalPrice)}</strong><small>خصم ${label}</small></div>`;
+};
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
@@ -931,7 +955,7 @@ function renderBuilderCatalog() {
     const specs = topSpecs(product);
     return `<article class="builder-product-card ${selected ? 'is-selected' : ''}">
       <div class="builder-product-image"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"></div>
-      <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta"><strong>${formatPrice(productPrice(product))}</strong>${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
+      <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta">${builderPriceMarkup(product)}${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
     </article>`;
   }).join('') : `<div class="empty-state builder-empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-product]').forEach((button) => button.addEventListener('click', () => {
@@ -959,7 +983,7 @@ function renderBuilderPickerGrid() {
   const part = builderParts.find((item) => item.id === state.builderPickerPart);
   const query = String($('builderPickerSearch')?.value || '').trim().toLowerCase();
   const products = (part ? productsForPart(part) : []).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>${builderPriceMarkup(p)}<small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-pick]').forEach((button) => button.addEventListener('click', () => {
     state.builder[state.builderPickerPart] = button.dataset.builderPick;
     saveBuilder(); renderBuilder(); modal('builderPickerModal', false);
@@ -989,7 +1013,7 @@ function renderBuilder() {
     </article>`;
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
-      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>${warning}
+      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div>${builderPriceMarkup(product, 'part')}<button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>${warning}
       <div class="builder-part-actions"><button class="btn btn-primary builder-add-cart" type="button" data-builder-cart="${esc(part.id)}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
     </article>`;
   }).join('');
@@ -1092,19 +1116,9 @@ function compatibilityStatus(selected) {
   return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', '', checks];
 }
 
-function buildDiscountSettings() {
-  const value = state.settings?.buildDiscount;
-  return value && typeof value === 'object' ? value : { enabled: false, type: 'fixed', value: 0 };
-}
-
 function calculateBuilderTotals(selected) {
-  const subtotal = Math.max(0, Math.round(selected.reduce((sum, product) => sum + productPrice(product), 0)));
-  const settings = buildDiscountSettings();
-  const discountValue = Number(settings.value);
-  const discount = settings.enabled && Number.isFinite(discountValue) && discountValue > 0
-    ? Math.min(subtotal, settings.type === 'percentage' ? Math.round(subtotal * Math.min(100, discountValue) / 100) : Math.round(discountValue))
-    : 0;
-  return { subtotal, discount, finalTotal: Math.max(0, subtotal - discount), settings };
+  const subtotal = Math.max(0, Math.round(selected.reduce((sum, product) => sum + builderProductPrice(product), 0)));
+  return { subtotal, discount: 0, finalTotal: subtotal };
 }
 
 function updateBuilder() {
@@ -1114,8 +1128,6 @@ function updateBuilder() {
   const total = totals.finalTotal;
   $('builderTotal').textContent = formatPrice(total);
   if ($('builderSubtotal')) $('builderSubtotal').textContent = formatPrice(totals.subtotal);
-  if ($('builderDiscount')) $('builderDiscount').textContent = totals.discount ? `- ${formatPrice(totals.discount)}` : formatPrice(0);
-  if ($('builderDiscountCard')) $('builderDiscountCard').hidden = !totals.discount;
   if ($('builderFinalTotal')) $('builderFinalTotal').textContent = formatPrice(totals.finalTotal);
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
@@ -1125,14 +1137,14 @@ function updateBuilder() {
 }
 
 function quoteLines(products) {
-  return products.map((p) => `<div class="quote-line"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(productPrice(p))}</strong></div></div>`).join('');
+  return products.map((p) => `<div class="quote-line"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${formatPrice(builderProductPrice(p))}</strong></div></div>`).join('');
 }
 
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
   const totals = calculateBuilderTotals(products);
-  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>السعر قبل الخصم</span><span>${formatPrice(totals.subtotal)}</span></div>${totals.discount ? `<div class="quote-total"><span>خصم التجميعة</span><span>- ${formatPrice(totals.discount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
-  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(productPrice(p))}`).join('\n') + `\nالسعر قبل الخصم: ${formatPrice(totals.subtotal)}${totals.discount ? `\nخصم التجميعة: - ${formatPrice(totals.discount)}` : ''}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
+  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>مجموع القطع بعد خصومات المنتجات</span><span>${formatPrice(totals.subtotal)}</span></div><div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
+  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(builderProductPrice(p))}`).join('\n') + `\nمجموع القطع بعد خصومات المنتجات: ${formatPrice(totals.subtotal)}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
   modal('quoteModal', true);
 }
 
@@ -1902,6 +1914,11 @@ onValue(ref(db, 'products'), (snapshot) => {
 onValue(ref(db, 'settings'), (snapshot) => {
   applySettings(snapshot.exists() ? snapshot.val() : {});
   renderCart();
+});
+
+onValue(ref(db, 'builder_discounts'), (snapshot) => {
+  state.builderDiscounts = snapshot.exists() ? snapshot.val() || {} : {};
+  renderBuilder();
 });
 
 onAuthStateChanged(auth, (user) => {

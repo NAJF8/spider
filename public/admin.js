@@ -48,6 +48,7 @@ let categoriesChart = null;
 let currentAdminUser = null;
 let customers = [];
 let privatePricesByProduct = {};
+let builderDiscountsByProduct = {};
 let pendingPricingIdentities = {};
 let adminModalDepth = 0;
 let adminModalScrollY = 0;
@@ -179,7 +180,6 @@ onAuthStateChanged(auth, async (user) => {
             if (user.photoURL) adminAvatar.src = user.photoURL;
 
             loadDashboardData();
-            window.setTimeout(() => renderBuildDiscountSettings(storeSettings?.buildDiscount), 0);
             if(window.initManagersModule) window.initManagersModule();
         } else {
             signOut(auth);
@@ -240,7 +240,8 @@ document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
     orders = JSON.parse(JSON.stringify(DEMO_ORDERS));
 
     updateAllDashboardViews();
-    renderBuildDiscountSettings(storeSettings.buildDiscount);
+    builderDiscountsByProduct = {};
+    renderBuilderDiscountsTable();
 });
 
 document.getElementById('adminExitDemoBtn')?.addEventListener('click', () => {
@@ -391,6 +392,7 @@ function updateAllDashboardViews() {
     renderCategoryDistribution();
     renderProductsManagementTable();
     renderPricingManagementTable();
+    renderBuilderDiscountsTable();
     renderPricingCustomers();
     renderCategoriesManagementTable();
     renderOrdersManagementTable();
@@ -446,6 +448,11 @@ function loadDashboardData() {
         if (isDemoMode) return;
         privatePricesByProduct = snapshot.exists() ? snapshot.val() || {} : {};
         renderPricingManagementTable();
+    });
+    onValue(ref(db, 'builder_discounts'), (snapshot) => {
+        if (isDemoMode) return;
+        builderDiscountsByProduct = snapshot.exists() ? snapshot.val() || {} : {};
+        renderBuilderDiscountsTable();
     });
     onValue(ref(db, 'pricing_identities'), (snapshot) => {
         if (isDemoMode) return;
@@ -658,6 +665,194 @@ window.saveProductPricing = saveProductPricing;
 document.getElementById('pricingSearch')?.addEventListener('input', renderPricingManagementTable);
 document.getElementById('pricingCategoryFilter')?.addEventListener('change', renderPricingManagementTable);
 document.getElementById('pricingStatusFilter')?.addEventListener('change', renderPricingManagementTable);
+
+// ================= BUILDER PRODUCT DISCOUNTS =================
+const BUILDER_DISCOUNT_PARTS = [
+    { id: 'cat-cpus', label: 'المعالج CPU' },
+    { id: 'cat-motherboards', label: 'اللوحة الأم' },
+    { id: 'cat-ram', label: 'الذاكرة RAM' },
+    { id: 'cat-storage', label: 'التخزين' },
+    { id: 'cat-gpus', label: 'كرت الشاشة GPU' },
+    { id: 'cat-psu', label: 'مزود الطاقة PSU' },
+    { id: 'cat-cooling', label: 'التبريد' },
+    { id: 'cat-cases', label: 'الصندوق Case' }
+];
+const BUILDER_DISCOUNT_CATEGORY_IDS = new Set(BUILDER_DISCOUNT_PARTS.map((part) => part.id));
+
+function canManageBuilderDiscounts() {
+    return isDemoMode || Boolean(currentAdminUser && (currentAdminUser.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.store_settings === true));
+}
+
+function builderDiscountRecord(productId) {
+    const value = builderDiscountsByProduct?.[productId];
+    return value && typeof value === 'object'
+        ? { enabled: value.enabled === true, type: value.type === 'percentage' ? 'percentage' : 'fixed', value: Number(value.value) >= 0 ? Number(value.value) : 0 }
+        : { enabled: false, type: 'percentage', value: 0 };
+}
+
+function builderDiscountBasePrices(product) {
+    const prices = privatePricesByProduct?.[product?.id] || {};
+    return [product?.public_price ?? product?.retail_price ?? product?.price, prices.special_price ?? prices.specialPrice, prices.wholesale_price ?? prices.wholesalePrice]
+        .map(Number)
+        .filter((price) => Number.isFinite(price) && price > 0);
+}
+
+function builderDiscountPublicPrice(product) {
+    return builderDiscountBasePrices(product)[0] || 0;
+}
+
+function calculateBuilderProductDiscount(product, record = builderDiscountRecord(product?.id), basePrice = builderDiscountPublicPrice(product)) {
+    const value = Number(record.value);
+    const discount = record.enabled && Number.isFinite(value) && value > 0
+        ? Math.min(basePrice, record.type === 'percentage' ? Math.round(basePrice * Math.min(100, value) / 100) : Math.round(value))
+        : 0;
+    return { basePrice, discount, finalPrice: Math.max(0, basePrice - discount), record };
+}
+
+function builderDiscountCategoryLabel(categoryId) {
+    return categories.find((category) => category.id === categoryId)?.name || BUILDER_DISCOUNT_PARTS.find((part) => part.id === categoryId)?.label || categoryId || 'غير محدد';
+}
+
+function builderDiscountInputValue(id, field, fallback = '') {
+    return document.querySelector(`[data-builder-discount-${field}="${CSS.escape(id)}"]`)?.value ?? fallback;
+}
+
+function renderBuilderDiscountCategoryFilter() {
+    const select = document.getElementById('builderDiscountCategoryFilter');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">كل أقسام Builder</option>' + BUILDER_DISCOUNT_PARTS.map((part) => `<option value="${escapeHtml(part.id)}">${escapeHtml(builderDiscountCategoryLabel(part.id))}</option>`).join('');
+    select.value = current;
+}
+
+function updateBuilderDiscountPreview(productId) {
+    const product = products.find((item) => item.id === productId);
+    const preview = document.querySelector(`[data-builder-discount-preview="${CSS.escape(productId)}"]`);
+    const base = builderDiscountPublicPrice(product);
+    if (!product || !preview) return;
+    const record = {
+        enabled: document.querySelector(`[data-builder-discount-enabled="${CSS.escape(productId)}"]`)?.checked === true,
+        type: document.querySelector(`[data-builder-discount-type="${CSS.escape(productId)}"]`)?.value === 'fixed' ? 'fixed' : 'percentage',
+        value: Number(builderDiscountInputValue(productId, 'value', 0))
+    };
+    const result = calculateBuilderProductDiscount(product, record, base);
+    preview.innerHTML = result.discount
+        ? `<del>${formatPrice(result.basePrice)}</del><strong>${formatPrice(result.finalPrice)}</strong><small>خصم ${record.type === 'percentage' ? `${record.value}%` : formatPrice(record.value)}</small>`
+        : `<strong>${formatPrice(result.basePrice)}</strong><small>بدون خصم</small>`;
+}
+
+function renderBuilderDiscountsTable() {
+    const tbody = document.getElementById('builderDiscountsTableBody');
+    if (!tbody) return;
+    renderBuilderDiscountCategoryFilter();
+    const query = String(document.getElementById('builderDiscountSearch')?.value || '').trim().toLowerCase();
+    const category = document.getElementById('builderDiscountCategoryFilter')?.value || '';
+    const status = document.getElementById('builderDiscountStatusFilter')?.value || '';
+    const canEdit = canManageBuilderDiscounts();
+    const filtered = products.filter((product) => {
+        const categoryId = product.categoryId || product.category || '';
+        const record = builderDiscountRecord(product.id);
+        const searchable = `${product.name || ''} ${product.nameAr || ''} ${product.nameEn || ''} ${product.sku || ''} ${product.model || ''}`.toLowerCase();
+        return BUILDER_DISCOUNT_CATEGORY_IDS.has(categoryId)
+            && (!query || searchable.includes(query))
+            && (!category || categoryId === category)
+            && (!status || (status === 'enabled' ? record.enabled : !record.enabled));
+    }).sort((a, b) => {
+        const aIndex = BUILDER_DISCOUNT_PARTS.findIndex((part) => part.id === (a.categoryId || a.category));
+        const bIndex = BUILDER_DISCOUNT_PARTS.findIndex((part) => part.id === (b.categoryId || b.category));
+        return (aIndex - bIndex) || String(a.name || '').localeCompare(String(b.name || ''));
+    });
+
+    tbody.innerHTML = filtered.length ? filtered.map((product) => {
+        const id = escapeHtml(product.id);
+        const categoryId = product.categoryId || product.category || '';
+        const record = builderDiscountRecord(product.id);
+        const currentPrice = builderDiscountPublicPrice(product);
+        const preview = calculateBuilderProductDiscount(product, record, currentPrice);
+        const sku = product.sku || product.model || 'بدون SKU';
+        return `<tr data-builder-discount-row="${id}">
+            <td><img src="${escapeHtml(product.image || '/images/default-product.svg')}" class="tp-img" alt="${escapeHtml(product.name || '')}"></td>
+            <td><div class="builder-discount-product"><div class="builder-discount-product-copy"><strong>${escapeHtml(product.name || product.nameAr || '')}</strong><small>${escapeHtml(sku)}</small></div></div></td>
+            <td>${escapeHtml(builderDiscountCategoryLabel(categoryId))}</td>
+            <td><span class="builder-discount-current-price">${formatPrice(currentPrice)}</span></td>
+            <td><select class="builder-discount-type" data-builder-discount-type="${id}" ${canEdit ? '' : 'disabled'}><option value="percentage" ${record.type === 'percentage' ? 'selected' : ''}>نسبة مئوية %</option><option value="fixed" ${record.type === 'fixed' ? 'selected' : ''}>مبلغ ثابت د.ع</option></select></td>
+            <td><input class="pricing-input builder-discount-value" type="number" min="0" step="0.01" data-builder-discount-value="${id}" value="${Number(record.value) || 0}" ${record.type === 'percentage' ? 'max="100"' : ''} ${canEdit ? '' : 'disabled'}><small class="builder-discount-table-note" data-builder-discount-limit="${id}"></small></td>
+            <td><div class="builder-discount-builder-price" data-builder-discount-preview="${id}">${preview.discount ? `<del>${formatPrice(preview.basePrice)}</del><strong>${formatPrice(preview.finalPrice)}</strong><small>خصم ${record.type === 'percentage' ? `${record.value}%` : formatPrice(record.value)}</small>` : `<strong>${formatPrice(preview.basePrice)}</strong><small>بدون خصم</small>`}</div></td>
+            <td><label class="builder-discount-toggle"><input type="checkbox" data-builder-discount-enabled="${id}" ${record.enabled ? 'checked' : ''} ${canEdit ? '' : 'disabled'} aria-label="تفعيل خصم ${escapeHtml(product.name || '')}"></label></td>
+            <td><button type="button" class="btn btn-primary btn-sm" data-save-builder-discount="${id}" ${canEdit ? '' : 'disabled'}><i class="fa-solid fa-floppy-disk"></i> حفظ</button></td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="9" class="text-center">لا توجد منتجات Builder مطابقة.</td></tr>';
+
+    tbody.querySelectorAll('[data-builder-discount-type], [data-builder-discount-value], [data-builder-discount-enabled]').forEach((input) => {
+        input.addEventListener('input', () => updateBuilderDiscountPreview(input.dataset.builderDiscountType || input.dataset.builderDiscountValue || input.dataset.builderDiscountEnabled));
+        input.addEventListener('change', () => {
+            const id = input.dataset.builderDiscountType || input.dataset.builderDiscountValue || input.dataset.builderDiscountEnabled;
+            if (input.dataset.builderDiscountType) {
+                const value = document.querySelector(`[data-builder-discount-value="${CSS.escape(id)}"]`);
+                if (value) value.max = input.value === 'percentage' ? '100' : '';
+            }
+            updateBuilderDiscountPreview(id);
+        });
+    });
+    tbody.querySelectorAll('[data-save-builder-discount]').forEach((button) => button.addEventListener('click', () => saveBuilderProductDiscount(button.dataset.saveBuilderDiscount)));
+}
+
+async function saveBuilderProductDiscount(productId) {
+    if (!canManageBuilderDiscounts()) {
+        alert('ليس لديك صلاحية إدارة خصومات منتجات ابنِ تجميعتك.');
+        return;
+    }
+    if (isDemoMode) {
+        alert('لا يمكن حفظ خصومات المنتجات في وضع المعاينة.');
+        return;
+    }
+    const product = products.find((item) => item.id === productId);
+    const type = builderDiscountInputValue(productId, 'type') === 'fixed' ? 'fixed' : 'percentage';
+    const value = Number(builderDiscountInputValue(productId, 'value'));
+    const enabled = document.querySelector(`[data-builder-discount-enabled="${CSS.escape(productId)}"]`)?.checked === true;
+    const basePrices = builderDiscountBasePrices(product);
+    const maximumFixedDiscount = basePrices.length ? Math.min(...basePrices) : 0;
+    if (!product || !Number.isFinite(value) || value < 0 || (type === 'percentage' && value > 100)) {
+        alert(type === 'percentage' ? 'قيمة النسبة يجب أن تكون بين 0 و100.' : 'قيمة الخصم الثابت يجب أن تكون صفراً أو أكبر.');
+        return;
+    }
+    if (type === 'fixed' && value > maximumFixedDiscount) {
+        alert(`المبلغ الثابت لا يمكن أن يتجاوز السعر الفعلي الأدنى (${formatPrice(maximumFixedDiscount)}).`);
+        return;
+    }
+
+    const oldDiscount = builderDiscountsByProduct?.[productId] || { enabled: false, type: 'percentage', value: 0 };
+    const payload = { enabled, type, value, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
+    const button = document.querySelector(`[data-save-builder-discount="${CSS.escape(productId)}"]`);
+    if (button) button.disabled = true;
+    try {
+        await update(ref(db), { [`builder_discounts/${productId}`]: payload });
+        const readBackSnapshot = await get(ref(db, `builder_discounts/${productId}`));
+        const saved = readBackSnapshot.exists() ? readBackSnapshot.val() : null;
+        if (!saved || saved.enabled !== enabled || saved.type !== type || Number(saved.value) !== value || saved.updatedBy !== currentAdminUser.uid) {
+            throw new Error('RTDB read-back mismatch for builder_discounts');
+        }
+        builderDiscountsByProduct = { ...builderDiscountsByProduct, [productId]: saved };
+        try {
+            const auditKey = push(ref(db, 'auditLogs')).key;
+            await set(ref(db, `auditLogs/${auditKey}`), { action: 'builder_product_discount_changed', productId, oldDiscount, newDiscount: saved, actorUid: currentAdminUser.uid, timestamp: saved.updatedAt });
+        } catch (auditError) {
+            console.error('Builder product discount audit log failed after read-back succeeded', auditError);
+        }
+        renderBuilderDiscountsTable();
+        alert('تم حفظ خصم المنتج والتحقق منه من Firebase.');
+    } catch (error) {
+        console.error('Builder product discount save/read-back failed', error);
+        alert(`فشل حفظ خصم المنتج: ${error.message || 'خطأ غير معروف'}`);
+    } finally {
+        const currentButton = document.querySelector(`[data-save-builder-discount="${CSS.escape(productId)}"]`);
+        if (currentButton) currentButton.disabled = !canManageBuilderDiscounts();
+    }
+}
+
+document.getElementById('builderDiscountSearch')?.addEventListener('input', renderBuilderDiscountsTable);
+document.getElementById('builderDiscountCategoryFilter')?.addEventListener('change', renderBuilderDiscountsTable);
+document.getElementById('builderDiscountStatusFilter')?.addEventListener('change', renderBuilderDiscountsTable);
 
 // ================= DASHBOARD RENDERING =================
 function renderRecentOrders() {
@@ -2331,7 +2526,7 @@ window.updateAllDashboardViews = function() {
 
 // ================= SETTINGS MANAGEMENT =================
 const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: 'ما لكيت هذه المعلومة ضمن المنتجات المنشورة حالياً.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
-let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, buildDiscount: { enabled: false, type: 'fixed', value: 0 }, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
 
 function chatbotFormValues() {
     const get = (id) => document.getElementById(id)?.value || '';
@@ -2346,89 +2541,6 @@ function renderChatbotPreview(settings) {
     const suggestion = document.getElementById('chatPreviewSuggestion'); if (suggestion) { suggestion.textContent = s.suggestion1Ar; suggestion.style.fontSize = `${s.suggestionFontSize}px`; }
     const input = document.getElementById('chatPreviewInput'); if (input) input.style.fontSize = `${s.inputFontSize}px`;
 }
-
-function canManageBuildDiscount() {
-    return isDemoMode || Boolean(currentAdminUser && (currentAdminUser.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.store_settings === true));
-}
-
-function renderBuildDiscountSettings(settings = {}) {
-    const card = document.getElementById('buildDiscountCard');
-    const enabledInput = document.getElementById('settingBuildDiscountEnabled');
-    const typeInput = document.getElementById('settingBuildDiscountType');
-    const valueInput = document.getElementById('settingBuildDiscountValue');
-    const status = document.getElementById('buildDiscountStatus');
-    const note = document.getElementById('buildDiscountPermissionNote');
-    const saveButton = document.getElementById('saveBuildDiscountBtn');
-    if (!card || !enabledInput || !typeInput || !valueInput) return;
-
-    const type = settings.type === 'percentage' ? 'percentage' : 'fixed';
-    const enabled = settings.enabled === true;
-    enabledInput.checked = enabled;
-    typeInput.value = type;
-    valueInput.value = Number.isFinite(Number(settings.value)) ? Number(settings.value) : 0;
-    valueInput.max = type === 'percentage' ? '100' : '';
-    valueInput.placeholder = type === 'percentage' ? 'مثال: 5' : 'مثال: 80000';
-
-    const canEdit = canManageBuildDiscount();
-    [enabledInput, typeInput, valueInput, saveButton].forEach((element) => { if (element) element.disabled = !canEdit; });
-    card.classList.toggle('is-disabled', !enabled);
-    if (status) {
-        status.textContent = enabled ? `مفعل · ${type === 'percentage' ? 'نسبة مئوية' : 'مبلغ ثابت'}` : 'الخصم معطل';
-        status.className = `pricing-badge ${enabled ? 'badge-special' : 'badge-public'}`;
-    }
-    if (note) note.textContent = canEdit
-        ? 'يُحفظ في settings/buildDiscount ويظهر داخل «ابنِ تجميعتك» فقط.'
-        : 'ليس لديك صلاحية تعديل خصم التجميعات. اطلب صلاحية إعدادات المتجر من المسؤول.';
-}
-
-document.getElementById('settingBuildDiscountType')?.addEventListener('change', () => {
-    const valueInput = document.getElementById('settingBuildDiscountValue');
-    if (!valueInput) return;
-    const percentage = document.getElementById('settingBuildDiscountType').value === 'percentage';
-    valueInput.max = percentage ? '100' : '';
-    valueInput.placeholder = percentage ? 'مثال: 5' : 'مثال: 80000';
-});
-
-document.getElementById('buildDiscountForm')?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!canManageBuildDiscount()) {
-        alert('ليس لديك صلاحية تعديل خصم التجميعات.');
-        return;
-    }
-    if (isDemoMode) {
-        alert('لا يمكن حفظ إعدادات الخصم في وضع المعاينة.');
-        return;
-    }
-
-    const enabled = document.getElementById('settingBuildDiscountEnabled')?.checked === true;
-    const type = document.getElementById('settingBuildDiscountType')?.value === 'percentage' ? 'percentage' : 'fixed';
-    const value = Number(document.getElementById('settingBuildDiscountValue')?.value);
-    if (!Number.isFinite(value) || value < 0 || (type === 'percentage' && value > 100)) {
-        alert(type === 'percentage' ? 'قيمة النسبة يجب أن تكون بين 0 و100.' : 'قيمة الخصم الثابت يجب أن تكون صفراً أو أكبر.');
-        return;
-    }
-
-    const payload = { enabled, type, value, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
-    const saveButton = document.getElementById('saveBuildDiscountBtn');
-    if (saveButton) saveButton.disabled = true;
-    try {
-        const discountRef = ref(db, 'settings/buildDiscount');
-        await update(discountRef, payload);
-        const readBackSnapshot = await get(discountRef);
-        const saved = readBackSnapshot.exists() ? readBackSnapshot.val() : null;
-        if (!saved || saved.enabled !== enabled || saved.type !== type || Number(saved.value) !== value) {
-            throw new Error('RTDB read-back mismatch for settings/buildDiscount');
-        }
-        storeSettings = { ...storeSettings, buildDiscount: saved };
-        renderBuildDiscountSettings(saved);
-        alert('تم حفظ إعدادات خصم التجميع والتحقق منها من Firebase.');
-    } catch (error) {
-        console.error('Build discount save/read-back failed', error);
-        alert(`فشل حفظ إعدادات الخصم: ${error.message || 'خطأ غير معروف'}`);
-    } finally {
-        renderBuildDiscountSettings(storeSettings.buildDiscount);
-    }
-});
 
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
@@ -2461,7 +2573,6 @@ onValue(ref(db, 'settings'), (snapshot) => {
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
-    renderBuildDiscountSettings(storeSettings.buildDiscount);
     renderChatbotPreview(storeSettings.chatbotSettings || DEFAULT_CHATBOT_SETTINGS);
 });
 

@@ -22,6 +22,13 @@
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'store_settings').val() === true)"
     },
+    "builder_discounts": {
+      ".read": true,
+      "$productId": {
+        ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/'+'store_settings').val() === true)",
+        ".validate": "newData.hasChildren(['enabled','type','value','updatedAt','updatedBy']) && newData.child('enabled').isBoolean() && newData.child('type').isString() && (newData.child('type').val() === 'percentage' || newData.child('type').val() === 'fixed') && newData.child('value').isNumber() && newData.child('value').val() >= 0 && (newData.child('type').val() === 'fixed' || newData.child('value').val() <= 100) && (newData.child('type').val() !== 'fixed' || newData.child('value').val() <= root.child('products/'+$productId+'/public_price').val() || newData.child('value').val() <= root.child('products/'+$productId+'/price').val()) && newData.child('updatedAt').isNumber() && newData.child('updatedBy').val() === auth.uid"
+      }
+    },
     "users": {
       ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'customers').val() === true)",
       "$uid": {

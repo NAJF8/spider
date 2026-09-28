@@ -7,7 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20260929-2">
+    <link rel="stylesheet" href="admin.css?v=20260929-3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -54,6 +54,7 @@
                 <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>إدارة الأسعار</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-builder-discounts"><i class="fa-solid fa-tags"></i> <span>خصومات ابنِ تجميعتك</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
@@ -263,39 +264,34 @@
 
             <section id="view-pricing" class="admin-view">
                 <div class="view-header"><div><h2><i class="fa-solid fa-money-bill-trend-up"></i> إدارة الأسعار</h2><p>السعر العام محفوظ مع المنتج، والأسعار الخاصة والجملة محفوظة في المسار المحمي.</p></div></div>
-                <div class="box build-discount-card" id="buildDiscountCard">
-                    <div class="build-discount-card-header">
-                        <div>
-                            <h3><i class="fa-solid fa-percent"></i> خصم ابنِ تجميعتك</h3>
-                            <p>خصم على التجميعة بالكامل بعد حساب سعر المستوى الحالي، ولا يغيّر أسعار المنتجات.</p>
-                        </div>
-                        <span class="pricing-badge badge-public" id="buildDiscountStatus">الخصم معطل</span>
-                    </div>
-                    <form id="buildDiscountForm" class="build-discount-form">
-                        <div class="form-grid">
-                            <div class="form-group checkbox-group">
-                                <label class="checkbox-label"><input type="checkbox" id="settingBuildDiscountEnabled"><span>تفعيل خصم التجميعات</span></label>
-                            </div>
-                            <div class="form-group">
-                                <label for="settingBuildDiscountType">نوع الخصم</label>
-                                <select id="settingBuildDiscountType">
-                                    <option value="percentage">نسبة مئوية %</option>
-                                    <option value="fixed">مبلغ ثابت د.ع</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="settingBuildDiscountValue">قيمة الخصم</label>
-                                <input type="number" id="settingBuildDiscountValue" min="0" max="100" step="0.01" placeholder="5 أو 80000" inputmode="decimal">
-                            </div>
-                        </div>
-                        <div class="build-discount-form-footer">
-                            <small class="form-hint" id="buildDiscountPermissionNote">يُحفظ في settings/buildDiscount ويظهر داخل «ابنِ تجميعتك» فقط.</small>
-                            <button type="submit" class="btn btn-primary" id="saveBuildDiscountBtn"><i class="fa-solid fa-floppy-disk"></i> حفظ إعدادات الخصم</button>
-                        </div>
-                    </form>
-                </div>
                 <div class="filter-bar box"><div class="search-input-group"><i class="fa-solid fa-search"></i><input id="pricingSearch" placeholder="بحث بالاسم أو الموديل..."></div><select id="pricingCategoryFilter" class="filter-select"><option value="">كل الأقسام</option></select><select id="pricingStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="published">نشط</option><option value="draft">مسودة</option><option value="hidden">مخفي</option></select></div>
                 <div class="box table-box"><div class="table-responsive"><table class="data-table"><thead><tr><th>الصورة</th><th>المنتج</th><th>القسم</th><th>السعر العام</th><th>السعر الخاص</th><th>سعر الجملة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="pricingManagementBody"><tr><td colspan="8" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
+            </section>
+
+            <section id="view-builder-discounts" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-tags"></i> خصومات منتجات ابنِ تجميعتك</h2>
+                        <p>خصم مستقل لكل منتج داخل Builder فقط. لا يغيّر السعر العام أو الخاص أو سعر الجملة خارج Builder.</p>
+                    </div>
+                </div>
+                <div class="box builder-discount-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>يُحسب السعر داخل Builder بالترتيب: سعر المستوى الحالي ثم خصم المنتج. المنتج غير المفعّل يبقى بسعره الطبيعي.</span>
+                </div>
+                <div class="filter-bar box builder-discount-filters">
+                    <div class="search-input-group"><i class="fa-solid fa-search"></i><input id="builderDiscountSearch" placeholder="ابحث باسم المنتج أو SKU أو الموديل..."></div>
+                    <select id="builderDiscountCategoryFilter" class="filter-select"><option value="">كل أقسام Builder</option></select>
+                    <select id="builderDiscountStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="enabled">مفعّل</option><option value="disabled">معطّل</option></select>
+                </div>
+                <div class="box table-box">
+                    <div class="table-responsive">
+                        <table class="data-table builder-discounts-table">
+                            <thead><tr><th>الصورة</th><th>المنتج / SKU</th><th>القسم</th><th>السعر الحالي</th><th>نوع الخصم</th><th>القيمة</th><th>السعر داخل Builder</th><th>تفعيل</th><th>إجراء</th></tr></thead>
+                            <tbody id="builderDiscountsTableBody"><tr><td colspan="9" class="text-center">جاري التحميل...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <section id="view-ai-settings" class="admin-view">
@@ -957,7 +953,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=20260929-2"></script>
+    <script type="module" src="admin.js?v=20260929-3"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">

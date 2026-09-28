@@ -18,6 +18,11 @@
   --site-footer-height: 96px;
 }
 
+/* Product-level Builder discount presentation. The normal store price remains untouched. */
+.builder-product-price{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}.builder-product-price del{color:var(--muted);font-size:11px;font-weight:600;line-height:1.2}.builder-product-price strong{color:var(--red);font-size:16px;direction:rtl;white-space:nowrap}.builder-product-price small{color:#a13a40;font-size:10px;line-height:1.2;white-space:nowrap}
+.builder-part-price{display:flex;flex-direction:column;align-items:flex-start;gap:2px;direction:rtl}.builder-part-price del{color:var(--muted);font-size:11px;font-weight:600;line-height:1.2}.builder-part-price strong{color:var(--red);font-size:18px;white-space:nowrap}.builder-part-price small{color:#a13a40;font-size:10px;white-space:nowrap}
+html[data-theme="dark"] .builder-product-price del,html[data-theme="dark"] .builder-part-price del{color:#aeb4bf}html[data-theme="dark"] .builder-product-price small,html[data-theme="dark"] .builder-part-price small{color:#ff9da3}
+
 /* ===== Reset ===== */
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;overflow-x:clip}
