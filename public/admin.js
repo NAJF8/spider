@@ -439,18 +439,34 @@ function renderCustomers() {
     if (count) count.textContent = customers.length;
     if (stat) stat.textContent = customers.length;
     body.innerHTML = filtered.length ? filtered.map((customer) => {
-        const type = ['retail', 'wholesale', 'special'].includes(customer.accountType) ? customer.accountType : 'retail';
+        const type = customerPricingType(customer);
         return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}…</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="نسخ UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-primary action-save-btn" style="flex:1;" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button>${currentAdminUser?.uid === SUPER_ADMIN_UID ? `<button class="btn btn-outline btn-sm" style="flex:1;" onclick="openResetPinModal('${escapeHtml(customer.uid)}')" title="إعادة تعيين PIN"><i class="fa-solid fa-key"></i> PIN</button>` : ''}${(currentAdminUser?.uid === SUPER_ADMIN_UID || currentAdminUser?.permissions?.customers_delete) ? `<button class="btn btn-outline btn-sm" style="flex:1; color: var(--primary); border-color: var(--primary);" onclick="deleteCustomer('${escapeHtml(customer.uid)}')" title="حذف"><i class="fa-solid fa-trash"></i></button>` : ''}</div></td></tr>`;
     }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
     body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
     renderPricingCustomers();
 }
 
+const CUSTOMER_PRICING = Object.freeze({
+    retail: { accountType: 'retail', pricing_tier: 'public' },
+    special: { accountType: 'special', pricing_tier: 'special' },
+    wholesale: { accountType: 'wholesale', pricing_tier: 'wholesale' }
+});
+
+function customerPricingType(customer) {
+    if (customer?.pricing_tier === 'special' || customer?.pricing_tier === 'wholesale') return customer.pricing_tier;
+    if (customer?.pricing_tier === 'public') return 'retail';
+    return ['retail', 'special', 'wholesale'].includes(customer?.accountType) ? customer.accountType : 'retail';
+}
+
+function canManageCustomerPricing() {
+    return Boolean(currentAdminUser && (currentAdminUser.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.pricing_customers === true));
+}
+
 function renderPricingCustomers() {
     const body = document.getElementById('pricingCustomersTableBody');
     if (!body) return;
     const rows = customers.map((customer) => {
-        const type = ['public', 'special', 'wholesale'].includes(customer.pricing_tier) ? customer.pricing_tier : (customer.accountType === 'retail' ? 'public' : (customer.accountType || 'public'));
+        const type = CUSTOMER_PRICING[customerPricingType(customer)].pricing_tier;
         return `<tr><td>${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.email || 'غير متوفر')}</td><td dir="ltr">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</td><td>${escapeHtml(customer.uid)}</td><td><span class="visibility-badge ${type === 'public' ? 'visible' : 'limited'}">${type}</span></td><td>${customerDate(customer.createdAt || customer.creationTime)}</td><td><button class="btn btn-outline btn-sm" data-pricing-customer="${escapeHtml(customer.uid)}">تعديل من جدول العملاء</button></td></tr>`;
     });
     Object.entries(pendingPricingIdentities).forEach(([key, item]) => rows.push(`<tr><td>معلق</td><td dir="ltr">${escapeHtml(item.email || item.identity || '')}</td><td dir="ltr">${escapeHtml(item.phone || '')}</td><td>${escapeHtml(item.uid || 'pending')}</td><td><span class="visibility-badge limited">${escapeHtml(item.pricing_tier || 'public')} / pending</span></td><td>${customerDate(item.createdAt)}</td><td><button class="btn btn-outline btn-sm" data-delete-pending="${escapeHtml(key)}">حذف التصنيف</button></td></tr>`));
@@ -462,31 +478,56 @@ function renderPricingCustomers() {
 function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
 
 async function updateCustomerType(uid) {
-    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    if (!canManageCustomerPricing()) {
+        alert('ليس لديك صلاحية تعديل تسعير العملاء.');
+        return;
+    }
     const customer = customers.find((item) => item.uid === uid);
     const select = document.querySelector(`[data-customer-type="${CSS.escape(uid)}"]`);
     const nextType = select?.value;
-    if (!customer || !['retail', 'wholesale', 'special'].includes(nextType) || nextType === (customer.accountType || 'retail')) return;
-    const previousType = customer.pricing_tier || customer.accountType || 'retail';
-    const pricingTier = nextType === 'retail' ? 'public' : nextType;
+    if (!customer || !CUSTOMER_PRICING[nextType]) return;
+    const selected = CUSTOMER_PRICING[nextType];
+    if (nextType === customerPricingType(customer)) return;
+    const previousType = customerPricingType(customer);
     const now = Date.now();
+    const profilePath = ref(db, `profiles/${uid}`);
     const auditKey = push(ref(db, 'auditLogs')).key;
-    await update(ref(db), {
-        [`profiles/${uid}/accountType`]: nextType,
-        [`profiles/${uid}/pricing_tier`]: pricingTier,
-        [`profiles/${uid}/accountTypeUpdatedAt`]: now,
-        [`profiles/${uid}/accountTypeUpdatedBy`]: currentAdminUser.uid,
-        [`auditLogs/${auditKey}`]: { action: 'account_type_changed', targetUid: uid, actorUid: currentAdminUser.uid, actorEmail: currentAdminUser.email || '', previousType, nextType, timestamp: now }
-    });
-    customer.accountType = nextType;
-    customer.pricing_tier = pricingTier;
-    renderCustomers();
+
+    try {
+        const payload = {
+            [`profiles/${uid}/accountType`]: selected.accountType,
+            [`profiles/${uid}/pricing_tier`]: selected.pricing_tier
+        };
+        await update(ref(db), payload);
+
+        const readBack = await get(profilePath);
+        const saved = readBack.exists() ? readBack.val() : null;
+        if (saved?.accountType !== selected.accountType || saved?.pricing_tier !== selected.pricing_tier) {
+            throw new Error(`RTDB read-back mismatch: accountType=${saved?.accountType || 'missing'}, pricing_tier=${saved?.pricing_tier || 'missing'}`);
+        }
+
+        customer.accountType = saved.accountType;
+        customer.pricing_tier = saved.pricing_tier;
+        renderCustomers();
+        try {
+            await set(ref(db, `auditLogs/${auditKey}`), { action: 'account_type_changed', targetUid: uid, actorUid: currentAdminUser.uid, actorEmail: currentAdminUser.email || '', previousType, nextType, timestamp: now });
+        } catch (auditError) {
+            console.error('Customer pricing audit log failed after profile read-back succeeded', auditError);
+        }
+        alert('تم حفظ تصنيف العميل والتحقق منه من Firebase.');
+    } catch (error) {
+        console.error('Customer pricing save/read-back failed', { actorUid: currentAdminUser.uid, actorEmail: currentAdminUser.email || '', targetUid: uid, selectedTier: selected.pricing_tier, selectedAccountType: selected.accountType, error });
+        alert(`فشل حفظ تصنيف العميل: ${error.message || 'خطأ غير معروف'}`);
+    }
 }
 window.updateCustomerType = updateCustomerType;
 document.getElementById('customerSearch')?.addEventListener('input', renderCustomers);
 document.getElementById('pendingPricingForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    if (!canManageCustomerPricing()) {
+        alert('ليس لديك صلاحية تعديل تسعير العملاء.');
+        return;
+    }
     const identity = document.getElementById('pendingPricingIdentity').value.trim();
     const tier = document.getElementById('pendingPricingTier').value;
     const notes = document.getElementById('pendingPricingNotes').value.trim();
@@ -494,8 +535,14 @@ document.getElementById('pendingPricingForm')?.addEventListener('submit', async 
     const matched = customers.find((customer) => customer.uid === identity || customer.email?.toLowerCase() === identity.toLowerCase() || customer.phone === identity);
     const now = Date.now();
     if (matched) {
-        const auditKey = push(ref(db, 'auditLogs')).key;
-        await update(ref(db), { [`profiles/${matched.uid}/pricing_tier`]: tier, [`profiles/${matched.uid}/accountType`]: tier === 'public' ? 'retail' : tier, [`profiles/${matched.uid}/pricing_tier_updated_at`]: now, [`auditLogs/${auditKey}`]: { action: 'pricing_tier_changed', targetUid: matched.uid, nextTier: tier, actorUid: currentAdminUser.uid, timestamp: now } });
+        const selected = tier === 'public' ? CUSTOMER_PRICING.retail : CUSTOMER_PRICING[tier];
+        await update(ref(db), { [`profiles/${matched.uid}/pricing_tier`]: selected.pricing_tier, [`profiles/${matched.uid}/accountType`]: selected.accountType });
+        const readBack = await get(ref(db, `profiles/${matched.uid}`));
+        const saved = readBack.exists() ? readBack.val() : null;
+        if (saved?.pricing_tier !== selected.pricing_tier || saved?.accountType !== selected.accountType) throw new Error('RTDB read-back mismatch');
+        try {
+            await set(ref(db, `auditLogs/${push(ref(db, 'auditLogs')).key}`), { action: 'pricing_tier_changed', targetUid: matched.uid, nextTier: tier, actorUid: currentAdminUser.uid, timestamp: now });
+        } catch (auditError) { console.error('Pending pricing audit log failed after profile read-back succeeded', auditError); }
     } else {
         const key = encodeURIComponent(identity).replace(/\./g, '%2E');
         await set(ref(db, `pricing_identities/${key}`), { identity, pricing_tier: tier, notes, createdAt: now, createdBy: currentAdminUser.uid });
