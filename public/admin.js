@@ -42,6 +42,7 @@ let originalProductImageFile = null;
 let originalCategoryImageFile = null;
 let productImageObjectUrl = null;
 let categoryImageObjectUrl = null;
+let activeProductImageUpload = null;
 let isUploadingImage = false;
 let salesChart = null;
 let categoriesChart = null;
@@ -1110,11 +1111,16 @@ document.getElementById('productStatusFilter')?.addEventListener('change', rende
 
 // Product CRUD
 function resetProductImageState() {
+    if (activeProductImageUpload) {
+        activeProductImageUpload.abort();
+        activeProductImageUpload = null;
+    }
     if (productImageObjectUrl) URL.revokeObjectURL(productImageObjectUrl);
     productImageObjectUrl = null;
     originalProductImageFile = null;
     currentProcessedImageBase64 = null;
     currentProcessedImageName = null;
+    isUploadingImage = false;
     window.currentProductGalleryImages = [];
     const file = document.getElementById('prodImageFile');
     const hidden = document.getElementById('prodImage');
@@ -1126,10 +1132,15 @@ function resetProductImageState() {
     if (file) file.value = '';
     if (hidden) hidden.value = '';
     if (preview) preview.removeAttribute('src');
+    if (preview) { preview.onload = null; preview.onerror = null; }
     if (container) container.style.display = 'none';
     if (details) details.textContent = '';
     if (status) status.textContent = '';
     if (progress) { progress.value = 0; progress.hidden = true; }
+    const prepareButton = document.getElementById('uploadImageBtn');
+    const uploadButton = document.getElementById('confirmUploadBtn');
+    if (prepareButton) { prepareButton.disabled = false; prepareButton.textContent = 'معاينة الصورة'; }
+    if (uploadButton) { uploadButton.disabled = false; uploadButton.textContent = 'رفع الصورة إلى GitHub'; }
     if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
 }
 
@@ -2325,6 +2336,7 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             formData.append('operation', operation);
 
             const xhr = new XMLHttpRequest();
+            if (kind === 'product') activeProductImageUpload = xhr;
             const button = document.getElementById(buttonId);
             const prepButton = document.getElementById(prepButtonId);
             const progress = document.getElementById(progressId);
@@ -2367,6 +2379,9 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
                 progress.value = 100;
                 status.textContent = 'تم رفع الصورة الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
                 resolve(data);
+            };
+            xhr.onloadend = () => {
+                if (kind === 'product' && activeProductImageUpload === xhr) activeProductImageUpload = null;
             };
             xhr.open('POST', `${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`);
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);

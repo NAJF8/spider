@@ -1070,8 +1070,8 @@ function productCompatibility(product, field) {
   const compatibility = product?.compatibility && typeof product.compatibility === 'object' ? product.compatibility : {};
   const direct = product?.[field] ?? product?.specifications?.[field] ?? product?.specs?.[field];
   if (field === 'socket') return String(compatibility.socket ?? compatibility.cpuSocket ?? product?.socket ?? product?.cpuSocket ?? direct ?? specValue(product, ['socket', 'مقبس']) ?? '').trim();
-  if (field === 'ramType') return String(compatibility.ramType ?? product?.ramType ?? product?.memoryType ?? direct ?? specValue(product, ['ram type', 'memory type', 'نوع الذاكرة', 'ddr']) ?? '').trim();
-  if (field === 'ramTypes') return listCompatibilityValues(compatibility.ramTypes ?? compatibility.supportedMemory ?? product?.ramTypes ?? product?.supportedMemory ?? product?.supportedRam ?? direct ?? specValue(product, ['ram types', 'supported memory', 'memory type', 'نوع الذاكرة', 'ddr']));
+  if (field === 'ramType') return String(compatibility.ramType ?? product?.ramType ?? product?.memoryType ?? direct ?? specValue(product, ['ram type', 'memory type', 'memory support', 'نوع الذاكرة', 'الذاكرة', 'ddr']) ?? '').trim();
+  if (field === 'ramTypes') return listCompatibilityValues(compatibility.ramTypes ?? compatibility.supportedRamTypes ?? compatibility.supportedMemory ?? product?.ramTypes ?? product?.supportedRamTypes ?? product?.supportedMemory ?? product?.supportedRam ?? direct ?? specValue(product, ['ram types', 'supported ram', 'supported memory', 'memory support', 'memory type', 'نوع الذاكرة', 'الذاكرة', 'ddr']));
   return '';
 }
 
@@ -1107,12 +1107,21 @@ function compatibilityStatus(selected) {
   if (incompatible.length) {
     const messages = incompatible.map((check) => check.kind === 'cpu-motherboard'
       ? (language === 'en' ? `CPU socket ${check.cpuSocket} does not match motherboard socket ${check.motherboardSocket}.` : `مقبس المعالج ${check.cpuSocket} لا يطابق مقبس اللوحة ${check.motherboardSocket}.`)
-      : (language === 'en' ? `Selected RAM ${check.ramType} is not supported. The motherboard supports ${check.supported.join(', ')}.` : `الرام المختارة ${check.ramType} غير متوافقة. اللوحة تدعم ${check.supported.join(' أو ')}.`));
+      : (language === 'en' ? `The selected RAM is incompatible with the motherboard. The motherboard supports ${check.supported.join(', ')} while the selected RAM is ${check.ramType}.` : `الرام المختارة غير متوافقة مع اللوحة الأم. اللوحة تدعم ${check.supported.join(' أو ')} بينما الرام المختارة ${check.ramType}.`));
     return [messages.join(' '), 'bad', checks];
   }
   const unknown = checks.some((check) => check.status === 'unknown');
   if (unknown) return [language === 'en' ? 'Compatibility metadata is incomplete for one or more selected parts.' : 'معلومات التوافق غير متوفرة بالكامل لبعض القطع المختارة.', '', checks];
-  if (checks.length) return [language === 'en' ? 'Selected CPU, motherboard and RAM metadata are compatible.' : 'المعالج واللوحة والرام متوافقة حسب البيانات المنشورة.', 'ok', checks];
+  if (checks.length) {
+    const hasCpuCheck = checks.some((check) => check.kind === 'cpu-motherboard');
+    const hasRamCheck = checks.some((check) => check.kind === 'motherboard-ram');
+    const message = hasCpuCheck && hasRamCheck
+      ? (language === 'en' ? 'The selected CPU, motherboard and RAM are compatible according to the published data.' : 'المعالج واللوحة والرام متوافقة حسب البيانات المنشورة.')
+      : hasRamCheck
+        ? (language === 'en' ? 'The selected motherboard and RAM are compatible according to the published data.' : 'اللوحة والرام متوافقتان حسب البيانات المنشورة.')
+        : (language === 'en' ? 'The selected CPU and motherboard are compatible according to the published data.' : 'المعالج واللوحة متوافقان حسب البيانات المنشورة.');
+    return [message, 'ok', checks];
+  }
   return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', '', checks];
 }
 
