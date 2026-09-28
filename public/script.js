@@ -318,9 +318,14 @@ const CUSTOM_ICONS = {
   'cat-monitors': 'assets/icon_6.png',
   'cat-motherboards': 'assets/icon_7.png',
   'cat-cpus': 'assets/icon_8.png',
-  'cat-cases': 'assets/icon_9.png'
+  'cat-cases': 'assets/icon_9.png',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg'
 };
 const SIDEBAR_ICONS = {
+  'cat-computers': 'assets/category-fallbacks/computer.svg',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg',
+  'cat-security': 'assets/category-fallbacks/security.svg',
+  'cat-power': 'assets/category-fallbacks/power.svg',
   'cat-storage': 'assets/icon_1.png',
   'cat-ram': 'assets/icon_2.png',
   'cat-printers': 'assets/icon_3.png',
@@ -329,14 +334,12 @@ const SIDEBAR_ICONS = {
   'cat-monitors': 'assets/icon_6.png',
   'cat-motherboards': 'assets/icon_7.png',
   'cat-cpus': 'assets/icon_8.png',
-  'cat-cases': 'assets/icon_9.png'
+  'cat-cases': 'assets/icon_9.png',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg'
 };
 
 function sidebarCategoryIcon(cat) {
-  if (cat.id === 'cat-accessories') {
-    return `<i class="fa-solid fa-headphones sidebar-category-fa"></i>`;
-  }
-  const iconSrc = SIDEBAR_ICONS[cat.id];
+  const iconSrc = SIDEBAR_ICONS[cat.id] || CUSTOM_ICONS[cat.id] || FALLBACK_IMAGES[cat.id];
   if (iconSrc) {
     return `<img class="sidebar-category-icon" src="${esc(iconSrc)}" alt="">`;
   }
