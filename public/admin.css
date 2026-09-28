@@ -1251,5 +1251,9 @@ html[data-theme="dark"] .permissions-grid .checkbox-label {
 .admin-gallery-btn:hover { background: rgba(255,255,255,0.3); }
 .compatibility-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fafbfc}
 .compatibility-admin-grid label{font-size:.78rem;color:#555}.compatibility-admin-grid input{margin-top:5px}
-.build-discount-settings{margin-top:24px;padding:18px;border:1px solid #ffd2d4;border-radius:12px;background:#fff8f8}.build-discount-settings h3{margin-bottom:14px;color:var(--primary)}
+.build-discount-card{margin:0 0 24px;border:1px solid #ffd2d4;background:linear-gradient(135deg,#fff8f8,#fff)}
+.build-discount-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid #ffe1e2}
+.build-discount-card-header h3{margin:0 0 6px;color:var(--primary);font-size:1.15rem}.build-discount-card-header h3 i{margin-inline-end:7px}.build-discount-card-header p{margin:0;color:#6b7280;font-size:.86rem}
+.build-discount-form{padding:18px 22px}.build-discount-form .form-grid{align-items:end}.build-discount-form .checkbox-group{align-self:center}.build-discount-form-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:4px}.build-discount-form-footer .form-hint{margin:0}.build-discount-form [disabled]{cursor:not-allowed;opacity:.65}
+.build-discount-card.is-disabled{border-color:#e5e7eb;background:#f8fafc}.build-discount-card.is-disabled .build-discount-card-header{border-color:#e5e7eb}.build-discount-card.is-disabled .build-discount-card-header h3{color:#64748b}
 @media(max-width:640px){.compatibility-admin-grid{grid-template-columns:1fr}}

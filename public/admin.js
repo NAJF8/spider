@@ -179,6 +179,7 @@ onAuthStateChanged(auth, async (user) => {
             if (user.photoURL) adminAvatar.src = user.photoURL;
 
             loadDashboardData();
+            window.setTimeout(() => renderBuildDiscountSettings(storeSettings?.buildDiscount), 0);
             if(window.initManagersModule) window.initManagersModule();
         } else {
             signOut(auth);
@@ -239,6 +240,7 @@ document.getElementById('demo-preview-btn')?.addEventListener('click', () => {
     orders = JSON.parse(JSON.stringify(DEMO_ORDERS));
 
     updateAllDashboardViews();
+    renderBuildDiscountSettings(storeSettings.buildDiscount);
 });
 
 document.getElementById('adminExitDemoBtn')?.addEventListener('click', () => {
@@ -2345,6 +2347,89 @@ function renderChatbotPreview(settings) {
     const input = document.getElementById('chatPreviewInput'); if (input) input.style.fontSize = `${s.inputFontSize}px`;
 }
 
+function canManageBuildDiscount() {
+    return isDemoMode || Boolean(currentAdminUser && (currentAdminUser.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.store_settings === true));
+}
+
+function renderBuildDiscountSettings(settings = {}) {
+    const card = document.getElementById('buildDiscountCard');
+    const enabledInput = document.getElementById('settingBuildDiscountEnabled');
+    const typeInput = document.getElementById('settingBuildDiscountType');
+    const valueInput = document.getElementById('settingBuildDiscountValue');
+    const status = document.getElementById('buildDiscountStatus');
+    const note = document.getElementById('buildDiscountPermissionNote');
+    const saveButton = document.getElementById('saveBuildDiscountBtn');
+    if (!card || !enabledInput || !typeInput || !valueInput) return;
+
+    const type = settings.type === 'percentage' ? 'percentage' : 'fixed';
+    const enabled = settings.enabled === true;
+    enabledInput.checked = enabled;
+    typeInput.value = type;
+    valueInput.value = Number.isFinite(Number(settings.value)) ? Number(settings.value) : 0;
+    valueInput.max = type === 'percentage' ? '100' : '';
+    valueInput.placeholder = type === 'percentage' ? 'مثال: 5' : 'مثال: 80000';
+
+    const canEdit = canManageBuildDiscount();
+    [enabledInput, typeInput, valueInput, saveButton].forEach((element) => { if (element) element.disabled = !canEdit; });
+    card.classList.toggle('is-disabled', !enabled);
+    if (status) {
+        status.textContent = enabled ? `مفعل · ${type === 'percentage' ? 'نسبة مئوية' : 'مبلغ ثابت'}` : 'الخصم معطل';
+        status.className = `pricing-badge ${enabled ? 'badge-special' : 'badge-public'}`;
+    }
+    if (note) note.textContent = canEdit
+        ? 'يُحفظ في settings/buildDiscount ويظهر داخل «ابنِ تجميعتك» فقط.'
+        : 'ليس لديك صلاحية تعديل خصم التجميعات. اطلب صلاحية إعدادات المتجر من المسؤول.';
+}
+
+document.getElementById('settingBuildDiscountType')?.addEventListener('change', () => {
+    const valueInput = document.getElementById('settingBuildDiscountValue');
+    if (!valueInput) return;
+    const percentage = document.getElementById('settingBuildDiscountType').value === 'percentage';
+    valueInput.max = percentage ? '100' : '';
+    valueInput.placeholder = percentage ? 'مثال: 5' : 'مثال: 80000';
+});
+
+document.getElementById('buildDiscountForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!canManageBuildDiscount()) {
+        alert('ليس لديك صلاحية تعديل خصم التجميعات.');
+        return;
+    }
+    if (isDemoMode) {
+        alert('لا يمكن حفظ إعدادات الخصم في وضع المعاينة.');
+        return;
+    }
+
+    const enabled = document.getElementById('settingBuildDiscountEnabled')?.checked === true;
+    const type = document.getElementById('settingBuildDiscountType')?.value === 'percentage' ? 'percentage' : 'fixed';
+    const value = Number(document.getElementById('settingBuildDiscountValue')?.value);
+    if (!Number.isFinite(value) || value < 0 || (type === 'percentage' && value > 100)) {
+        alert(type === 'percentage' ? 'قيمة النسبة يجب أن تكون بين 0 و100.' : 'قيمة الخصم الثابت يجب أن تكون صفراً أو أكبر.');
+        return;
+    }
+
+    const payload = { enabled, type, value, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
+    const saveButton = document.getElementById('saveBuildDiscountBtn');
+    if (saveButton) saveButton.disabled = true;
+    try {
+        const discountRef = ref(db, 'settings/buildDiscount');
+        await update(discountRef, payload);
+        const readBackSnapshot = await get(discountRef);
+        const saved = readBackSnapshot.exists() ? readBackSnapshot.val() : null;
+        if (!saved || saved.enabled !== enabled || saved.type !== type || Number(saved.value) !== value) {
+            throw new Error('RTDB read-back mismatch for settings/buildDiscount');
+        }
+        storeSettings = { ...storeSettings, buildDiscount: saved };
+        renderBuildDiscountSettings(saved);
+        alert('تم حفظ إعدادات خصم التجميع والتحقق منها من Firebase.');
+    } catch (error) {
+        console.error('Build discount save/read-back failed', error);
+        alert(`فشل حفظ إعدادات الخصم: ${error.message || 'خطأ غير معروف'}`);
+    } finally {
+        renderBuildDiscountSettings(storeSettings.buildDiscount);
+    }
+});
+
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
         storeSettings = { ...storeSettings, ...snapshot.val() };
@@ -2376,13 +2461,7 @@ onValue(ref(db, 'settings'), (snapshot) => {
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
-    const buildDiscount = storeSettings.buildDiscount || {};
-    const buildDiscountEnabled = document.getElementById('settingBuildDiscountEnabled');
-    const buildDiscountType = document.getElementById('settingBuildDiscountType');
-    const buildDiscountValue = document.getElementById('settingBuildDiscountValue');
-    if (buildDiscountEnabled) buildDiscountEnabled.checked = buildDiscount.enabled === true;
-    if (buildDiscountType) buildDiscountType.value = buildDiscount.type === 'percentage' ? 'percentage' : 'fixed';
-    if (buildDiscountValue) buildDiscountValue.value = Number(buildDiscount.value || 0);
+    renderBuildDiscountSettings(storeSettings.buildDiscount);
     renderChatbotPreview(storeSettings.chatbotSettings || DEFAULT_CHATBOT_SETTINGS);
 });
 
@@ -2405,8 +2484,6 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
     const df = Number(document.getElementById('settingDeliveryFee').value);
 
     try {
-        const discountValue = Math.max(0, Number(document.getElementById('settingBuildDiscountValue')?.value || 0));
-        const discountType = document.getElementById('settingBuildDiscountType')?.value === 'percentage' ? 'percentage' : 'fixed';
         await update(ref(db, 'settings'), {
             storeNameAr: document.getElementById('settingStoreNameAr').value.trim(),
             storeNameEn: document.getElementById('settingStoreNameEn').value.trim(),
@@ -2422,8 +2499,7 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             heroImage: document.getElementById('settingHeroImage').value.trim(),
             lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
-            deliveryFee: df,
-            buildDiscount: { enabled: document.getElementById('settingBuildDiscountEnabled')?.checked === true, type: discountType, value: discountValue, updatedAt: Date.now(), updatedBy: currentAdminUser?.uid || null }
+            deliveryFee: df
         });
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {

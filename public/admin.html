@@ -7,7 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20260929">
+    <link rel="stylesheet" href="admin.css?v=20260929-2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -263,6 +263,37 @@
 
             <section id="view-pricing" class="admin-view">
                 <div class="view-header"><div><h2><i class="fa-solid fa-money-bill-trend-up"></i> إدارة الأسعار</h2><p>السعر العام محفوظ مع المنتج، والأسعار الخاصة والجملة محفوظة في المسار المحمي.</p></div></div>
+                <div class="box build-discount-card" id="buildDiscountCard">
+                    <div class="build-discount-card-header">
+                        <div>
+                            <h3><i class="fa-solid fa-percent"></i> خصم ابنِ تجميعتك</h3>
+                            <p>خصم على التجميعة بالكامل بعد حساب سعر المستوى الحالي، ولا يغيّر أسعار المنتجات.</p>
+                        </div>
+                        <span class="pricing-badge badge-public" id="buildDiscountStatus">الخصم معطل</span>
+                    </div>
+                    <form id="buildDiscountForm" class="build-discount-form">
+                        <div class="form-grid">
+                            <div class="form-group checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" id="settingBuildDiscountEnabled"><span>تفعيل خصم التجميعات</span></label>
+                            </div>
+                            <div class="form-group">
+                                <label for="settingBuildDiscountType">نوع الخصم</label>
+                                <select id="settingBuildDiscountType">
+                                    <option value="percentage">نسبة مئوية %</option>
+                                    <option value="fixed">مبلغ ثابت د.ع</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="settingBuildDiscountValue">قيمة الخصم</label>
+                                <input type="number" id="settingBuildDiscountValue" min="0" max="100" step="0.01" placeholder="5 أو 80000" inputmode="decimal">
+                            </div>
+                        </div>
+                        <div class="build-discount-form-footer">
+                            <small class="form-hint" id="buildDiscountPermissionNote">يُحفظ في settings/buildDiscount ويظهر داخل «ابنِ تجميعتك» فقط.</small>
+                            <button type="submit" class="btn btn-primary" id="saveBuildDiscountBtn"><i class="fa-solid fa-floppy-disk"></i> حفظ إعدادات الخصم</button>
+                        </div>
+                    </form>
+                </div>
                 <div class="filter-bar box"><div class="search-input-group"><i class="fa-solid fa-search"></i><input id="pricingSearch" placeholder="بحث بالاسم أو الموديل..."></div><select id="pricingCategoryFilter" class="filter-select"><option value="">كل الأقسام</option></select><select id="pricingStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="published">نشط</option><option value="draft">مسودة</option><option value="hidden">مخفي</option></select></div>
                 <div class="box table-box"><div class="table-responsive"><table class="data-table"><thead><tr><th>الصورة</th><th>المنتج</th><th>القسم</th><th>السعر العام</th><th>السعر الخاص</th><th>سعر الجملة</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="pricingManagementBody"><tr><td colspan="8" class="text-center">جاري التحميل...</td></tr></tbody></table></div></div>
             </section>
@@ -477,15 +508,6 @@
                                 <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
                             </div>
                             <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
-                        </div>
-                        <div class="build-discount-settings">
-                            <h3><i class="fa-solid fa-percent"></i> خصم ابنِ تجميعتك</h3>
-                            <div class="form-grid">
-                                <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingBuildDiscountEnabled"><span>تفعيل خصم التجميعات</span></label></div>
-                                <div class="form-group"><label>نوع الخصم</label><select id="settingBuildDiscountType"><option value="percentage">نسبة مئوية</option><option value="fixed">مبلغ ثابت</option></select></div>
-                                <div class="form-group"><label>قيمة الخصم</label><input type="number" id="settingBuildDiscountValue" min="0" step="0.01" placeholder="0"></div>
-                            </div>
-                            <small class="form-hint">يطبق داخل «ابنِ تجميعتك» فقط، بعد حساب سعر المستوى العام/الخاص/الجملة، ولا يغيّر أسعار المنتجات.</small>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
                     </form>
@@ -935,7 +957,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=20260929"></script>
+    <script type="module" src="admin.js?v=20260929-2"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">
