@@ -49,6 +49,34 @@ let currentAdminUser = null;
 let customers = [];
 let privatePricesByProduct = {};
 let pendingPricingIdentities = {};
+let adminModalDepth = 0;
+let adminModalScrollY = 0;
+
+function setAdminModalOpen(element, open) {
+    if (!element) return;
+    const wasOpen = element.classList.contains('open');
+    if (open) {
+        if (wasOpen) return;
+        if (adminModalDepth === 0) {
+            adminModalScrollY = window.scrollY;
+            const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+            document.documentElement.style.setProperty('--admin-scrollbar-width', `${scrollbarWidth}px`);
+            document.body.classList.add('admin-modal-open');
+        }
+        adminModalDepth += 1;
+        element.classList.add('open');
+        return;
+    }
+    if (!wasOpen) return;
+    element.classList.remove('open');
+    adminModalDepth = Math.max(0, adminModalDepth - 1);
+    if (adminModalDepth === 0) {
+        const restoreY = adminModalScrollY;
+        document.body.classList.remove('admin-modal-open');
+        document.documentElement.style.removeProperty('--admin-scrollbar-width');
+        window.scrollTo({ left: 0, top: restoreY, behavior: 'auto' });
+    }
+}
 
 // ================= AUTHENTICATION =================
 window.currentAdminPermissions = {};
@@ -884,6 +912,45 @@ document.getElementById('productCategoryFilter')?.addEventListener('change', ren
 document.getElementById('productStatusFilter')?.addEventListener('change', renderProductsManagementTable);
 
 // Product CRUD
+function resetProductImageState() {
+    if (productImageObjectUrl) URL.revokeObjectURL(productImageObjectUrl);
+    productImageObjectUrl = null;
+    originalProductImageFile = null;
+    currentProcessedImageBase64 = null;
+    currentProcessedImageName = null;
+    window.currentProductGalleryImages = [];
+    const file = document.getElementById('prodImageFile');
+    const hidden = document.getElementById('prodImage');
+    const preview = document.getElementById('imagePreview');
+    const container = document.getElementById('imagePreviewContainer');
+    const details = document.getElementById('imageDetails');
+    const status = document.getElementById('imageUploadStatus');
+    const progress = document.getElementById('imageUploadProgress');
+    if (file) file.value = '';
+    if (hidden) hidden.value = '';
+    if (preview) preview.removeAttribute('src');
+    if (container) container.style.display = 'none';
+    if (details) details.textContent = '';
+    if (status) status.textContent = '';
+    if (progress) { progress.value = 0; progress.hidden = true; }
+    if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
+}
+
+function updateProductCompatibilityFields() {
+    const category = document.getElementById('prodCategory')?.value || '';
+    const wrapper = document.getElementById('productCompatibilityFields');
+    if (!wrapper) return;
+    const isCpu = category === 'cat-cpus';
+    const isMotherboard = category === 'cat-motherboards';
+    const isRam = category === 'cat-ram';
+    wrapper.hidden = !(isCpu || isMotherboard || isRam);
+    const show = (id, visible) => { const element = document.getElementById(id); if (element) element.hidden = !visible; };
+    show('cpuSocketField', isCpu);
+    show('motherboardSocketField', isMotherboard);
+    show('ramTypeField', isRam);
+    show('supportedRamTypesField', isMotherboard);
+}
+
 window.openProductModal = function(id = null) {
     closeCategoryModal();
     closeOrderModal();
@@ -891,9 +958,8 @@ window.openProductModal = function(id = null) {
     const form = document.getElementById('productForm');
     form.reset();
     document.getElementById('prodId').value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    currentProcessedImageBase64 = null;
-    currentProcessedImageName = null;
+    resetProductImageState();
+    ['prodCpuSocket', 'prodMotherboardSocket', 'prodRamType', 'prodSupportedRamTypes'].forEach((field) => { const element = document.getElementById(field); if (element) element.value = ''; });
 
     if (id) {
         document.getElementById('productModalTitle').textContent = 'تعديل بيانات المنتج';
@@ -914,7 +980,17 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodWarranty').value = prod.warranty || '';
             document.getElementById('prodDesc').value = prod.description || '';
             document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
-            document.getElementById('prodImage').value = prod.image || '';
+            const gallery = (Array.isArray(prod.images) ? prod.images : []).filter(Boolean).slice(0, 5);
+            const primary = prod.image || gallery[0] || '';
+            window.currentProductGalleryImages = [primary, ...gallery.filter((image) => image !== primary)].filter(Boolean).slice(0, 5);
+            document.getElementById('prodImage').value = primary;
+
+            const compatibility = prod.compatibility || {};
+            document.getElementById('prodCpuSocket').value = compatibility.socket || compatibility.cpuSocket || prod.socket || prod.cpuSocket || '';
+            document.getElementById('prodMotherboardSocket').value = compatibility.socket || compatibility.cpuSocket || prod.socket || prod.cpuSocket || '';
+            document.getElementById('prodRamType').value = compatibility.ramType || prod.ramType || prod.memoryType || '';
+            const supportedRamTypes = compatibility.ramTypes || compatibility.supportedMemory || prod.ramTypes || prod.supportedMemory || [];
+            document.getElementById('prodSupportedRamTypes').value = Array.isArray(supportedRamTypes) ? supportedRamTypes.join(', ') : String(supportedRamTypes);
 
             // Map legacy isHidden to status if status is not explicitly set
             let currentStatus = prod.status;
@@ -923,27 +999,28 @@ window.openProductModal = function(id = null) {
             }
             document.getElementById('prodStatus').value = currentStatus;
 
-            if (prod.image) {
-                document.getElementById('imagePreview').src = prod.image;
+            if (primary) {
+                document.getElementById('imagePreview').src = primary;
                 document.getElementById('imageDetails').textContent = 'الصورة الحالية للمنتج';
                 document.getElementById('imagePreviewContainer').style.display = 'block';
             }
+            renderAdminGallery();
         }
     } else {
         document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
         document.getElementById('prodStatus').value = 'published';
     }
 
-    document.getElementById('productModal').classList.add('open');
+    updateProductCompatibilityFields();
+    setAdminModalOpen(document.getElementById('productModal'), true);
 };
 
 window.closeProductModal = function() {
-    document.getElementById('productModal').classList.remove('open');
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    document.getElementById('prodImageFile').value = '';
-    currentProcessedImageBase64 = null;
-    currentProcessedImageName = null;
+    setAdminModalOpen(document.getElementById('productModal'), false);
+    resetProductImageState();
 };
+
+document.getElementById('prodCategory')?.addEventListener('change', updateProductCompatibilityFields);
 
 document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -972,10 +1049,24 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
     const wholesaleRaw = document.getElementById('prodWholesalePrice').value;
     const specialRaw = document.getElementById('prodSpecialPrice').value;
     if (!Number.isFinite(retailPrice) || retailPrice <= 0 || (wholesaleRaw && (!Number.isFinite(Number(wholesaleRaw)) || Number(wholesaleRaw) <= 0)) || (specialRaw && (!Number.isFinite(Number(specialRaw)) || Number(specialRaw) <= 0))) { alert('السعر العام يجب أن يكون رقمًا موجبًا. اترك الخاص/الجملة فارغًا أو أدخل رقمًا موجبًا.'); return; }
+    const categoryId = document.getElementById('prodCategory').value;
+    const existingProduct = id ? products.find((product) => product.id === id) : null;
+    let compatibility = existingProduct?.compatibility && typeof existingProduct.compatibility === 'object' ? { ...existingProduct.compatibility } : null;
+    if (categoryId === 'cat-cpus') {
+        const socket = document.getElementById('prodCpuSocket').value.trim();
+        compatibility = socket ? { socket } : {};
+    } else if (categoryId === 'cat-motherboards') {
+        const socket = document.getElementById('prodMotherboardSocket').value.trim();
+        const ramTypes = document.getElementById('prodSupportedRamTypes').value.split(/[,،/|]/).map((item) => item.trim()).filter(Boolean);
+        compatibility = { ...(socket ? { socket } : {}), ...(ramTypes.length ? { ramTypes } : {}) };
+    } else if (categoryId === 'cat-ram') {
+        const ramType = document.getElementById('prodRamType').value.trim();
+        compatibility = ramType ? { ramType } : {};
+    }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
-        category: document.getElementById('prodCategory').value,
-        categoryId: document.getElementById('prodCategory').value,
+        category: categoryId,
+        categoryId,
         subcategory: document.getElementById('prodSubcategory').value.trim(),
         brand: document.getElementById('prodBrand').value.trim(),
         model: document.getElementById('prodModel').value.trim(),
@@ -986,8 +1077,9 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         warranty: document.getElementById('prodWarranty').value.trim(),
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
-        image: document.getElementById('prodImage').value.trim(),
-        images: window.currentProductGalleryImages || [],
+        image: (window.currentProductGalleryImages || []).filter(Boolean)[0] || document.getElementById('prodImage').value.trim(),
+        images: (window.currentProductGalleryImages || []).filter(Boolean).slice(0, 5),
+        ...(compatibility && Object.keys(compatibility).length ? { compatibility } : {}),
         status: document.getElementById('prodStatus').value,
         isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
@@ -1252,11 +1344,11 @@ window.openCategoryModal = function(id = null) {
         document.getElementById('catHidden').checked = false;
     }
 
-    document.getElementById('categoryModal').classList.add('open');
+    setAdminModalOpen(document.getElementById('categoryModal'), true);
 };
 
 window.closeCategoryModal = function() {
-    document.getElementById('categoryModal').classList.remove('open');
+    setAdminModalOpen(document.getElementById('categoryModal'), false);
 };
 
 document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
@@ -1505,11 +1597,11 @@ window.viewOrder = function(orderId) {
         </div>
     `;
 
-    document.getElementById('orderModal').classList.add('open');
+    setAdminModalOpen(document.getElementById('orderModal'), true);
 };
 
 window.closeOrderModal = function() {
-    document.getElementById('orderModal').classList.remove('open');
+    setAdminModalOpen(document.getElementById('orderModal'), false);
 };
 
 window.saveOrderStatus = async function(orderId) {
@@ -1546,7 +1638,9 @@ window.addEventListener('click', (e) => {
     ];
     modals.forEach(modal => {
         if (modal && e.target === modal) {
-            modal.classList.remove('open');
+            if (modal.id === 'productModal') closeProductModal();
+            else if (modal.id === 'categoryModal') closeCategoryModal();
+            else if (modal.id === 'orderModal') closeOrderModal();
         }
     });
 });
@@ -1788,14 +1882,15 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
             return;
         }
 
-        if (prodImageInput) prodImageInput.value = data.path;
+        const canonicalImageUrl = data.rawUrl || data.imageUrl || data.path;
+        if (prodImageInput) prodImageInput.value = canonicalImageUrl;
         if (prodImageInput && document.getElementById('imagePreviewContainer')) {
             if (!window.currentProductGalleryImages) window.currentProductGalleryImages = [];
             if (window.currentProductGalleryImages.length < 5) {
-                window.currentProductGalleryImages.push(data.path);
+                window.currentProductGalleryImages.push(canonicalImageUrl);
                 // Make it primary if it's the first
                 if (window.currentProductGalleryImages.length === 1) {
-                    prodImageInput.value = data.path;
+                    prodImageInput.value = canonicalImageUrl;
                 }
                 if (typeof renderAdminGallery === 'function') renderAdminGallery();
             } else {
@@ -1953,6 +2048,7 @@ function imageUploadErrorMessage(code, upstreamStatus = '') {
     const messages = {
         AUTH_REQUIRED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
         IMAGE_REQUIRED: 'لم يتم اختيار صورة.',
+        IMAGE_LIMIT: 'لا يمكن إضافة أكثر من 5 صور للمنتج.',
         IMAGE_TYPE_UNSUPPORTED: 'نوع الصورة غير مدعوم أو لا يطابق محتوى الملف.',
         IMAGE_TOO_LARGE: 'حجم الصورة أكبر من الحد المسموح به للخدمة.',
         GITHUB_UPLOAD_NOT_CONFIGURED: 'خدمة تخزين الصور غير مهيأة.',
@@ -2012,6 +2108,7 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
         try {
             if (!file) throw new Error('IMAGE_REQUIRED');
             const isCategory = kind === 'category';
+            if (!isCategory && Array.isArray(window.currentProductGalleryImages) && window.currentProductGalleryImages.length >= 5) throw new Error('IMAGE_LIMIT');
             const permission = isCategory
                 ? 'categories'
                 : (document.getElementById('prodId')?.value ? 'products_edit' : 'products_add');
@@ -2061,7 +2158,15 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
                 // GitHub Contents does not trigger a Firebase Hosting deploy.
                 // Persist the direct raw URL so the storefront can render the
                 // just-uploaded file immediately; keep path only as a legacy fallback.
-                document.getElementById(targetInputId).value = data.rawUrl || data.imageUrl || data.path;
+                const canonicalUrl = data.rawUrl || data.imageUrl || data.path;
+                document.getElementById(targetInputId).value = canonicalUrl;
+                if (kind === 'product') {
+                    const gallery = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages : [];
+                    if (!gallery.includes(canonicalUrl)) gallery.push(canonicalUrl);
+                    window.currentProductGalleryImages = gallery.slice(0, 5);
+                    if (!document.getElementById('prodImage').value) document.getElementById('prodImage').value = window.currentProductGalleryImages[0] || '';
+                    if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
+                }
                 progress.value = 100;
                 status.textContent = 'تم رفع الصورة الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
                 resolve(data);
@@ -2224,7 +2329,7 @@ window.updateAllDashboardViews = function() {
 
 // ================= SETTINGS MANAGEMENT =================
 const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: 'ما لكيت هذه المعلومة ضمن المنتجات المنشورة حالياً.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
-let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, buildDiscount: { enabled: false, type: 'fixed', value: 0 }, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
 
 function chatbotFormValues() {
     const get = (id) => document.getElementById(id)?.value || '';
@@ -2271,6 +2376,13 @@ onValue(ref(db, 'settings'), (snapshot) => {
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
+    const buildDiscount = storeSettings.buildDiscount || {};
+    const buildDiscountEnabled = document.getElementById('settingBuildDiscountEnabled');
+    const buildDiscountType = document.getElementById('settingBuildDiscountType');
+    const buildDiscountValue = document.getElementById('settingBuildDiscountValue');
+    if (buildDiscountEnabled) buildDiscountEnabled.checked = buildDiscount.enabled === true;
+    if (buildDiscountType) buildDiscountType.value = buildDiscount.type === 'percentage' ? 'percentage' : 'fixed';
+    if (buildDiscountValue) buildDiscountValue.value = Number(buildDiscount.value || 0);
     renderChatbotPreview(storeSettings.chatbotSettings || DEFAULT_CHATBOT_SETTINGS);
 });
 
@@ -2293,6 +2405,8 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
     const df = Number(document.getElementById('settingDeliveryFee').value);
 
     try {
+        const discountValue = Math.max(0, Number(document.getElementById('settingBuildDiscountValue')?.value || 0));
+        const discountType = document.getElementById('settingBuildDiscountType')?.value === 'percentage' ? 'percentage' : 'fixed';
         await update(ref(db, 'settings'), {
             storeNameAr: document.getElementById('settingStoreNameAr').value.trim(),
             storeNameEn: document.getElementById('settingStoreNameEn').value.trim(),
@@ -2308,7 +2422,8 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             heroImage: document.getElementById('settingHeroImage').value.trim(),
             lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
-            deliveryFee: df
+            deliveryFee: df,
+            buildDiscount: { enabled: document.getElementById('settingBuildDiscountEnabled')?.checked === true, type: discountType, value: discountValue, updatedAt: Date.now(), updatedBy: currentAdminUser?.uid || null }
         });
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {
@@ -2457,13 +2572,13 @@ window.openManagerModal = function() {
     }
 
     const modal = document.getElementById('managerModal');
-    modal.classList.add('open');
+    setAdminModalOpen(modal, true);
     modal.style.display = 'flex';
 };
 
 window.closeManagerModal = function() {
     const modal = document.getElementById('managerModal');
-    modal.classList.remove('open');
+    setAdminModalOpen(modal, false);
     setTimeout(() => { modal.style.display = 'none'; }, 200);
 };
 
@@ -2559,7 +2674,7 @@ window.editManager = function(id, type) {
     }
 
     const modal = document.getElementById('managerModal');
-    modal.classList.add('open');
+    setAdminModalOpen(modal, true);
     modal.style.display = 'flex';
 };
 
@@ -2723,11 +2838,11 @@ window.openResetPinModal = function(uid) {
     document.getElementById('resetPinConfirm').value = '';
     document.getElementById('resetPinError').classList.add('hidden');
     
-    document.getElementById('resetPinModal').classList.add('open');
+    setAdminModalOpen(document.getElementById('resetPinModal'), true);
 };
 
 window.closeResetPinModal = function() {
-    document.getElementById('resetPinModal').classList.remove('open');
+    setAdminModalOpen(document.getElementById('resetPinModal'), false);
 };
 
 document.getElementById('resetPinForm')?.addEventListener('submit', async (e) => {
@@ -2786,6 +2901,10 @@ window.currentProductGalleryImages = [];
 window.renderAdminGallery = function() {
     const container = document.getElementById('adminGalleryContainer');
     if (!container) return;
+    const gallery = Array.isArray(window.currentProductGalleryImages)
+        ? window.currentProductGalleryImages.filter(Boolean).slice(0, 5)
+        : [];
+    window.currentProductGalleryImages = gallery;
     const prodImageInput = document.getElementById('prodImage');
     const primary = prodImageInput ? prodImageInput.value : '';
     container.innerHTML = '';
@@ -2793,10 +2912,10 @@ window.renderAdminGallery = function() {
     // Add limit check
     const uploadBtn = document.getElementById('uploadImageBtn');
     if (uploadBtn) {
-        uploadBtn.style.display = window.currentProductGalleryImages.length >= 5 ? 'none' : 'block';
+        uploadBtn.style.display = gallery.length >= 5 ? 'none' : 'block';
     }
 
-    window.currentProductGalleryImages.forEach((imgUrl, index) => {
+    gallery.forEach((imgUrl, index) => {
         const isPrimary = imgUrl === primary;
         const item = document.createElement('div');
         item.className = 'admin-gallery-item' + (isPrimary ? ' primary' : '');
@@ -2813,6 +2932,7 @@ window.renderAdminGallery = function() {
 };
 
 window.setPrimaryImage = function(url) {
+    if (!Array.isArray(window.currentProductGalleryImages)) window.currentProductGalleryImages = [];
     const prodImageInput = document.getElementById('prodImage');
     if (prodImageInput) prodImageInput.value = url;
     
@@ -2827,6 +2947,7 @@ window.setPrimaryImage = function(url) {
 
 window.removeGalleryImage = function(url) {
     if (!confirm('هل أنت متأكد من إزالة هذه الصورة؟')) return;
+    if (!Array.isArray(window.currentProductGalleryImages)) window.currentProductGalleryImages = [];
     const idx = window.currentProductGalleryImages.indexOf(url);
     if (idx > -1) window.currentProductGalleryImages.splice(idx, 1);
     

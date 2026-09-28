@@ -28,6 +28,7 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
 }
+body.admin-modal-open { position: fixed; inset: 0; width: 100%; overflow: hidden; padding-inline-end: var(--admin-scrollbar-width, 0px); }
 
 a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
@@ -1184,13 +1185,14 @@ html[data-theme="dark"] .permissions-grid .checkbox-label {
         font-size: 0.85rem;
     }
 
-    .customers-mgmt-table td:nth-child(1)::before, .customer-pricing-table td:nth-child(1)::before { content: '?????:'; }
-    .customers-mgmt-table td:nth-child(2)::before, .customer-pricing-table td:nth-child(2)::before { content: '??????:'; }
-    .customers-mgmt-table td:nth-child(3)::before, .customer-pricing-table td:nth-child(3)::before { content: '??????:'; }
+    .customers-mgmt-table td:nth-child(1)::before, .customer-pricing-table td:nth-child(1)::before { content: 'الاسم:'; }
+    .customers-mgmt-table td:nth-child(2)::before, .customer-pricing-table td:nth-child(2)::before { content: 'البريد:'; }
+    .customers-mgmt-table td:nth-child(3)::before, .customer-pricing-table td:nth-child(3)::before { content: 'الهاتف:'; }
     .customers-mgmt-table td:nth-child(4)::before, .customer-pricing-table td:nth-child(4)::before { content: 'UID:'; display: none; }
-    .customers-mgmt-table td:nth-child(5)::before { content: '??? ??????:'; }
-    .customer-pricing-table td:nth-child(5)::before { content: '??? ?????:'; }
-    .customers-mgmt-table td:nth-child(6)::before, .customer-pricing-table td:nth-child(6)::before { content: '???????:'; }
+    .customers-mgmt-table td:nth-child(5)::before { content: 'نوع الحساب:'; }
+    .customer-pricing-table td:nth-child(5)::before { content: 'نوع السعر:'; }
+    .customers-mgmt-table td:nth-child(6)::before { content: 'تاريخ التسجيل:'; }
+    .customer-pricing-table td:nth-child(6)::before { content: 'التاريخ:'; }
     .customers-mgmt-table td:nth-child(7)::before, .customer-pricing-table td:nth-child(7)::before { display: none; }
 
     .cell-content, .uid-cell {
@@ -1247,3 +1249,7 @@ html[data-theme="dark"] .permissions-grid .checkbox-label {
 .admin-gallery-actions { position: absolute; bottom: 0; left: 0; right: 0; display: flex; background: rgba(0,0,0,0.6); z-index: 2; }
 .admin-gallery-btn { flex: 1; border: none; background: transparent; color: #fff; font-size: 14px; cursor: pointer; padding: 6px; }
 .admin-gallery-btn:hover { background: rgba(255,255,255,0.3); }
+.compatibility-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fafbfc}
+.compatibility-admin-grid label{font-size:.78rem;color:#555}.compatibility-admin-grid input{margin-top:5px}
+.build-discount-settings{margin-top:24px;padding:18px;border:1px solid #ffd2d4;border-radius:12px;background:#fff8f8}.build-discount-settings h3{margin-bottom:14px;color:var(--primary)}
+@media(max-width:640px){.compatibility-admin-grid{grid-template-columns:1fr}}

@@ -7,7 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=2">
+    <link rel="stylesheet" href="admin.css?v=20260928">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -478,6 +478,15 @@
                             </div>
                             <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
                         </div>
+                        <div class="build-discount-settings">
+                            <h3><i class="fa-solid fa-percent"></i> خصم ابنِ تجميعتك</h3>
+                            <div class="form-grid">
+                                <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingBuildDiscountEnabled"><span>تفعيل خصم التجميعات</span></label></div>
+                                <div class="form-group"><label>نوع الخصم</label><select id="settingBuildDiscountType"><option value="percentage">نسبة مئوية</option><option value="fixed">مبلغ ثابت</option></select></div>
+                                <div class="form-group"><label>قيمة الخصم</label><input type="number" id="settingBuildDiscountValue" min="0" step="0.01" placeholder="0"></div>
+                            </div>
+                            <small class="form-hint">يطبق داخل «ابنِ تجميعتك» فقط، بعد حساب سعر المستوى العام/الخاص/الجملة، ولا يغيّر أسعار المنتجات.</small>
+                        </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
                     </form>
                 </div>
@@ -773,6 +782,18 @@
                         <label>القسم الفرعي</label>
                         <input type="text" id="prodSubcategory" placeholder="مثال: المعالجات">
                     </div>
+                    <div class="form-group" id="productCompatibilityFields" hidden>
+                        <label>بيانات التوافق</label>
+                        <div class="compatibility-admin-grid">
+                            <label id="cpuSocketField">Socket<input type="text" id="prodCpuSocket" placeholder="مثال: AM5 أو LGA1700" list="cpuSocketOptions" dir="ltr"></label>
+                            <label id="motherboardSocketField">CPU Socket<input type="text" id="prodMotherboardSocket" placeholder="مثال: AM5 أو LGA1700" list="cpuSocketOptions" dir="ltr"></label>
+                            <label id="ramTypeField">RAM Type<input type="text" id="prodRamType" placeholder="مثال: DDR5" list="ramTypeOptions" dir="ltr"></label>
+                            <label id="supportedRamTypesField">Supported RAM Types<input type="text" id="prodSupportedRamTypes" placeholder="DDR4, DDR5" list="ramTypeOptions" dir="ltr"></label>
+                        </div>
+                        <datalist id="cpuSocketOptions"><option value="LGA1200"><option value="LGA1700"><option value="LGA1851"><option value="AM4"><option value="AM5"></datalist>
+                        <datalist id="ramTypeOptions"><option value="DDR3"><option value="DDR4"><option value="DDR5"></datalist>
+                        <small class="form-hint">اختياري ومتوافق مع المنتجات القديمة؛ اتركه فارغاً إذا لم تتوفر البيانات.</small>
+                    </div>
                     <div class="form-group">
                         <label>الماركة (Brand)</label>
                         <input type="text" id="prodBrand" placeholder="مثال: ASUS">
@@ -828,6 +849,7 @@
                             <button type="button" id="confirmUploadBtn" class="btn btn-primary w-100">رفع الصورة إلى GitHub</button>
                         </div>
                         <input type="hidden" id="prodImage" placeholder="/images/products/...">
+                        <div id="adminGalleryContainer" class="admin-gallery" aria-live="polite"></div>
                         <small class="form-hint">يتم رفع الملف الأصلي كما اختاره المستخدم، مع عرض معاينة محلية فقط.</small>
                     </div>
                     <div class="form-group">
@@ -913,7 +935,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=13"></script>
+    <script type="module" src="admin.js?v=20260928"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">

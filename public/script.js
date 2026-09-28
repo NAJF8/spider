@@ -228,7 +228,10 @@ const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
 const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === undefined || Number(productStock(p)) > 0);
 const stockLabel = (p) => { if (!isAvailable(p)) return [t('unavailable'), 'out']; const s = productStock(p); if (s !== undefined && Number(s) <= lowStockThreshold) return [t('limited'), 'limited']; return [t('available'), 'in']; };
-const imageFor = (p) => (p && p.images && p.images.length ? p.images[0] : (p?.image || 'images/default-product.svg'));
+const imageFor = (p) => {
+  const images = Array.isArray(p?.images) ? p.images.filter(Boolean).slice(0, 5) : [];
+  return images.length ? images[0] : (p?.image || 'images/default-product.svg?v=2');
+};
 const categoryName = (id) => categoryLabel(state.categories.find((c) => c.id === id)) || id || (language === 'en' ? 'Unknown' : 'غير محدد');
 function categoryOrderValue(category) {
   const value = Number(category?.order);
@@ -311,14 +314,14 @@ const modal = (id, open) => {
 
 const UNIFIED_CATEGORY_ICONS = {
   // Top-Level Categories
-  'cat-computers': 'assets/category-fallbacks/computer.svg',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg',
-  'cat-security': 'assets/category-fallbacks/security.svg',
+  'cat-computers': 'assets/category-fallbacks/computer.svg?v=2',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=2',
+  'cat-security': 'assets/category-fallbacks/security.svg?v=2',
   'cat-printers': 'assets/icon_3.png',
   'cat-monitors': 'assets/icon_6.png',
   'cat-network': 'assets/icon_5.png',
-  'cat-power': 'assets/category-fallbacks/power.svg',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg',
+  'cat-power': 'assets/category-fallbacks/power.svg?v=2',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=2',
 
   // PC Parts Subcategories
   'cat-storage': 'assets/icon_1.png',
@@ -326,39 +329,38 @@ const UNIFIED_CATEGORY_ICONS = {
   'cat-motherboards': 'assets/icon_7.png',
   'cat-cpus': 'assets/icon_8.png',
   'cat-cases': 'assets/icon_9.png',
-  'cat-psu': 'assets/category-fallbacks/power.svg',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg'
+  'cat-psu': 'assets/category-fallbacks/power.svg?v=2',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=2',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=2'
 };
 
 const CUSTOM_ICONS = UNIFIED_CATEGORY_ICONS;
 const SIDEBAR_ICONS = UNIFIED_CATEGORY_ICONS;
 
+// Main category cards keep the modern icon family. The browse drawer uses the
+// historical FontAwesome contract from `cat.icon` so the two surfaces stay
+// visually independent.
 function sidebarCategoryIcon(cat) {
-  const iconSrc = UNIFIED_CATEGORY_ICONS[cat.id] || cat.image || FALLBACK_IMAGES[cat.id];
-  if (iconSrc) {
-    return `<img class="sidebar-category-icon" src="${esc(iconSrc)}" alt="">`;
-  }
   return `<i class="fa-solid ${esc(cat.icon || 'fa-folder')} sidebar-category-fa"></i>`;
 }
 
 const FALLBACK_IMAGES = {
-  'cat-computers': 'assets/category-fallbacks/computer.svg',
-  'cat-storage': 'assets/category-fallbacks/storage.svg?v=1',
-  'cat-ram': 'assets/category-fallbacks/ram.svg',
-  'cat-monitors': 'assets/category-fallbacks/monitor.svg',
-  'cat-printers': 'assets/category-fallbacks/printer.svg',
-  'cat-network': 'assets/category-fallbacks/network.svg',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg',
-  'cat-cpus': 'assets/category-fallbacks/cpu.svg',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg',
-  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg',
-  'cat-psu': 'assets/category-fallbacks/power.svg',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg',
-  'cat-cases': 'assets/category-fallbacks/computer.svg',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg',
-  'cat-power': 'assets/category-fallbacks/power.svg',
-  'cat-security': 'assets/category-fallbacks/security.svg'
+  'cat-computers': 'assets/category-fallbacks/computer.svg?v=2',
+  'cat-storage': 'assets/category-fallbacks/storage.svg?v=2',
+  'cat-ram': 'assets/category-fallbacks/ram.svg?v=2',
+  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=2',
+  'cat-printers': 'assets/category-fallbacks/printer.svg?v=2',
+  'cat-network': 'assets/category-fallbacks/network.svg?v=2',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=2',
+  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=2',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=2',
+  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=2',
+  'cat-psu': 'assets/category-fallbacks/power.svg?v=2',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=2',
+  'cat-cases': 'assets/category-fallbacks/computer.svg?v=2',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=2',
+  'cat-power': 'assets/category-fallbacks/power.svg?v=2',
+  'cat-security': 'assets/category-fallbacks/security.svg?v=2'
 };
 const FALLBACK_KEYWORDS = [
   ['معالج', 'cpu'], ['cpu', 'cpu'], ['رام', 'ram'], ['ذاكرة', 'ram'],
@@ -372,9 +374,9 @@ function categoryFallback(cat) {
   const key = `${cat.id || ''} ${cat.name || ''}`.toLowerCase();
   if (FALLBACK_IMAGES[cat.id]) return FALLBACK_IMAGES[cat.id];
   for (const [keyword, asset] of FALLBACK_KEYWORDS) {
-    if (key.includes(keyword)) return `assets/category-fallbacks/${asset}.svg`;
+    if (key.includes(keyword)) return `assets/category-fallbacks/${asset}.svg?v=2`;
   }
-  return 'assets/category-fallbacks/pc-parts.svg';
+  return 'assets/category-fallbacks/pc-parts.svg?v=2';
 }
 
 // ===== Product category matching =====
@@ -568,6 +570,34 @@ function bindProductActions(root = document) {
   root.querySelectorAll('[data-alert]').forEach((b) => b.addEventListener('click', () => openAvailability(b.dataset.alert)));
 }
 
+// A vertical mobile swipe can synthesize a click after pointerup. Track only
+// touch pointers and suppress that synthetic click after the movement crosses
+// a small threshold; native scrolling remains untouched.
+let touchGesture = null;
+document.addEventListener('pointerdown', (event) => {
+  if (event.pointerType !== 'touch') return;
+  touchGesture = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, moved: false };
+}, true);
+document.addEventListener('pointermove', (event) => {
+  if (!touchGesture || event.pointerId !== touchGesture.pointerId) return;
+  if (Math.hypot(event.clientX - touchGesture.startX, event.clientY - touchGesture.startY) >= 8) touchGesture.moved = true;
+}, true);
+document.addEventListener('pointerup', (event) => {
+  if (!touchGesture || event.pointerId !== touchGesture.pointerId) return;
+  if (touchGesture.moved) {
+    document.documentElement.dataset.suppressTouchClickUntil = String(Date.now() + 350);
+  }
+  touchGesture = null;
+}, true);
+document.addEventListener('pointercancel', () => { touchGesture = null; }, true);
+document.addEventListener('click', (event) => {
+  const until = Number(document.documentElement.dataset.suppressTouchClickUntil || 0);
+  if (until && Date.now() < until) {
+    event.stopImmediatePropagation();
+    delete document.documentElement.dataset.suppressTouchClickUntil;
+  }
+}, true);
+
 function renderProducts() {
   if (!$('productsGrid')) return;
   const filtered = filteredProducts();
@@ -710,7 +740,7 @@ function renderComparePickerGrid() {
     const disabled = p.id === otherId;
     const [availability, tone] = stockLabel(p);
     return `<button class="compare-picker-option${disabled ? ' is-disabled' : ''}" type="button" data-compare-pick="${esc(p.id)}" ${disabled ? 'disabled' : ''}>
-      <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg'">
+      <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'">
       <strong>${esc(productName(p))}</strong>
       <span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>
       <b>${formatPrice(productPrice(p))}</b>
@@ -828,14 +858,14 @@ function updateCompareView() {
 
 // ===== BUILDER — Card-based UI =====
 const builderParts = [
-  { id: 'cpu',         label: 'المعالج CPU',       icon: 'fa-microchip',       match: /cpu|cpus|معالج|معالجات/i },
-  { id: 'motherboard', label: 'اللوحة الأم',        icon: 'fa-border-all',      match: /motherboard|motherboards|لوحة|مذربورد/i },
-  { id: 'ram',         label: 'الذاكرة RAM',        icon: 'fa-memory',          match: /ram|ذاكرة|رام/i },
-  { id: 'gpu',         label: 'كرت الشاشة GPU',     icon: 'fa-display',         match: /gpu|كرت|كروت|vga/i },
-  { id: 'storage',     label: 'التخزين',            icon: 'fa-hard-drive',      match: /ssd|nvme|m\.2|hdd|hard|هارد|تخزين/i },
-  { id: 'psu',         label: 'مزود الطاقة PSU',    icon: 'fa-plug',            match: /psu|power|طاقة|مجهز/i },
-  { id: 'case',        label: 'الصندوق Case',       icon: 'fa-box',             match: /case|صندوق/i },
-  { id: 'cooling',     label: 'التبريد',            icon: 'fa-fan',             match: /cooling|تبريد/i }
+  { id: 'cpu',         categoryId: 'cat-cpus',          label: 'المعالج CPU',       icon: 'fa-microchip' },
+  { id: 'motherboard', categoryId: 'cat-motherboards',  label: 'اللوحة الأم',        icon: 'fa-border-all' },
+  { id: 'ram',         categoryId: 'cat-ram',           label: 'الذاكرة RAM',        icon: 'fa-memory' },
+  { id: 'storage',     categoryId: 'cat-storage',       label: 'التخزين',            icon: 'fa-hard-drive' },
+  { id: 'gpu',         categoryId: 'cat-gpus',          label: 'كرت الشاشة GPU',     icon: 'fa-display' },
+  { id: 'psu',         categoryId: 'cat-psu',           label: 'مزود الطاقة PSU',    icon: 'fa-plug' },
+  { id: 'cooling',     categoryId: 'cat-cooling',       label: 'التبريد',            icon: 'fa-fan' },
+  { id: 'case',        categoryId: 'cat-cases',         label: 'الصندوق Case',       icon: 'fa-box' }
 ];
 const builderPartLabel = (part) => {
   const labels = language === 'en'
@@ -845,12 +875,7 @@ const builderPartLabel = (part) => {
 };
 
 function productsForPart(part) {
-  return state.products.filter((p) => isAvailable(p) && (() => {
-    const text = `${categoryIdFor(p)} ${categoryName(categoryIdFor(p))} ${p.name || ''}`;
-    if (part.id === 'gpu') return /gpu|gpus|كرت|كروت/i.test(text);
-    if (part.id === 'storage') return /ssd|nvme|m\.2|hdd|hard|هارد|تخزين/i.test(text);
-    return part.match.test(text);
-  })());
+  return state.products.filter((p) => isAvailable(p) && categoryIdFor(p) === part.categoryId);
 }
 
 function builderPartForProduct(product) {
@@ -905,7 +930,7 @@ function renderBuilderCatalog() {
     const available = isAvailable(product);
     const specs = topSpecs(product);
     return `<article class="builder-product-card ${selected ? 'is-selected' : ''}">
-      <div class="builder-product-image"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg'"></div>
+      <div class="builder-product-image"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" loading="lazy" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"></div>
       <div class="builder-product-body"><span class="product-brand">${esc(product.brand || t('unknown'))}</span><h3>${esc(productName(product))}</h3><span class="builder-product-model">${esc(product.model || product.subcategory || '')}</span>${specs.length ? `<div class="builder-card-specs">${specs.map((spec) => `<span>${esc(spec)}</span>`).join('')}</div>` : ''}<div class="builder-product-meta"><strong>${formatPrice(productPrice(product))}</strong>${availabilityMarkup(product)}</div><button class="btn ${selected ? 'btn-outline' : 'btn-primary'} builder-select-product" type="button" data-builder-product="${esc(product.id)}" ${!available ? 'disabled' : ''}><i class="fa-solid ${selected ? 'fa-check' : 'fa-plus'}"></i> ${selected ? t('selectedForBuild') : t('chooseForBuild')}</button></div>
     </article>`;
   }).join('') : `<div class="empty-state builder-empty-state">${t('noPublished')}</div>`;
@@ -934,7 +959,7 @@ function renderBuilderPickerGrid() {
   const part = builderParts.find((item) => item.id === state.builderPickerPart);
   const query = String($('builderPickerSearch')?.value || '').trim().toLowerCase();
   const products = (part ? productsForPart(part) : []).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-pick]').forEach((button) => button.addEventListener('click', () => {
     state.builder[state.builderPickerPart] = button.dataset.builderPick;
     saveBuilder(); renderBuilder(); modal('builderPickerModal', false);
@@ -950,17 +975,21 @@ function topSpecs(product) {
 function renderBuilder() {
   if (!$('builderPartsList')) return;
   const list = $('builderPartsList');
+  const incompatibleChecks = builderCompatibilityReport(selectedBuilderProducts()).filter((check) => check.status === 'incompatible');
   list.innerHTML = builderParts.map((part, index) => {
     const product = state.products.find((p) => p.id === state.builder[part.id]);
-    const fallback = `assets/category-fallbacks/${part.id === 'case' ? 'computer' : part.id === 'psu' ? 'power' : part.id}.svg`;
+    const fallback = `assets/category-fallbacks/${part.id === 'case' ? 'computer' : part.id === 'psu' ? 'power' : part.id}.svg?v=2`;
     const label = builderPartLabel(part);
+    const warning = incompatibleChecks.some((check) => check.parts.includes(part.id))
+      ? `<p class="builder-compatibility-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${language === 'en' ? 'This selected part is incompatible with another part.' : 'هذه القطعة غير متوافقة مع قطعة أخرى مختارة.'}</p>`
+      : '';
     if (!product) return `<article class="builder-part-card is-empty" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Choose a published part' : 'اختر قطعة منشورة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
       <button class="builder-empty-choose" type="button" data-builder-change="${esc(part.id)}"><img src="${fallback}" alt=""><span>${language === 'en' ? `Choose ${esc(label)}` : `اختر ${esc(label)}`}</span><i class="fa-solid fa-plus"></i></button>
     </article>`;
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
-      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>${warning}
       <div class="builder-part-actions"><button class="btn btn-primary builder-add-cart" type="button" data-builder-cart="${esc(part.id)}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
     </article>`;
   }).join('');
@@ -1011,46 +1040,88 @@ function specValue(p, names) {
   return key ? String(specs[key]) : '';
 }
 
+const normalizeCompatibilityToken = (value) => String(value || '').trim().replace(/[\s_-]+/g, '').toLowerCase();
+const listCompatibilityValues = (value) => Array.isArray(value) ? value.filter(Boolean).map(String) : String(value || '').split(/[,،/|]/).map((item) => item.trim()).filter(Boolean);
+function productCompatibility(product, field) {
+  const compatibility = product?.compatibility && typeof product.compatibility === 'object' ? product.compatibility : {};
+  const direct = product?.[field] ?? product?.specifications?.[field] ?? product?.specs?.[field];
+  if (field === 'socket') return String(compatibility.socket ?? compatibility.cpuSocket ?? product?.socket ?? product?.cpuSocket ?? direct ?? specValue(product, ['socket', 'مقبس']) ?? '').trim();
+  if (field === 'ramType') return String(compatibility.ramType ?? product?.ramType ?? product?.memoryType ?? direct ?? specValue(product, ['ram type', 'memory type', 'نوع الذاكرة', 'ddr']) ?? '').trim();
+  if (field === 'ramTypes') return listCompatibilityValues(compatibility.ramTypes ?? compatibility.supportedMemory ?? product?.ramTypes ?? product?.supportedMemory ?? product?.supportedRam ?? direct ?? specValue(product, ['ram types', 'supported memory', 'memory type', 'نوع الذاكرة', 'ddr']));
+  return '';
+}
+
+function builderCompatibilityReport(selected = selectedBuilderProducts()) {
+  const byCategory = (categoryId) => selected.find((product) => categoryIdFor(product) === categoryId);
+  const cpu = byCategory('cat-cpus');
+  const motherboard = byCategory('cat-motherboards');
+  const ram = byCategory('cat-ram');
+  const checks = [];
+  if (cpu && motherboard) {
+    const cpuSocket = productCompatibility(cpu, 'socket');
+    const motherboardSocket = productCompatibility(motherboard, 'socket');
+    const status = cpuSocket && motherboardSocket
+      ? normalizeCompatibilityToken(cpuSocket) === normalizeCompatibilityToken(motherboardSocket) ? 'compatible' : 'incompatible'
+      : 'unknown';
+    checks.push({ kind: 'cpu-motherboard', status, parts: ['cpu', 'motherboard'], cpuSocket, motherboardSocket });
+  }
+  if (motherboard && ram) {
+    const ramType = productCompatibility(ram, 'ramType');
+    const supported = productCompatibility(motherboard, 'ramTypes');
+    const status = ramType && supported.length
+      ? supported.some((item) => normalizeCompatibilityToken(item) === normalizeCompatibilityToken(ramType)) ? 'compatible' : 'incompatible'
+      : 'unknown';
+    checks.push({ kind: 'motherboard-ram', status, parts: ['motherboard', 'ram'], ramType, supported });
+  }
+  return checks;
+}
+
 function compatibilityStatus(selected) {
-  if (!selected.length) return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', ''];
-  const cpu = selected.find((p) => /cpu|cpus|معالج|معالجات/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
-  const mb  = selected.find((p) => /motherboard|لوحة|مذربورد/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
-  const ram = selected.find((p) => /ram|ذاكرة|رام/i.test(`${categoryIdFor(p)} ${categoryName(categoryIdFor(p))}`));
+  if (!selected.length) return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', '', []];
+  const checks = builderCompatibilityReport(selected);
+  const incompatible = checks.filter((check) => check.status === 'incompatible');
+  if (incompatible.length) {
+    const messages = incompatible.map((check) => check.kind === 'cpu-motherboard'
+      ? (language === 'en' ? `CPU socket ${check.cpuSocket} does not match motherboard socket ${check.motherboardSocket}.` : `مقبس المعالج ${check.cpuSocket} لا يطابق مقبس اللوحة ${check.motherboardSocket}.`)
+      : (language === 'en' ? `Selected RAM ${check.ramType} is not supported. The motherboard supports ${check.supported.join(', ')}.` : `الرام المختارة ${check.ramType} غير متوافقة. اللوحة تدعم ${check.supported.join(' أو ')}.`));
+    return [messages.join(' '), 'bad', checks];
+  }
+  const unknown = checks.some((check) => check.status === 'unknown');
+  if (unknown) return [language === 'en' ? 'Compatibility metadata is incomplete for one or more selected parts.' : 'معلومات التوافق غير متوفرة بالكامل لبعض القطع المختارة.', '', checks];
+  if (checks.length) return [language === 'en' ? 'Selected CPU, motherboard and RAM metadata are compatible.' : 'المعالج واللوحة والرام متوافقة حسب البيانات المنشورة.', 'ok', checks];
+  return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', '', checks];
+}
 
-  const reasons = [];
-  const cpuSocket = specValue(cpu, ['socket', 'مقبس']);
-  const mbSocket  = specValue(mb,  ['socket', 'مقبس']);
-  if (cpuSocket && mbSocket && cpuSocket.toLowerCase() !== mbSocket.toLowerCase())
-    reasons.push(language === 'en' ? `CPU socket ${cpuSocket} does not match motherboard socket ${mbSocket}.` : `مقبس المعالج ${cpuSocket} لا يطابق اللوحة ${mbSocket}.`);
+function buildDiscountSettings() {
+  const value = state.settings?.buildDiscount;
+  return value && typeof value === 'object' ? value : { enabled: false, type: 'fixed', value: 0 };
+}
 
-  const ramType = specValue(ram, ['نوع الذاكرة', 'memory type', 'type']);
-  const mbRam   = specValue(mb,  ['نوع الذاكرة', 'memory type', 'ram']);
-  if (ramType && mbRam && /ddr[45]/i.test(ramType) && /ddr[45]/i.test(mbRam) &&
-      ramType.match(/ddr[45]/i)?.[0].toLowerCase() !== mbRam.match(/ddr[45]/i)?.[0].toLowerCase())
-    reasons.push(language === 'en' ? `Memory type ${ramType} does not match ${mbRam}.` : `نوع الذاكرة ${ramType} لا يطابق ${mbRam}.`);
-
-  if (reasons.length) return [reasons.join(' '), 'bad'];
-
-  // If some pairing parts exist but missing counterpart — inconclusive
-  if ((cpu && !mb) || (mb && !cpu) || (ram && !mb))
-    return [language === 'en' ? 'Compatibility needs technical review: some counterpart specifications are insufficient.' : 'التوافق يحتاج مراجعة فنية: بعض مواصفات القطع المقابلة غير كافية للحكم.', ''];
-
-  if (selected.length >= 2)
-    return [language === 'en' ? 'Published specifications show no known conflict; check dimensions and power before purchase.' : 'المواصفات المنشورة لا تظهر تعارضاً معروفاً؛ راجع الأبعاد والطاقة قبل الشراء.', 'ok'];
-
-  return [language === 'en' ? 'Choose parts to check compatibility.' : 'اختر القطع لفحص التوافق.', ''];
+function calculateBuilderTotals(selected) {
+  const subtotal = Math.max(0, Math.round(selected.reduce((sum, product) => sum + productPrice(product), 0)));
+  const settings = buildDiscountSettings();
+  const discountValue = Number(settings.value);
+  const discount = settings.enabled && Number.isFinite(discountValue) && discountValue > 0
+    ? Math.min(subtotal, settings.type === 'percentage' ? Math.round(subtotal * Math.min(100, discountValue) / 100) : Math.round(discountValue))
+    : 0;
+  return { subtotal, discount, finalTotal: Math.max(0, subtotal - discount), settings };
 }
 
 function updateBuilder() {
   if (!$('builderTotal')) return;
   const selected = selectedBuilderProducts();
-  const total = selected.reduce((sum, p) => sum + productPrice(p), 0);
+  const totals = calculateBuilderTotals(selected);
+  const total = totals.finalTotal;
   $('builderTotal').textContent = formatPrice(total);
+  if ($('builderSubtotal')) $('builderSubtotal').textContent = formatPrice(totals.subtotal);
+  if ($('builderDiscount')) $('builderDiscount').textContent = totals.discount ? `- ${formatPrice(totals.discount)}` : formatPrice(0);
+  if ($('builderDiscountCard')) $('builderDiscountCard').hidden = !totals.discount;
+  if ($('builderFinalTotal')) $('builderFinalTotal').textContent = formatPrice(totals.finalTotal);
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
   if ($('compatibilityBox')) { $('compatibilityBox').className = `compatibility-box ${tone}`; $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`; }
-  if ($('addBuilderToCartBtn')) $('addBuilderToCartBtn').disabled = !selected.length;
-  if ($('quoteBuilderBtn')) $('quoteBuilderBtn').disabled = !selected.length;
+  if ($('addBuilderToCartBtn')) $('addBuilderToCartBtn').disabled = !selected.length || tone === 'bad';
+  if ($('quoteBuilderBtn')) $('quoteBuilderBtn').disabled = !selected.length || tone === 'bad';
 }
 
 function quoteLines(products) {
@@ -1059,22 +1130,22 @@ function quoteLines(products) {
 
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
-  const total = products.reduce((sum, p) => sum + productPrice(p), 0);
-  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(total)}</span></div>`;
-  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(productPrice(p))}`).join('\n') + `\n${t('total')}: ${formatPrice(total)}`;
+  const totals = calculateBuilderTotals(products);
+  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>السعر قبل الخصم</span><span>${formatPrice(totals.subtotal)}</span></div>${totals.discount ? `<div class="quote-total"><span>خصم التجميعة</span><span>- ${formatPrice(totals.discount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
+  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(productPrice(p))}`).join('\n') + `\nالسعر قبل الخصم: ${formatPrice(totals.subtotal)}${totals.discount ? `\nخصم التجميعة: - ${formatPrice(totals.discount)}` : ''}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
   modal('quoteModal', true);
 }
 
 // ===== UPGRADE =====
 const UPGRADE_FALLBACK_IMAGES = {
-  cpu: 'assets/category-fallbacks/cpu.svg',
-  motherboard: 'assets/category-fallbacks/motherboard.svg',
-  ram: 'assets/category-fallbacks/ram.svg',
-  gpu: 'assets/category-fallbacks/gpu.svg',
-  storage: 'assets/category-fallbacks/storage.svg',
-  case: 'assets/category-fallbacks/computer.svg',
-  cooling: 'assets/category-fallbacks/cooling.svg',
-  psu: 'assets/category-fallbacks/power.svg'
+  cpu: 'assets/category-fallbacks/cpu.svg?v=2',
+  motherboard: 'assets/category-fallbacks/motherboard.svg?v=2',
+  ram: 'assets/category-fallbacks/ram.svg?v=2',
+  gpu: 'assets/category-fallbacks/gpu.svg?v=2',
+  storage: 'assets/category-fallbacks/storage.svg?v=2',
+  case: 'assets/category-fallbacks/computer.svg?v=2',
+  cooling: 'assets/category-fallbacks/cooling.svg?v=2',
+  psu: 'assets/category-fallbacks/power.svg?v=2'
 };
 
 const upgradeFields = () => [
@@ -1090,7 +1161,7 @@ const upgradeFields = () => [
 
 // Prefer the product-specific GitHub-hosted asset when the legacy Firebase
 // record still points at a generic category image.
-const upgradeImageFor = (product) => product?.id === 'seed-ram-1' ? 'images/products/ram-corsair-ddr5.svg' : imageFor(product);
+const upgradeImageFor = (product) => product?.id === 'seed-ram-1' ? 'images/products/ram-corsair-ddr5.svg?v=2' : imageFor(product);
 
 function upgradeFallbackMarkup(field) {
   return `<div class="upgrade-preview-empty"><button type="button" data-upgrade-open="${field.id}" aria-label="${language === 'en' ? 'Choose' : 'اختيار'} ${esc(field.label)}"><img src="${UPGRADE_FALLBACK_IMAGES[field.id]}" alt="${esc(field.label)}"><strong>${esc(field.label)}</strong><span>${language === 'en' ? 'Choose a published part' : 'اضغط لاختيار قطعة منشورة'}</span></button></div>`;
@@ -1127,7 +1198,7 @@ function renderUpgradePickerGrid() {
   if (!grid || !field) return;
   const query = String($('upgradePickerSearch')?.value || '').trim().toLowerCase();
   const products = upgradeProductsFor(field).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
   grid.querySelectorAll('[data-upgrade-pick]').forEach((button) => button.addEventListener('click', () => {
     state.upgrade[state.upgradePickerField] = button.dataset.upgradePick; state.upgradeIsNew[state.upgradePickerField] = false; saveUpgrade();
     renderUpgrade();
@@ -1156,7 +1227,7 @@ function renderUpgradeSelectionPreviews() {
       return;
     }
     const specs = topSpecs(product);
-    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions">${state.upgradeIsNew[field.id] ? `<button class="btn btn-primary" type="button" data-upgrade-cart="${field.id}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button>` : ''}<button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions">${state.upgradeIsNew[field.id] ? `<button class="btn btn-primary" type="button" data-upgrade-cart="${field.id}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button>` : ''}<button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
     preview.querySelector('[data-upgrade-cart]')?.addEventListener('click', () => { addToCart(product.id); });
       preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
     preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; delete state.upgradeIsNew[field.id]; saveUpgrade(); renderUpgrade(); });
@@ -1293,7 +1364,9 @@ function openProductDetails(id) {
   const specs = Object.entries(p.specifications || {});
   $('modalProductTitle').textContent = englishDigits(productName(p));
   
-    const productImages = Array.isArray(p.images) && p.images.length ? p.images : (p.image ? [p.image] : ['images/default-product.svg']);
+    const productImages = (Array.isArray(p.images) ? p.images.filter(Boolean).slice(0, 5) : []).length
+      ? p.images.filter(Boolean).slice(0, 5)
+      : (p.image ? [p.image] : ['images/default-product.svg?v=2']);
     $('productDetailsBody').innerHTML = `<div class="product-detail">
       <div class="product-gallery">
         <img src="${esc(productImages[0])}" alt="${esc(productName(p))}" id="productMainImage">
