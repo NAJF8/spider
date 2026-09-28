@@ -1009,6 +1009,7 @@ html[data-theme="dark"] .field-error{color:#F51F2A}
 .builder-summary{z-index:2}
 .builder-price-cards{display:grid;gap:8px;margin:12px 0}
 .builder-price-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:12px}
+.builder-price-card[hidden]{display:none}
 .builder-price-card strong{direction:ltr;color:var(--ink);font-size:15px}
 .builder-discount-card{background:#ecfdf3;color:#15803d}.builder-discount-card strong{color:#15803d}
 .builder-final-price{border:1px solid #ffc4c7;background:#fff7f7}.builder-final-price strong{color:var(--red);font-size:18px}
