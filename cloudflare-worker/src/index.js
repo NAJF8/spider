@@ -760,7 +760,8 @@ async function handleRequest(request, env) {
         const normalizedItems = items.map(item => ({
           id: String(item?.id || ''),
           qty: Number(item?.qty),
-          source: item?.source === 'builder' ? 'builder' : 'store'
+          source: item?.source === 'builder' ? 'builder' : 'store',
+          builderPart: String(item?.builderPart || '').trim()
         }));
         if (normalizedItems.some(item => !item.id || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100)) {
           return errorResponse('INVALID_ITEM_QUANTITY', 400);
@@ -864,6 +865,7 @@ async function handleRequest(request, env) {
             base_unit_price: livePrice,
             builder_discount: itemDiscount,
             source: item.source,
+            builderPart: item.builderPart,
             pricing_tier_applied: accountType,
             public_price_snapshot: positivePrice(liveProd?.public_price ?? liveProd?.retail_price ?? liveProd?.price),
             special_price_snapshot: positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice),
@@ -916,8 +918,10 @@ async function handleRequest(request, env) {
 
         const responsePayload = {
           success: true,
+          orderId: newOrderId,
           orderNumber,
-          subtotal: finalSubtotal,
+          subtotal,
+          finalSubtotal,
           builderDiscount,
           deliveryFee,
           grandTotal,

@@ -10,7 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=20260929-3">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css?v=20260930-1">
 </head>
 <body>
 
@@ -338,6 +340,18 @@
     </div>
   </div>
 
+  <!-- Order success -->
+  <div class="modal-overlay" id="orderSuccessModal">
+    <div class="modal-content order-success-modal">
+      <div class="modal-head"><h2 id="orderSuccessTitle">تم إنشاء الطلب بنجاح</h2><button class="icon-btn" id="closeOrderSuccessBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="modal-body order-success-body">
+        <p id="orderSuccessNumber"></p>
+        <div class="order-success-actions"><button class="btn btn-outline" id="downloadReceiptBtn" type="button"><i class="fa-solid fa-file-pdf"></i> تحميل الوصل PDF</button><button class="btn btn-primary" id="whatsappOrderBtn" type="button"><i class="fa-brands fa-whatsapp"></i> إرسال عبر واتساب</button></div>
+        <p class="form-note">سيتم فتح واتساب برسالة الطلب. إرفاق ملف PDF تلقائيًا غير مدعوم من رابط المتصفح.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Product Details -->
   <div class="modal-overlay" id="productDetailsModal">
     <div class="modal-content product-modal">
@@ -455,6 +469,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="script.js?v=20260929-4"></script>
+  <script type="module" src="script.js?v=20260930-1"></script>
 </body>
 </html>

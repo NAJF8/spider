@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
+import { generateOrderReceiptPdf } from './pdf-receipt.js';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
@@ -21,6 +22,7 @@ const ALERTS_KEY = 'spider.availability-alerts.v1';
 const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://127.0.0.1:8787'
   : 'https://spider-backend.coffee101.workers.dev';
+let pendingReceipt = null;
 
 const state = {
   products: [],
@@ -1662,7 +1664,8 @@ function requestId() { return crypto.randomUUID?.() || `${Date.now()}-${Math.ran
 
 function checkoutPayload(form) {
   const data = new FormData(form);
-  const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty), source: i.builderSource ? 'builder' : 'store' })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
+  const builderPartByProductId = Object.fromEntries(Object.entries(state.builder).map(([partId, productId]) => [String(productId), partId]));
+  const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty), source: i.builderSource ? 'builder' : 'store', ...(i.builderSource && builderPartByProductId[String(i.id)] ? { builderPart: builderPartByProductId[String(i.id)] } : {}) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
   return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
 }
@@ -1679,12 +1682,18 @@ async function submitCheckout(event) {
     const response = await fetch(`${BACKEND_URL}/api/store/checkout`, { method: 'POST', headers, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) throw new Error(result.error || 'CHECKOUT_FAILED');
-    const lines = (result.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
-    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}`].join('\n');
+    const orderSnapshot = { ...result, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
+    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942') };
+    const lines = (orderSnapshot.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
+    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, result.builderDiscount > 0 ? `خصم التجميعة: ${formatPrice(result.builderDiscount)}` : '', `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}`].filter(Boolean).join('\n');
+    pendingReceipt.whatsappMessage = message;
     state.cart = []; renderCart(); modal('checkoutModal', false);
-    const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942');
-    if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
-    showToast(language === 'en' ? `Order saved: ${result.orderNumber}. Send the message from WhatsApp.` : `تم حفظ الطلب رقم ${result.orderNumber}. أرسل الرسالة من واتساب.`);
+    try { await generateOrderReceiptPdf(orderSnapshot, language); } catch (pdfError) { console.warn('Receipt PDF generation failed', pdfError); }
+    const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
+    $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
+    $('downloadReceiptBtn').textContent = language === 'en' ? 'Download receipt PDF' : 'تحميل الوصل PDF';
+    $('whatsappOrderBtn').innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${language === 'en' ? 'Send via WhatsApp' : 'إرسال عبر واتساب'}`;
+    modal('orderSuccessModal', true);
   } catch (e) {
     const code = e.message;
     showToast(code === 'ORDER_BACKEND_NOT_CONFIGURED'
@@ -1716,6 +1725,17 @@ function bindBuilderPageEvents() {
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
   $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
+}
+
+function bindReceiptEvents() {
+  $('closeOrderSuccessBtn')?.addEventListener('click', () => modal('orderSuccessModal', false));
+  $('downloadReceiptBtn')?.addEventListener('click', async () => {
+    if (!pendingReceipt) return;
+    const button = $('downloadReceiptBtn'); const label = button.textContent; button.disabled = true; button.textContent = language === 'en' ? 'Preparing PDF...' : 'جارٍ تجهيز الوصل...';
+    try { await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language); } catch { showToast(language === 'en' ? 'Could not generate the PDF.' : 'تعذر إنشاء ملف PDF.'); }
+    finally { button.disabled = false; button.textContent = label; }
+  });
+  $('whatsappOrderBtn')?.addEventListener('click', () => { if (pendingReceipt?.whatsappNumber) window.open(`https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(pendingReceipt.whatsappMessage || '')}`, '_blank', 'noopener'); });
 }
 
 function bindUpgradePageEvents() {
@@ -1964,6 +1984,7 @@ onAuthStateChanged(auth, (user) => {
 
 // ===== Init =====
 bindAppearanceEvents();
+bindReceiptEvents();
 readCart();
 readBuilder();
 readUpgrade();

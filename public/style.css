@@ -766,6 +766,9 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
 .order-summary{background:var(--soft);border-radius:10px;padding:10px;display:grid;gap:5px;font-size:11px}
 .order-summary span,.order-summary strong{display:flex;justify-content:space-between}
 .order-summary b{color:var(--red)}
+.order-success-modal{width:min(520px,92vw)}
+.order-success-body{gap:14px}.order-success-body>p:first-child{font-size:17px;font-weight:800;text-align:center;color:var(--green,#168e70)}
+.order-success-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.order-success-actions .btn{min-height:44px}
 .order-summary strong{font-size:14px;padding-top:4px;border-top:1px solid var(--line)}
 .product-modal{width:min(720px,94vw)}
 .product-detail{display:grid;grid-template-columns:minmax(200px,.85fr) minmax(0,1.15fr);gap:16px}
