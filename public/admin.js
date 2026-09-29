@@ -1159,6 +1159,40 @@ function updateProductCompatibilityFields() {
     show('supportedRamTypesField', isMotherboard);
 }
 
+function adminSpecificationEntries(source) {
+    if (Array.isArray(source)) return source.map((item) => ({
+        key_ar: String(item?.key_ar ?? item?.keyAr ?? item?.key ?? ''), key_en: String(item?.key_en ?? item?.keyEn ?? item?.key ?? ''),
+        value_ar: String(item?.value_ar ?? item?.valueAr ?? item?.value ?? ''), value_en: String(item?.value_en ?? item?.valueEn ?? item?.en ?? item?.value ?? '')
+    }));
+    return Object.entries(source && typeof source === 'object' ? source : {}).map(([key, value]) => ({
+        key_ar: key, key_en: typeof value === 'object' ? String(value.key_en ?? value.keyEn ?? value.en ?? '') : '',
+        value_ar: typeof value === 'object' ? String(value.value_ar ?? value.valueAr ?? value.ar ?? value.value ?? '') : String(value ?? ''),
+        value_en: typeof value === 'object' ? String(value.value_en ?? value.valueEn ?? value.en ?? value.value ?? '') : ''
+    }));
+}
+function renderProductSpecsEditor(source = []) {
+    const editor = document.getElementById('prodSpecsEditor');
+    if (!editor) return;
+    const entries = adminSpecificationEntries(source);
+    editor.innerHTML = `<div class="spec-editor-head"><span>الاسم بالعربي</span><span>Property in English</span><span>القيمة بالعربي</span><span>Value in English</span><span></span></div>` +
+        entries.map((item) => `<div class="spec-editor-row"><input type="text" data-spec-field="key_ar" value="${escapeHtml(item.key_ar)}" maxlength="80"><input type="text" data-spec-field="key_en" value="${escapeHtml(item.key_en)}" maxlength="80"><input type="text" data-spec-field="value_ar" value="${escapeHtml(item.value_ar)}" maxlength="180"><input type="text" data-spec-field="value_en" value="${escapeHtml(item.value_en)}" maxlength="180"><button type="button" class="btn btn-outline" data-remove-spec aria-label="حذف المواصفة"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+}
+function readProductSpecsEditor() {
+    return [...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].map((row) => Object.fromEntries([...row.querySelectorAll('[data-spec-field]')].map((input) => [input.dataset.specField, input.value.trim()]))).filter((item) => item.key_ar || item.key_en || item.value_ar || item.value_en).slice(0, 18);
+}
+document.getElementById('addSpecRowBtn')?.addEventListener('click', () => {
+    const current = readProductSpecsEditor();
+    current.push({ key_ar: '', key_en: '', value_ar: '', value_en: '' });
+    renderProductSpecsEditor(current);
+});
+document.getElementById('prodSpecsEditor')?.addEventListener('click', (event) => {
+    const remove = event.target.closest('[data-remove-spec]');
+    if (!remove) return;
+    const rows = readProductSpecsEditor();
+    rows.splice([...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].indexOf(remove.closest('.spec-editor-row')), 1);
+    renderProductSpecsEditor(rows);
+});
+
 window.openProductModal = function(id = null) {
     closeCategoryModal();
     closeOrderModal();
@@ -1187,7 +1221,8 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodStock').value = prod.stock || '';
             document.getElementById('prodWarranty').value = prod.warranty || '';
             document.getElementById('prodDesc').value = prod.description || '';
-            document.getElementById('prodSpecs').value = Object.entries(prod.specifications || prod.specs || {}).map(([key, value]) => `${key}: ${value}`).join('\n');
+            renderProductSpecsEditor(prod.specifications || prod.specs || {});
+            document.getElementById('prodBuilderOnly').checked = prod.builderOnly === true;
             const gallery = (Array.isArray(prod.images) ? prod.images : []).filter(Boolean).slice(0, 5);
             const primary = prod.image || gallery[0] || '';
             window.currentProductGalleryImages = [primary, ...gallery.filter((image) => image !== primary)].filter(Boolean).slice(0, 5);
@@ -1217,6 +1252,8 @@ window.openProductModal = function(id = null) {
     } else {
         document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
         document.getElementById('prodStatus').value = 'published';
+        renderProductSpecsEditor([]);
+        document.getElementById('prodBuilderOnly').checked = false;
     }
 
     updateProductCompatibilityFields();
@@ -1233,26 +1270,8 @@ document.getElementById('prodCategory')?.addEventListener('change', updateProduc
 document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('prodId').value;
-    const specsText = document.getElementById('prodSpecs').value.trim();
-    const specifications = {};
-    for (const line of specsText.split(/\r?\n/).filter(Boolean)) {
-        const separator = line.indexOf(':');
-        if (separator <= 0 || separator >= line.length - 1) {
-            alert('صيغة المواصفات غير صحيحة. استخدم «اسم المواصفة: القيمة» بكل سطر.');
-            return;
-        }
-        const key = line.slice(0, separator).trim();
-        const value = line.slice(separator + 1).trim();
-        if (!key || !value || key.length > 80 || value.length > 180 || key.includes('/') || key.includes('.')) {
-            alert('تأكد من طول اسم المواصفة وقيمتها، ولا تستخدم / أو . داخل اسم المواصفة.');
-            return;
-        }
-        if (Object.keys(specifications).length >= 18 && !Object.hasOwn(specifications, key)) {
-            alert('الحد الأقصى 18 مواصفة لكل منتج.');
-            return;
-        }
-        specifications[key] = value;
-    }
+    const specifications = readProductSpecsEditor();
+    if (specifications.some((item) => [item.key_ar, item.key_en].some((value) => value.includes('/') || value.includes('.')))) { alert('لا تستخدم / أو . داخل اسم المواصفة.'); return; }
     const retailPrice = Number(document.getElementById('prodPrice').value);
     const wholesaleRaw = document.getElementById('prodWholesalePrice').value;
     const specialRaw = document.getElementById('prodSpecialPrice').value;
@@ -1285,6 +1304,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         warranty: document.getElementById('prodWarranty').value.trim(),
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
+        builderOnly: document.getElementById('prodBuilderOnly').checked === true,
         image: (window.currentProductGalleryImages || []).filter(Boolean)[0] || document.getElementById('prodImage').value.trim(),
         images: (window.currentProductGalleryImages || []).filter(Boolean).slice(0, 5),
         ...(compatibility && Object.keys(compatibility).length ? { compatibility } : {}),

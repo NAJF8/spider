@@ -837,6 +837,10 @@
                         <input type="number" id="prodOriginalPrice" placeholder="مثال: 1400000">
                     </div>
                     <div class="form-group">
+                        <label class="checkbox-label"><input type="checkbox" id="prodBuilderOnly"> يباع مع التجميعة فقط</label>
+                        <small class="form-hint">يبقى المنتج ظاهرًا وقابلًا للاختيار داخل Builder، ولا يُباع منفردًا.</small>
+                    </div>
+                    <div class="form-group">
                         <label>المخزون المتوفر</label>
                         <input type="number" id="prodStock" placeholder="الكمية المتوفرة" min="0">
                     </div>
@@ -849,9 +853,10 @@
                         <textarea id="prodDesc" placeholder="نبذة عن المنتج..."></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="prodSpecs">مواصفات المقارنة (اختياري)</label>
-                        <textarea id="prodSpecs" rows="5" maxlength="3500" placeholder="Socket: AM5&#10;الأنوية: 8&#10;الذاكرة: DDR5"></textarea>
-                        <small class="form-hint">اكتب كل مواصفة بسطر بصيغة «اسم المواصفة: القيمة». هذه البيانات تظهر في مقارنة المنتجات، ولا نولّد مواصفات من الوصف تلقائياً.</small>
+                        <label>مواصفات المنتج ثنائية اللغة (اختياري)</label>
+                        <div id="prodSpecsEditor" class="spec-editor"></div>
+                        <button type="button" class="btn btn-outline btn-sm" id="addSpecRowBtn">إضافة مواصفة</button>
+                        <small class="form-hint">لكل مواصفة أدخل الاسم والقيمة بالعربية والإنجليزية. المنتجات القديمة ذات الصيغة العربية تبقى مدعومة وتظهر fallback آمنًا.</small>
                     </div>
                     <div class="form-group">
                         <label>صورة المنتج</label>

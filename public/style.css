@@ -260,10 +260,11 @@ img{max-width:100%;display:block}
 /* No toggle button — always visible */
 .categories-section{padding-top:20px;padding-bottom:8px}
 .categories-row{
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  gap: 10px 12px;
-  justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
   padding: 10px 6px;
 }
 
@@ -271,7 +272,7 @@ img{max-width:100%;display:block}
 
 .cat-circle-item{
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  cursor: pointer; width: 100%;
+  cursor: pointer; width: 84px; flex: 0 0 84px;
 }
 .cat-circle-item.active .cat-circle{
   border-color:var(--red);
@@ -879,7 +880,8 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
   /* Categories */
   .cat-circle{width:64px;height:64px}
   .cat-name{font-size:10px;max-width:64px}
-  .categories-row{grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 10px; padding: 10px 4px;}
+  .categories-row{flex-wrap:nowrap;justify-content:flex-start;gap:10px;overflow-x:auto;overscroll-behavior-inline:contain;padding:10px 4px 14px;scrollbar-width:thin}
+  .cat-circle-item{width:72px;flex-basis:72px}
   .categories-section{padding-top:16px}
 
   /* Products grid: 2 columns */

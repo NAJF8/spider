@@ -759,7 +759,8 @@ async function handleRequest(request, env) {
 
         const normalizedItems = items.map(item => ({
           id: String(item?.id || ''),
-          qty: Number(item?.qty)
+          qty: Number(item?.qty),
+          source: item?.source === 'builder' ? 'builder' : 'store'
         }));
         if (normalizedItems.some(item => !item.id || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100)) {
           return errorResponse('INVALID_ITEM_QUANTITY', 400);
@@ -815,14 +816,19 @@ async function handleRequest(request, env) {
             accountType = normalizePricingTier(profile);
           }
         }
-        const privatePricesRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`);
+        const [privatePricesRes, builderDiscountsRes] = await Promise.all([
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`),
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/builder_discounts.json${databaseQuery}`)
+        ]);
         const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
+        const builderDiscounts = builderDiscountsRes.ok ? ((await builderDiscountsRes.json()) || {}) : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
         if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
           return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
         }
 
         let subtotal = 0;
+        let builderDiscount = 0;
         const verifiedItems = [];
 
         for (const item of normalizedItems) {
@@ -830,6 +836,7 @@ async function handleRequest(request, env) {
           if (!liveProd || liveProd.isHidden || liveProd.status !== 'published') {
             return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
           }
+          if (liveProd.builderOnly === true && item.source !== 'builder') return errorResponse(`BUILDER_ONLY_PRODUCT_${item.id}`, 400);
           
           const availableStock = liveProd.stockQuantity ?? liveProd.stock;
           if (availableStock !== undefined && availableStock !== null && Number(availableStock) < item.qty) {
@@ -839,25 +846,36 @@ async function handleRequest(request, env) {
           const privatePrice = privatePrices[item.id] || {};
           const livePrice = resolveProductPrice(liveProd, privatePrice, accountType);
           if (livePrice <= 0) return errorResponse(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
+          const discountRecord = builderDiscounts[item.id] || {};
+          const rawDiscount = Number(discountRecord.value);
+          const itemDiscount = item.source === 'builder' && discountRecord.enabled === true && Number.isFinite(rawDiscount) && rawDiscount > 0
+            ? Math.min(livePrice, discountRecord.type === 'percentage' ? Math.round(livePrice * Math.min(100, rawDiscount) / 100) : Math.round(rawDiscount))
+            : 0;
           subtotal += (livePrice * item.qty);
+          builderDiscount += (itemDiscount * item.qty);
+          const finalUnitPrice = livePrice - itemDiscount;
           verifiedItems.push({
             id: item.id,
             product_id: item.id,
             name: liveProd.name,
             product_name: liveProd.name,
-            price: livePrice,
-            unit_price: livePrice,
+            price: finalUnitPrice,
+            unit_price: finalUnitPrice,
+            base_unit_price: livePrice,
+            builder_discount: itemDiscount,
+            source: item.source,
             pricing_tier_applied: accountType,
             public_price_snapshot: positivePrice(liveProd?.public_price ?? liveProd?.retail_price ?? liveProd?.price),
             special_price_snapshot: positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice),
             wholesale_price_snapshot: positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice),
-            line_total: livePrice * item.qty,
+            line_total: finalUnitPrice * item.qty,
             qty: item.qty,
             quantity: item.qty
           });
         }
 
-        const grandTotal = subtotal + deliveryFee;
+        const finalSubtotal = subtotal - builderDiscount;
+        const grandTotal = finalSubtotal + deliveryFee;
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
 
@@ -874,6 +892,8 @@ async function handleRequest(request, env) {
           addressDetails: String(customer.addressDetails || customer.address || ''),
           notes: String(customer.notes || ''),
           subtotal,
+          builderDiscount,
+          finalSubtotal,
           deliveryFee,
           grandTotal,
           timestamp: Date.now(),
@@ -897,7 +917,8 @@ async function handleRequest(request, env) {
         const responsePayload = {
           success: true,
           orderNumber,
-          subtotal,
+          subtotal: finalSubtotal,
+          builderDiscount,
           deliveryFee,
           grandTotal,
           items: verifiedItems
