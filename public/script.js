@@ -1307,12 +1307,13 @@ function readCart() {
   try {
     const saved = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
     state.cart = Array.isArray(saved)
-      ? saved.filter((i) => i?.id && Number(i.qty) > 0).map((i) => ({ id: String(i.id), qty: Math.min(100, Math.floor(Number(i.qty))), ...(i.builderSource ? { builderSource: true } : {}) }))
+      ? saved.filter((i) => i?.id && Number(i.qty) > 0).map((i) => ({ id: String(i.id), qty: Math.min(100, Math.floor(Number(i.qty))), ...(i.builderSource ? { builderSource: true } : {}), ...(i.nameSnapshot ? { nameSnapshot: String(i.nameSnapshot).slice(0, 200) } : {}) }))
       : [];
   } catch { state.cart = []; }
 }
 function saveCart() { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.cart)); }
 function cartProduct(item) { return state.products.find((p) => p.id === item.id); }
+const cartItemLabel = (item) => item?.nameSnapshot || CATALOG_TRANSLATIONS.products?.[String(item?.id || '')] || String(item?.id || '');
 
 function _addItemToCartLogic(productId, source = 'store') {
   const product = state.products.find((p) => p.id === productId);
@@ -1321,7 +1322,7 @@ function _addItemToCartLogic(productId, source = 'store') {
   if (!isAvailable(product) || productPrice(product) <= 0) { openAvailability(productId); return false; }
   const item = state.cart.find((e) => e.id === productId);
   if (item) { item.qty = Math.min(100, item.qty + 1); item.builderSource = item.builderSource || source === 'builder'; }
-  else state.cart.push({ id: productId, qty: 1, ...(source === 'builder' ? { builderSource: true } : {}) });
+  else state.cart.push({ id: productId, qty: 1, nameSnapshot: productName(product), ...(source === 'builder' ? { builderSource: true } : {}) });
   return true;
 }
 
@@ -1359,9 +1360,14 @@ function renderCart() {
   $('floatingCartBadge').textContent = count;
   let total = 0;
   const tier = normalizePricingTier(state.accountProfile);
+  let hasUnavailableItems = false;
   const rows = state.cart.map((item, idx) => {
     const p = cartProduct(item);
-    if (!p) return '';
+    if (!p) {
+      hasUnavailableItems = true;
+      const label = cartItemLabel(item);
+      return `<div class="cart-item cart-item-unavailable"><div><div class="cart-item-title">${esc(label)}</div><div class="cart-item-price">${language === 'en' ? 'No longer available' : 'لم يعد متوفراً حالياً'}</div><div class="cart-item-actions"><button class="remove-btn" type="button" data-remove="${idx}"><i class="fa-solid fa-trash"></i> ${language === 'en' ? 'Remove' : 'إزالة'}</button></div></div></div>`;
+    }
     const appliedPrice = item.builderSource ? builderProductPrice(p) : productPrice(p);
     item.applied_price = appliedPrice;
     item.pricing_tier = tier;
@@ -1381,8 +1387,8 @@ function renderCart() {
   }).filter(Boolean);
   $('cartItemsList').innerHTML = rows.length ? rows.join('') : `<div class="empty-state">${t('emptyCart')}</div>`;
   $('cartTotalValue').textContent = formatPrice(total);
-  $('checkoutBtn').disabled = !rows.length;
-  if ($('clearCartBtn')) { $('clearCartBtn').disabled = !rows.length; $('clearCartBtn').classList.toggle('hidden', !rows.length); }
+  $('checkoutBtn').disabled = !rows.length || hasUnavailableItems;
+  if ($('clearCartBtn')) { $('clearCartBtn').disabled = !state.cart.length; $('clearCartBtn').classList.toggle('hidden', !state.cart.length); }
   $('cartItemsList').querySelectorAll('[data-qty]').forEach((btn) => btn.addEventListener('click', () => {
     const [idx, delta] = btn.dataset.qty.split(':').map(Number);
     state.cart[idx].qty += delta;
@@ -1652,6 +1658,12 @@ function normalizeIraqPhone(value) {
 }
 // ===== Checkout =====
 function openCheckout() {
+  const unavailable = state.cart.find((item) => !cartProduct(item));
+  if (unavailable) {
+    showToast(language === 'en' ? `Remove unavailable product: ${cartItemLabel(unavailable)}` : `أزل المنتج غير المتوفر: ${cartItemLabel(unavailable)}`);
+    openCart();
+    return;
+  }
   const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p ? (item.builderSource ? builderProductPrice(p) : productPrice(p)) * item.qty : 0); }, 0);
   $('checkoutSubtotal').textContent = formatPrice(total);
   $('checkoutDeliveryFee').textContent = formatPrice(deliveryFee);
@@ -1712,7 +1724,11 @@ async function submitCheckout(event) {
     modal('orderSuccessModal', true);
   } catch (e) {
     const code = e.message;
-    showToast(code === 'ORDER_BACKEND_NOT_CONFIGURED'
+    const unavailableMatch = String(code || '').match(/^PRODUCT_UNAVAILABLE_(.+)$/);
+    if (unavailableMatch) {
+      const unavailableItem = state.cart.find((item) => String(item.id) === unavailableMatch[1]);
+      showToast(language === 'en' ? `Product unavailable: ${cartItemLabel(unavailableItem) || unavailableMatch[1]}. Remove it from your cart.` : `المنتج «${cartItemLabel(unavailableItem) || unavailableMatch[1]}» لم يعد متوفراً. أزله من السلة ثم أعد المحاولة.`);
+    } else showToast(code === 'ORDER_BACKEND_NOT_CONFIGURED'
       ? (language === 'en' ? 'Checkout is paused: the Worker needs the Firebase secret before saving.' : 'إتمام الطلب متوقف: يحتاج Worker إلى سر Firebase قبل الحفظ.')
       : code === 'DELIVERY_FEE_NOT_CONFIGURED'
         ? (language === 'en' ? 'Set the delivery fee in Admin first.' : 'اعتمد رسم التوصيل من الأدمن أولاً.')
