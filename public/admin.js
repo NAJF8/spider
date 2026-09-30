@@ -39,6 +39,8 @@ let isDemoMode = false;
 let currentProcessedImageBase64 = null;
 let currentProcessedImageName = null;
 let originalProductImageFile = null;
+let pendingProductImageFiles = [];
+let productImagePreviewUrls = [];
 let originalCategoryImageFile = null;
 let productImageObjectUrl = null;
 let categoryImageObjectUrl = null;
@@ -1116,8 +1118,11 @@ function resetProductImageState() {
         activeProductImageUpload = null;
     }
     if (productImageObjectUrl) URL.revokeObjectURL(productImageObjectUrl);
+    productImagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    productImagePreviewUrls = [];
     productImageObjectUrl = null;
     originalProductImageFile = null;
+    pendingProductImageFiles = [];
     currentProcessedImageBase64 = null;
     currentProcessedImageName = null;
     isUploadingImage = false;
@@ -2331,6 +2336,35 @@ function prepareOriginalImage(file, previewId, detailsId, containerId, kind) {
     container.style.display = 'block';
 }
 
+function prepareProductImages(files) {
+    const selected = [...(files || [])];
+    if (!selected.length) throw new Error('IMAGE_REQUIRED');
+    if (selected.some((file) => !file || !String(file.type || '').toLowerCase().startsWith('image/'))) throw new Error('IMAGE_TYPE_UNSUPPORTED');
+    if (selected.some((file) => !IMAGE_UPLOAD_MIME_TYPES.has(String(file.type || '').toLowerCase()))) throw new Error('IMAGE_TYPE_UNSUPPORTED');
+    const galleryLength = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages.length : 0;
+    if (galleryLength + pendingProductImageFiles.length + selected.length > 5) throw new Error('IMAGE_LIMIT');
+
+    pendingProductImageFiles.push(...selected);
+    const nextUrls = selected.map((file) => URL.createObjectURL(file));
+    productImagePreviewUrls.push(...nextUrls);
+    originalProductImageFile = pendingProductImageFiles[0] || null;
+    productImageObjectUrl = productImagePreviewUrls[0] || null;
+
+    const preview = document.getElementById('imagePreview');
+    const details = document.getElementById('imageDetails');
+    const container = document.getElementById('imagePreviewContainer');
+    if (preview && productImageObjectUrl) {
+        preview.src = productImageObjectUrl;
+        preview.onload = () => {
+            const count = pendingProductImageFiles.length;
+            details.textContent = `${count} صورة جاهزة للرفع | الأبعاد الأصلية: ${preview.naturalWidth}×${preview.naturalHeight} بكسل`;
+        };
+    }
+    if (container) container.style.display = 'block';
+    const fileInput = document.getElementById('prodImageFile');
+    if (fileInput) fileInput.value = '';
+}
+
 function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progressId, statusId, kind) {
     return new Promise(async (resolve, reject) => {
         try {
@@ -2412,6 +2446,41 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
     });
 }
 
+async function uploadPendingProductImages() {
+    if (!pendingProductImageFiles.length) throw new Error('IMAGE_REQUIRED');
+    const files = [...pendingProductImageFiles];
+    const urls = [...productImagePreviewUrls];
+    pendingProductImageFiles = [];
+    productImagePreviewUrls = [];
+    originalProductImageFile = null;
+    productImageObjectUrl = null;
+    let completed = 0;
+    try {
+        for (let index = 0; index < files.length; index += 1) {
+            await uploadOriginalImage(files[index], 'prodImage', 'confirmUploadBtn', 'uploadImageBtn', 'imageUploadProgress', 'imageUploadStatus', 'product');
+            if (urls[index]) URL.revokeObjectURL(urls[index]);
+            completed = index + 1;
+        }
+        const preview = document.getElementById('imagePreview');
+        const gallery = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages : [];
+        if (preview && gallery.length) preview.src = gallery[gallery.length - 1];
+    } finally {
+        if (completed < files.length) {
+            pendingProductImageFiles = files.slice(completed);
+            productImagePreviewUrls = urls.slice(completed);
+            originalProductImageFile = pendingProductImageFiles[0] || null;
+            productImageObjectUrl = productImagePreviewUrls[0] || null;
+            const preview = document.getElementById('imagePreview');
+            if (preview && productImageObjectUrl) preview.src = productImageObjectUrl;
+        } else {
+            urls.forEach((url) => URL.revokeObjectURL(url));
+            productImageObjectUrl = null;
+            document.getElementById('imageDetails').textContent = 'تم رفع الصور الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
+        }
+        document.getElementById('imagePreviewContainer')?.style.setProperty('display', 'block');
+    }
+}
+
 document.addEventListener('click', (event) => {
     const target = event.target.closest?.('#uploadImageBtn, #uploadCatImageBtn, #confirmUploadBtn, #confirmCatUploadBtn');
     if (!target) return;
@@ -2419,22 +2488,26 @@ document.addEventListener('click', (event) => {
     event.stopImmediatePropagation();
     const product = target.id.includes('Cat') === false;
     if (target.id === 'uploadImageBtn' || target.id === 'uploadCatImageBtn') {
-        const file = document.getElementById(product ? 'prodImageFile' : 'catImageFile')?.files?.[0];
+        const fileInput = document.getElementById(product ? 'prodImageFile' : 'catImageFile');
         try {
-            prepareOriginalImage(file, product ? 'imagePreview' : 'catImagePreview', product ? 'imageDetails' : 'catImageDetails', product ? 'imagePreviewContainer' : 'catImagePreviewContainer', product ? 'product' : 'category');
+            if (product) prepareProductImages(fileInput?.files);
+            else prepareOriginalImage(fileInput?.files?.[0], 'catImagePreview', 'catImageDetails', 'catImagePreviewContainer', 'category');
         } catch (error) {
             console.error('Image preview failed:', error);
             alert(imageUploadErrorMessage(error.message));
         }
         return;
     }
-    const file = product ? originalProductImageFile : originalCategoryImageFile;
+    const file = product ? pendingProductImageFiles[0] : originalCategoryImageFile;
     if (!file || isUploadingImage) {
         alert('الرجاء اختيار الصورة ومعاينتها أولاً.');
         return;
     }
     isUploadingImage = true;
-    uploadOriginalImage(file, product ? 'prodImage' : 'catImage', target.id, product ? 'uploadImageBtn' : 'uploadCatImageBtn', product ? 'imageUploadProgress' : 'catImageUploadProgress', product ? 'imageUploadStatus' : 'catImageUploadStatus', product ? 'product' : 'category')
+    const uploadPromise = product
+        ? uploadPendingProductImages()
+        : uploadOriginalImage(file, 'catImage', target.id, 'uploadCatImageBtn', 'catImageUploadProgress', 'catImageUploadStatus', 'category');
+    uploadPromise
         .then(() => {
             const preview = document.getElementById(product ? 'imagePreviewContainer' : 'catImagePreviewContainer');
             if (preview) preview.style.display = 'block';
