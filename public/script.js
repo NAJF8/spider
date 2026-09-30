@@ -1670,18 +1670,34 @@ function checkoutPayload(form) {
   return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
 }
 
+function checkoutDebugSummary(payload) {
+  const items = payload.items || [];
+  const subtotal = items.reduce((sum, item) => {
+    const cartItem = state.cart.find((entry) => String(entry.id) === String(item.id));
+    const product = cartItem ? cartProduct(cartItem) : null;
+    const unitPrice = cartItem?.builderSource ? builderProductPrice(product) : productPrice(product);
+    return sum + (Number(unitPrice) || 0) * Number(item.qty || 0);
+  }, 0);
+  return { itemCount: items.length, productIds: items.map((item) => item.id), quantities: items.map((item) => item.qty), subtotal, deliveryFee: Number(deliveryFee || 0), total: subtotal + Number(deliveryFee || 0), orderType: items.some((item) => item.source === 'builder') ? 'builder' : 'normal', builderItems: items.filter((item) => item.source === 'builder').length };
+}
+
 async function submitCheckout(event) {
   event.preventDefault();
   const submit = event.currentTarget.querySelector('button[type="submit"]');
   const label = submit.textContent;
   try {
     const payload = checkoutPayload(event.currentTarget);
+    const debugSummary = checkoutDebugSummary(payload);
+    console.log('Checkout payload summary', debugSummary);
     submit.disabled = true; submit.textContent = language === 'en' ? 'Validating and saving...' : 'جارٍ التحقق والحفظ...';
     const headers = { 'Content-Type': 'application/json', 'X-Request-Id': payload.requestId };
     if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
     const response = await fetch(`${BACKEND_URL}/api/store/checkout`, { method: 'POST', headers, body: JSON.stringify(payload) });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.success) throw new Error(result.error || 'CHECKOUT_FAILED');
+    if (!response.ok || !result.success) {
+      console.error('Checkout failed', { status: response.status, code: result.code || result.error || 'CHECKOUT_FAILED', message: result.message || null, validationStage: result.validationStage || null, details: result.details || null, requestId: payload.requestId, summary: debugSummary });
+      throw new Error(result.error || result.code || 'CHECKOUT_FAILED');
+    }
     const orderSnapshot = { ...result, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
     pendingReceipt = { order: orderSnapshot, language, whatsappNumber: normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942') };
     const lines = (orderSnapshot.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');

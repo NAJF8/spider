@@ -749,14 +749,20 @@ async function handleRequest(request, env) {
         const body = await request.json();
         const { items, customer } = body;
         const requestId = String(body.requestId || request.headers?.get?.('X-Request-Id') || '').trim();
+        let validationStage = 'request-shape';
+        const rejectCheckout = (code, status, details = {}) => {
+          console.log(JSON.stringify({ event: 'checkout_rejected', validationStage, code, status, itemCount: Array.isArray(items) ? items.length : 0, productIds: Array.isArray(items) ? items.slice(0, 20).map((item) => String(item?.id || '')) : [] }));
+          return errorResponse(code, status, details);
+        };
 
         if (!items || !Array.isArray(items) || items.length === 0) {
-          return errorResponse('CART_EMPTY', 400);
+          return rejectCheckout('CART_EMPTY', 400);
         }
         if (!customer || !customer.name || !customer.phone) {
-          return errorResponse('CUSTOMER_INFO_MISSING', 400);
+          return rejectCheckout('CUSTOMER_INFO_MISSING', 400);
         }
 
+        validationStage = 'item-shape';
         const normalizedItems = items.map(item => ({
           id: String(item?.id || ''),
           qty: Number(item?.qty),
@@ -764,12 +770,13 @@ async function handleRequest(request, env) {
           builderPart: String(item?.builderPart || '').trim()
         }));
         if (normalizedItems.some(item => !item.id || !Number.isInteger(item.qty) || item.qty < 1 || item.qty > 100)) {
-          return errorResponse('INVALID_ITEM_QUANTITY', 400);
+          return rejectCheckout('INVALID_ITEM_QUANTITY', 400);
         }
         if (new Set(normalizedItems.map(item => item.id)).size !== normalizedItems.length) {
-          return errorResponse('DUPLICATE_ITEM', 400);
+          return rejectCheckout('DUPLICATE_ITEM', 400);
         }
 
+        validationStage = 'backend-config';
         const databaseSecret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!databaseSecret) {
           return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
@@ -779,7 +786,7 @@ async function handleRequest(request, env) {
         // A client retry may safely replay the same response after the first save.
         // The request id is opaque and contains no customer data.
         if (requestId && !/^[A-Za-z0-9_-]{16,100}$/.test(requestId)) {
-          return errorResponse('INVALID_REQUEST_ID', 400);
+          return rejectCheckout('INVALID_REQUEST_ID', 400);
         }
         if (requestId) {
           const replayRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/checkout_requests/${encodeURIComponent(requestId)}.json${databaseQuery}`);
@@ -791,6 +798,7 @@ async function handleRequest(request, env) {
           }
         }
 
+        validationStage = 'catalog-and-settings';
         // Fetch live products and settings
         const [productsRes, settingsRes] = await Promise.all([
           fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json${databaseQuery}`),
@@ -832,21 +840,22 @@ async function handleRequest(request, env) {
         let builderDiscount = 0;
         const verifiedItems = [];
 
+        validationStage = 'product-validation';
         for (const item of normalizedItems) {
           const liveProd = productsObj[item.id];
           if (!liveProd || liveProd.isHidden || liveProd.status !== 'published') {
-            return errorResponse(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
+            return rejectCheckout(`PRODUCT_UNAVAILABLE_${item.id}`, 400);
           }
-          if (liveProd.builderOnly === true && item.source !== 'builder') return errorResponse(`BUILDER_ONLY_PRODUCT_${item.id}`, 400);
+          if (liveProd.builderOnly === true && item.source !== 'builder') return rejectCheckout(`BUILDER_ONLY_PRODUCT_${item.id}`, 400);
           
           const availableStock = liveProd.stockQuantity ?? liveProd.stock;
           if (availableStock !== undefined && availableStock !== null && Number(availableStock) < item.qty) {
-            return errorResponse(`OUT_OF_STOCK_${item.id}`, 400);
+            return rejectCheckout(`OUT_OF_STOCK_${item.id}`, 400);
           }
 
           const privatePrice = privatePrices[item.id] || {};
           const livePrice = resolveProductPrice(liveProd, privatePrice, accountType);
-          if (livePrice <= 0) return errorResponse(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
+          if (livePrice <= 0) return rejectCheckout(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
           const discountRecord = builderDiscounts[item.id] || {};
           const rawDiscount = Number(discountRecord.value);
           const itemDiscount = item.source === 'builder' && discountRecord.enabled === true && Number.isFinite(rawDiscount) && rawDiscount > 0
