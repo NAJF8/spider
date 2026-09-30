@@ -1369,12 +1369,14 @@ function renderCart() {
   let total = 0;
   const tier = normalizePricingTier(state.accountProfile);
   let hasUnavailableItems = false;
+  const unavailableLabels = [];
   const rows = state.cart.map((item, idx) => {
     const p = cartProduct(item);
     if (!p) {
       hasUnavailableItems = true;
       const label = cartItemLabel(item);
-      return `<div class="cart-item cart-item-unavailable"><div><div class="cart-item-title">${esc(label)}</div><div class="cart-item-price">${language === 'en' ? 'No longer available' : 'لم يعد متوفراً حالياً'}</div><div class="cart-item-actions"><button class="remove-btn" type="button" data-remove="${idx}"><i class="fa-solid fa-trash"></i> ${language === 'en' ? 'Remove' : 'إزالة'}</button></div></div></div>`;
+      unavailableLabels.push(label);
+      return `<div class="cart-item cart-item-unavailable"><div class="cart-item-unavailable-copy"><div class="cart-item-title">${esc(label)}</div><div class="cart-item-price">${language === 'en' ? 'No longer available' : 'لم يعد متوفراً حالياً'}</div><div class="cart-item-actions"><button class="remove-btn" type="button" data-remove="${idx}"><i class="fa-solid fa-trash"></i> ${language === 'en' ? 'Remove' : 'إزالة'}</button></div></div></div>`;
     }
     const appliedPrice = item.builderSource ? builderProductPrice(p) : productPrice(p);
     item.applied_price = appliedPrice;
@@ -1393,9 +1395,16 @@ function renderCart() {
         <button class="remove-btn" type="button" data-remove="${idx}"><i class="fa-solid fa-trash"></i></button>
       </div></div></div>`;
   }).filter(Boolean);
-  $('cartItemsList').innerHTML = rows.length ? rows.join('') : `<div class="empty-state">${t('emptyCart')}</div>`;
+  const unavailableWarning = hasUnavailableItems
+    ? `<div class="cart-unavailable-warning" role="alert"><strong>${language === 'en' ? 'Some products are no longer available' : 'بعض المنتجات لم تعد متوفرة'}</strong><span>${language === 'en' ? `Remove: ${unavailableLabels.map(esc).join(', ')}` : `أزل المنتجات التالية قبل إتمام الطلب: ${unavailableLabels.map(esc).join('، ')}`}</span></div>`
+    : '';
+  $('cartItemsList').innerHTML = rows.length ? `${unavailableWarning}${rows.join('')}` : `<div class="empty-state">${t('emptyCart')}</div>`;
   $('cartTotalValue').textContent = formatPrice(total);
   $('checkoutBtn').disabled = !rows.length || hasUnavailableItems;
+  $('checkoutBtn').setAttribute('aria-disabled', String(!rows.length || hasUnavailableItems));
+  $('checkoutBtn').title = hasUnavailableItems
+    ? (language === 'en' ? 'Remove unavailable products before checkout' : 'أزل المنتجات غير المتوفرة قبل إتمام الطلب')
+    : '';
   if ($('clearCartBtn')) { $('clearCartBtn').disabled = !state.cart.length; $('clearCartBtn').classList.toggle('hidden', !state.cart.length); }
   $('cartItemsList').querySelectorAll('[data-qty]').forEach((btn) => btn.addEventListener('click', () => {
     const [idx, delta] = btn.dataset.qty.split(':').map(Number);

@@ -736,6 +736,7 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
 .cart-footer>div{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;font-size:12px}
 .cart-footer strong{color:var(--red);font-size:18px}
 .cart-footer .btn{width:100%;min-height:44px;font-size:13px}
+.cart-footer .btn:disabled{background:#d9dde3;border-color:#d9dde3;color:#6c7480;cursor:not-allowed;opacity:1;box-shadow:none}
 .cart-footer .cart-clear-btn{margin-bottom:8px;min-height:38px;font-size:12px}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}.modal-actions .btn{min-width:110px}
 
@@ -769,7 +770,7 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
 .order-success-modal{width:min(520px,92vw)}
 .order-success-body{gap:14px}.order-success-body>p:first-child{font-size:17px;font-weight:800;text-align:center;color:var(--green,#168e70)}
 .order-success-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.order-success-actions .btn{min-height:44px}
-.cart-item-unavailable{border:1px solid #e5a8a8;background:#fff7f7}.cart-item-unavailable .cart-item-price{color:var(--red)}
+.cart-unavailable-warning{display:grid;gap:3px;margin:0 0 9px;padding:8px 9px;border:1px solid #e5a8a8;border-radius:8px;background:#fff7f7;color:var(--red-dark,#a71920);font-size:11px;line-height:1.45}.cart-unavailable-warning strong{font-size:11px}.cart-unavailable-warning span{color:#7e3236}.cart-item-unavailable{display:block;border:1px solid #e5a8a8;background:#fff7f7;padding:8px 9px;margin:0 0 7px;border-radius:8px}.cart-item-unavailable-copy{min-width:0}.cart-item-unavailable .cart-item-title{overflow-wrap:anywhere}.cart-item-unavailable .cart-item-price{color:var(--red);margin:2px 0 4px}.cart-item-unavailable .cart-item-actions{justify-content:flex-start}.cart-item-unavailable .remove-btn{margin-inline-start:0;width:auto;min-width:58px;padding:0 8px}
 .order-summary strong{font-size:14px;padding-top:4px;border-top:1px solid var(--line)}
 .product-modal{width:min(720px,94vw)}
 .product-detail{display:grid;grid-template-columns:minmax(200px,.85fr) minmax(0,1.15fr);gap:16px}
