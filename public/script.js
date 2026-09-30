@@ -26,6 +26,7 @@ let pendingReceipt = null;
 
 const state = {
   products: [],
+  productsLoaded: false,
   categories: [],
   categoryLoad: 'loading',
   cart: [],
@@ -1355,6 +1356,13 @@ function addMultipleToCart(productIds, successMsg, source = 'store') {
 function renderCart() {
   if (!$('cartItemsList')) return;
   saveCart();
+  if (!state.productsLoaded) {
+    $('cartItemsList').innerHTML = state.cart.length ? `<div class="empty-state">${language === 'en' ? 'Loading current product availability...' : 'جارٍ تحميل حالة المنتجات الحالية...'}</div>` : `<div class="empty-state">${t('emptyCart')}</div>`;
+    $('cartTotalValue').textContent = formatPrice(0);
+    $('checkoutBtn').disabled = true;
+    if ($('clearCartBtn')) { $('clearCartBtn').disabled = !state.cart.length; $('clearCartBtn').classList.toggle('hidden', !state.cart.length); }
+    return;
+  }
   const count = state.cart.reduce((sum, i) => sum + i.qty, 0);
   $('cartBadge').textContent = count;
   $('floatingCartBadge').textContent = count;
@@ -1984,6 +1992,7 @@ onValue(ref(db, 'products'), (snapshot) => {
     const prod = { id: child.key, ...child.val() };
     if (prod.status === 'published' && !prod.isHidden) state.products.push(prod);
   });
+  state.productsLoaded = true;
   renderProducts();
   renderBrands();
   renderBuilder();
