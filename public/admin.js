@@ -38,11 +38,9 @@ let activeOrderTab = 'all';
 let isDemoMode = false;
 let currentProcessedImageBase64 = null;
 let currentProcessedImageName = null;
-let originalProductImageFile = null;
-let pendingProductImageFiles = [];
-let productImagePreviewUrls = [];
+let productImageItems = [];
+let activeProductImageId = null;
 let originalCategoryImageFile = null;
-let productImageObjectUrl = null;
 let categoryImageObjectUrl = null;
 let activeProductImageUpload = null;
 let isUploadingImage = false;
@@ -1112,21 +1110,88 @@ document.getElementById('productCategoryFilter')?.addEventListener('change', ren
 document.getElementById('productStatusFilter')?.addEventListener('change', renderProductsManagementTable);
 
 // Product CRUD
+function productImageId() {
+    return globalThis.crypto?.randomUUID?.() || `product-image-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function productImagePreviewItem(item) {
+    return item?.previewUrl || item?.uploadedUrl || item?.url || '';
+}
+
+function productImagePrimary() {
+    return productImageItems.find((item) => item.isPrimary) || productImageItems[0] || null;
+}
+
+function syncProductImageFields() {
+    const primary = productImagePrimary();
+    const uploaded = productImageItems.map((item) => item.uploadedUrl).filter(Boolean).slice(0, 5);
+    const primaryUrl = primary?.uploadedUrl || '';
+    const hidden = document.getElementById('prodImage');
+    if (hidden) hidden.value = primaryUrl;
+    return { primaryUrl, uploaded };
+}
+
+function revokeProductImagePreview(item) {
+    if (item?.sourceType === 'local' && item.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(item.previewUrl);
+}
+
+function setProductImageState(items, activeId = null) {
+    productImageItems = items.filter(Boolean).slice(0, 5);
+    if (productImageItems.length && !productImageItems.some((item) => item.isPrimary)) productImageItems[0].isPrimary = true;
+    const primary = productImagePrimary();
+    productImageItems.forEach((item, index) => { item.isPrimary = primary ? item.id === primary.id : index === 0; });
+    activeProductImageId = productImageItems.some((item) => item.id === activeId)
+        ? activeId
+        : (primary?.id || productImageItems[0]?.id || null);
+    syncProductImageFields();
+    if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
+}
+
+function createRemoteProductImageItem(url, isPrimary = false) {
+    return { id: productImageId(), sourceType: 'remote', file: null, url, previewUrl: url, uploadedUrl: url, isPrimary, uploadStatus: 'uploaded' };
+}
+
+function createLocalProductImageItem(file) {
+    const previewUrl = URL.createObjectURL(file);
+    return { id: productImageId(), sourceType: 'local', file, url: previewUrl, previewUrl, uploadedUrl: null, isPrimary: false, uploadStatus: 'pending', signature: `${file.name}:${file.size}:${file.lastModified}` };
+}
+
+function productImageItemsFromProduct(product) {
+    const urls = [product?.image, ...(Array.isArray(product?.images) ? product.images : [])].filter(Boolean);
+    return [...new Set(urls)].slice(0, 5).map((url, index) => createRemoteProductImageItem(url, index === 0));
+}
+
+function updateProductMainPreview() {
+    const preview = document.getElementById('imagePreview');
+    const details = document.getElementById('imageDetails');
+    const container = document.getElementById('imagePreviewContainer');
+    const active = productImageItems.find((item) => item.id === activeProductImageId) || productImagePrimary();
+    const source = productImagePreviewItem(active);
+    if (!preview || !container) return;
+    if (!source) {
+        preview.removeAttribute('src');
+        container.style.display = 'none';
+        if (details) details.textContent = '';
+        return;
+    }
+    preview.src = source;
+    container.style.display = 'block';
+    if (details) details.textContent = active?.sourceType === 'local'
+        ? `${productImageItems.filter((item) => item.sourceType === 'local' && !item.uploadedUrl).length} صورة جاهزة للرفع`
+        : 'الصورة الحالية للمنتج';
+}
+
 function resetProductImageState() {
     if (activeProductImageUpload) {
         activeProductImageUpload.abort();
         activeProductImageUpload = null;
     }
-    if (productImageObjectUrl) URL.revokeObjectURL(productImageObjectUrl);
-    productImagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-    productImagePreviewUrls = [];
-    productImageObjectUrl = null;
-    originalProductImageFile = null;
-    pendingProductImageFiles = [];
+    productImageItems.forEach(revokeProductImagePreview);
+    productImageItems = [];
+    activeProductImageId = null;
     currentProcessedImageBase64 = null;
     currentProcessedImageName = null;
     isUploadingImage = false;
-    window.currentProductGalleryImages = [];
     const file = document.getElementById('prodImageFile');
     const hidden = document.getElementById('prodImage');
     const preview = document.getElementById('imagePreview');
@@ -1145,7 +1210,7 @@ function resetProductImageState() {
     const prepareButton = document.getElementById('uploadImageBtn');
     const uploadButton = document.getElementById('confirmUploadBtn');
     if (prepareButton) { prepareButton.disabled = false; prepareButton.textContent = 'معاينة الصورة'; }
-    if (uploadButton) { uploadButton.disabled = false; uploadButton.textContent = 'رفع الصورة إلى GitHub'; }
+    if (uploadButton) { uploadButton.disabled = false; uploadButton.textContent = 'رفع الصور إلى GitHub'; }
     if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
 }
 
@@ -1228,10 +1293,8 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodDesc').value = prod.description || '';
             renderProductSpecsEditor(prod.specifications || prod.specs || {});
             document.getElementById('prodBuilderOnly').checked = prod.builderOnly === true;
-            const gallery = (Array.isArray(prod.images) ? prod.images : []).filter(Boolean).slice(0, 5);
-            const primary = prod.image || gallery[0] || '';
-            window.currentProductGalleryImages = [primary, ...gallery.filter((image) => image !== primary)].filter(Boolean).slice(0, 5);
-            document.getElementById('prodImage').value = primary;
+            const imageItems = productImageItemsFromProduct(prod);
+            setProductImageState(imageItems, imageItems[0]?.id || null);
 
             const compatibility = prod.compatibility || {};
             document.getElementById('prodCpuSocket').value = compatibility.socket || compatibility.cpuSocket || prod.socket || prod.cpuSocket || '';
@@ -1247,11 +1310,6 @@ window.openProductModal = function(id = null) {
             }
             document.getElementById('prodStatus').value = currentStatus;
 
-            if (primary) {
-                document.getElementById('imagePreview').src = primary;
-                document.getElementById('imageDetails').textContent = 'الصورة الحالية للمنتج';
-                document.getElementById('imagePreviewContainer').style.display = 'block';
-            }
             renderAdminGallery();
         }
     } else {
@@ -1295,6 +1353,11 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         const ramType = document.getElementById('prodRamType').value.trim();
         compatibility = ramType ? { ramType } : {};
     }
+    const imageFields = syncProductImageFields();
+    if (productImageItems.some((item) => item.uploadStatus !== 'uploaded' || !item.uploadedUrl)) {
+        alert('يرجى رفع جميع صور المنتج إلى GitHub قبل الحفظ.');
+        return;
+    }
     const prodData = {
         name: document.getElementById('prodName').value.trim(),
         category: categoryId,
@@ -1310,8 +1373,8 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         description: document.getElementById('prodDesc').value.trim(),
         specifications,
         builderOnly: document.getElementById('prodBuilderOnly').checked === true,
-        image: (window.currentProductGalleryImages || []).filter(Boolean)[0] || document.getElementById('prodImage').value.trim(),
-        images: (window.currentProductGalleryImages || []).filter(Boolean).slice(0, 5),
+        image: imageFields.primaryUrl,
+        images: imageFields.uploaded,
         ...(compatibility && Object.keys(compatibility).length ? { compatibility } : {}),
         status: document.getElementById('prodStatus').value,
         isHidden: document.getElementById('prodStatus').value !== 'published',
@@ -2282,6 +2345,7 @@ function imageUploadErrorMessage(code, upstreamStatus = '') {
         AUTH_REQUIRED: 'انتهت جلسة الدخول. سجّل الدخول مجدداً.',
         IMAGE_REQUIRED: 'لم يتم اختيار صورة.',
         IMAGE_LIMIT: 'لا يمكن إضافة أكثر من 5 صور للمنتج.',
+        IMAGE_DUPLICATE: 'هذه الصورة مضافة مسبقاً.',
         IMAGE_TYPE_UNSUPPORTED: 'نوع الصورة غير مدعوم أو لا يطابق محتوى الملف.',
         IMAGE_TOO_LARGE: 'حجم الصورة أكبر من الحد المسموح به للخدمة.',
         GITHUB_UPLOAD_NOT_CONFIGURED: 'خدمة تخزين الصور غير مهيأة.',
@@ -2314,15 +2378,10 @@ function prepareOriginalImage(file, previewId, detailsId, containerId, kind) {
         throw new Error('IMAGE_TYPE_UNSUPPORTED');
     }
     const nextUrl = URL.createObjectURL(file);
-    const previousUrl = kind === 'product' ? productImageObjectUrl : categoryImageObjectUrl;
+    const previousUrl = categoryImageObjectUrl;
     if (previousUrl) URL.revokeObjectURL(previousUrl);
-    if (kind === 'product') {
-        productImageObjectUrl = nextUrl;
-        originalProductImageFile = file;
-    } else {
-        categoryImageObjectUrl = nextUrl;
-        originalCategoryImageFile = file;
-    }
+    categoryImageObjectUrl = nextUrl;
+    originalCategoryImageFile = file;
     const preview = document.getElementById(previewId);
     const details = document.getElementById(detailsId);
     const container = document.getElementById(containerId);
@@ -2341,26 +2400,20 @@ function prepareProductImages(files) {
     if (!selected.length) throw new Error('IMAGE_REQUIRED');
     if (selected.some((file) => !file || !String(file.type || '').toLowerCase().startsWith('image/'))) throw new Error('IMAGE_TYPE_UNSUPPORTED');
     if (selected.some((file) => !IMAGE_UPLOAD_MIME_TYPES.has(String(file.type || '').toLowerCase()))) throw new Error('IMAGE_TYPE_UNSUPPORTED');
-    const galleryLength = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages.length : 0;
-    if (galleryLength + pendingProductImageFiles.length + selected.length > 5) throw new Error('IMAGE_LIMIT');
-
-    pendingProductImageFiles.push(...selected);
-    const nextUrls = selected.map((file) => URL.createObjectURL(file));
-    productImagePreviewUrls.push(...nextUrls);
-    originalProductImageFile = pendingProductImageFiles[0] || null;
-    productImageObjectUrl = productImagePreviewUrls[0] || null;
-
-    const preview = document.getElementById('imagePreview');
-    const details = document.getElementById('imageDetails');
-    const container = document.getElementById('imagePreviewContainer');
-    if (preview && productImageObjectUrl) {
-        preview.src = productImageObjectUrl;
-        preview.onload = () => {
-            const count = pendingProductImageFiles.length;
-            details.textContent = `${count} صورة جاهزة للرفع | الأبعاد الأصلية: ${preview.naturalWidth}×${preview.naturalHeight} بكسل`;
-        };
+    const signatures = new Set(productImageItems.filter((item) => item.sourceType === 'local').map((item) => item.signature));
+    const available = Math.max(0, 5 - productImageItems.length);
+    const accepted = [];
+    for (const file of selected) {
+        const signature = `${file.name}:${file.size}:${file.lastModified}`;
+        if (signatures.has(signature)) continue;
+        if (accepted.length >= available) break;
+        signatures.add(signature);
+        accepted.push(createLocalProductImageItem(file));
     }
-    if (container) container.style.display = 'block';
+    if (!accepted.length) throw new Error(selected.length > available ? 'IMAGE_LIMIT' : 'IMAGE_DUPLICATE');
+    if (accepted.length < selected.length) alert(`تمت إضافة ${accepted.length} صورة فقط. الحد الأقصى هو 5 صور، وتم تجاهل الصور المكررة أو الزائدة.`);
+    const nextItems = [...productImageItems, ...accepted];
+    setProductImageState(nextItems, activeProductImageId || accepted[0]?.id);
     const fileInput = document.getElementById('prodImageFile');
     if (fileInput) fileInput.value = '';
 }
@@ -2369,11 +2422,7 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
     return new Promise(async (resolve, reject) => {
         try {
             if (!file) throw new Error('IMAGE_REQUIRED');
-            const isCategory = kind === 'category';
-            if (!isCategory && Array.isArray(window.currentProductGalleryImages) && window.currentProductGalleryImages.length >= 5) throw new Error('IMAGE_LIMIT');
-            const permission = isCategory
-                ? 'categories'
-                : (document.getElementById('prodId')?.value ? 'products_edit' : 'products_add');
+            const permission = 'categories';
             if (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true) {
                 throw new Error('FORBIDDEN');
             }
@@ -2381,8 +2430,8 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             if (!token) throw new Error('AUTH_REQUIRED');
             const formData = new FormData();
             const uniqueSuffix = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12);
-            const operation = isCategory ? 'category' : (permission === 'products_edit' ? 'edit' : 'add');
-            const filename = `${isCategory ? 'category' : 'product'}-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
+            const operation = 'category';
+            const filename = `category-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
             formData.append('image', file, file.name);
             formData.append('filename', filename);
             formData.append('contentType', file.type || '');
@@ -2390,7 +2439,6 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             formData.append('operation', operation);
 
             const xhr = new XMLHttpRequest();
-            if (kind === 'product') activeProductImageUpload = xhr;
             const button = document.getElementById(buttonId);
             const prepButton = document.getElementById(prepButtonId);
             const progress = document.getElementById(progressId);
@@ -2423,19 +2471,11 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
                 // just-uploaded file immediately; keep path only as a legacy fallback.
                 const canonicalUrl = data.rawUrl || data.imageUrl || data.path;
                 document.getElementById(targetInputId).value = canonicalUrl;
-                if (kind === 'product') {
-                    const gallery = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages : [];
-                    if (!gallery.includes(canonicalUrl)) gallery.push(canonicalUrl);
-                    window.currentProductGalleryImages = gallery.slice(0, 5);
-                    if (!document.getElementById('prodImage').value) document.getElementById('prodImage').value = window.currentProductGalleryImages[0] || '';
-                    if (typeof window.renderAdminGallery === 'function') window.renderAdminGallery();
-                }
                 progress.value = 100;
                 status.textContent = 'تم رفع الصورة الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
                 resolve(data);
             };
             xhr.onloadend = () => {
-                if (kind === 'product' && activeProductImageUpload === xhr) activeProductImageUpload = null;
             };
             xhr.open('POST', `${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`);
             xhr.setRequestHeader('Authorization', `Bearer ${token}`);
@@ -2446,39 +2486,79 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
     });
 }
 
+function uploadProductImageItem(item, index, total) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!item?.file) throw new Error('IMAGE_REQUIRED');
+            const permission = document.getElementById('prodId')?.value ? 'products_edit' : 'products_add';
+            if (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true) throw new Error('FORBIDDEN');
+            const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+            if (!token) throw new Error('AUTH_REQUIRED');
+            const formData = new FormData();
+            const uniqueSuffix = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12);
+            const filename = `product-${Date.now()}-${uniqueSuffix}-${safeImageName(item.file.name)}`;
+            formData.append('image', item.file, item.file.name);
+            formData.append('filename', filename);
+            formData.append('contentType', item.file.type || '');
+            formData.append('kind', 'product');
+            formData.append('operation', permission === 'products_edit' ? 'edit' : 'add');
+            const xhr = new XMLHttpRequest();
+            activeProductImageUpload = xhr;
+            const button = document.getElementById('confirmUploadBtn');
+            const prepButton = document.getElementById('uploadImageBtn');
+            const progress = document.getElementById('imageUploadProgress');
+            const status = document.getElementById('imageUploadStatus');
+            item.uploadStatus = 'uploading';
+            if (button) { button.disabled = true; button.textContent = `رفع الصور إلى GitHub (${index + 1}/${total})`; }
+            if (prepButton) prepButton.disabled = true;
+            if (progress) { progress.hidden = false; progress.value = 0; }
+            if (status) status.textContent = `جاري رفع الصورة ${index + 1} من ${total}... 0%`;
+            xhr.upload.onprogress = (event) => {
+                if (!event.lengthComputable) return;
+                const percent = Math.round((event.loaded / event.total) * 100);
+                if (progress) progress.value = percent;
+                if (status) status.textContent = `جاري رفع الصورة ${index + 1} من ${total}... ${percent}%`;
+            };
+            xhr.onerror = () => { item.uploadStatus = 'error'; reject(new Error('NETWORK_ERROR')); };
+            xhr.onload = () => {
+                let data = {};
+                try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* handled below */ }
+                if (xhr.status < 200 || xhr.status >= 300 || !data.success) {
+                    item.uploadStatus = 'error';
+                    const error = new Error(data.error || 'IMAGE_UPLOAD_FAILED');
+                    error.upstreamStatus = Number.isInteger(data.upstreamStatus) ? data.upstreamStatus : 0;
+                    reject(error);
+                    return;
+                }
+                const canonicalUrl = data.rawUrl || data.imageUrl || data.path;
+                revokeProductImagePreview(item);
+                item.url = canonicalUrl;
+                item.previewUrl = canonicalUrl;
+                item.uploadedUrl = canonicalUrl;
+                item.file = null;
+                item.uploadStatus = 'uploaded';
+                syncProductImageFields();
+                renderAdminGallery();
+                resolve(data);
+            };
+            xhr.onloadend = () => { if (activeProductImageUpload === xhr) activeProductImageUpload = null; };
+            xhr.open('POST', `${SPIDER_BACKEND_ENDPOINT}/api/admin/products/upload-image`);
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            xhr.send(formData);
+        } catch (error) {
+            item.uploadStatus = 'error';
+            reject(error);
+        }
+    });
+}
+
 async function uploadPendingProductImages() {
-    if (!pendingProductImageFiles.length) throw new Error('IMAGE_REQUIRED');
-    const files = [...pendingProductImageFiles];
-    const urls = [...productImagePreviewUrls];
-    pendingProductImageFiles = [];
-    productImagePreviewUrls = [];
-    originalProductImageFile = null;
-    productImageObjectUrl = null;
-    let completed = 0;
-    try {
-        for (let index = 0; index < files.length; index += 1) {
-            await uploadOriginalImage(files[index], 'prodImage', 'confirmUploadBtn', 'uploadImageBtn', 'imageUploadProgress', 'imageUploadStatus', 'product');
-            if (urls[index]) URL.revokeObjectURL(urls[index]);
-            completed = index + 1;
-        }
-        const preview = document.getElementById('imagePreview');
-        const gallery = Array.isArray(window.currentProductGalleryImages) ? window.currentProductGalleryImages : [];
-        if (preview && gallery.length) preview.src = gallery[gallery.length - 1];
-    } finally {
-        if (completed < files.length) {
-            pendingProductImageFiles = files.slice(completed);
-            productImagePreviewUrls = urls.slice(completed);
-            originalProductImageFile = pendingProductImageFiles[0] || null;
-            productImageObjectUrl = productImagePreviewUrls[0] || null;
-            const preview = document.getElementById('imagePreview');
-            if (preview && productImageObjectUrl) preview.src = productImageObjectUrl;
-        } else {
-            urls.forEach((url) => URL.revokeObjectURL(url));
-            productImageObjectUrl = null;
-            document.getElementById('imageDetails').textContent = 'تم رفع الصور الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
-        }
-        document.getElementById('imagePreviewContainer')?.style.setProperty('display', 'block');
-    }
+    const pending = productImageItems.filter((item) => item.sourceType === 'local' && item.uploadedUrl === null);
+    if (!pending.length) throw new Error('IMAGE_REQUIRED');
+    for (let index = 0; index < pending.length; index += 1) await uploadProductImageItem(pending[index], index, pending.length);
+    syncProductImageFields();
+    updateProductMainPreview();
+    document.getElementById('imageDetails').textContent = 'تم رفع الصور الأصلية بنجاح. يمكنك الآن حفظ المنتج.';
 }
 
 document.addEventListener('click', (event) => {
@@ -2490,7 +2570,10 @@ document.addEventListener('click', (event) => {
     if (target.id === 'uploadImageBtn' || target.id === 'uploadCatImageBtn') {
         const fileInput = document.getElementById(product ? 'prodImageFile' : 'catImageFile');
         try {
-            if (product) prepareProductImages(fileInput?.files);
+            if (product) {
+                if (fileInput?.files?.length) prepareProductImages(fileInput.files);
+                else updateProductMainPreview();
+            }
             else prepareOriginalImage(fileInput?.files?.[0], 'catImagePreview', 'catImageDetails', 'catImagePreviewContainer', 'category');
         } catch (error) {
             console.error('Image preview failed:', error);
@@ -2498,7 +2581,9 @@ document.addEventListener('click', (event) => {
         }
         return;
     }
-    const file = product ? pendingProductImageFiles[0] : originalCategoryImageFile;
+    const file = product
+        ? productImageItems.find((item) => item.sourceType === 'local' && item.uploadedUrl === null)?.file
+        : originalCategoryImageFile;
     if (!file || isUploadingImage) {
         alert('الرجاء اختيار الصورة ومعاينتها أولاً.');
         return;
@@ -2518,6 +2603,17 @@ document.addEventListener('click', (event) => {
         })
         .finally(() => { isUploadingImage = false; });
 }, true);
+
+document.getElementById('prodImageFile')?.addEventListener('change', (event) => {
+    try {
+        prepareProductImages(event.target.files);
+    } catch (error) {
+        console.error('Image selection failed:', error);
+        alert(imageUploadErrorMessage(error.message));
+    } finally {
+        event.target.value = '';
+    }
+});
 
 window.seedDraftCatalog = async function() {
     let newCatsCount = 0;
@@ -3208,63 +3304,56 @@ document.getElementById('resetPinForm')?.addEventListener('submit', async (e) =>
 });
 
 
-window.currentProductGalleryImages = [];
 window.renderAdminGallery = function() {
     const container = document.getElementById('adminGalleryContainer');
     if (!container) return;
-    const gallery = Array.isArray(window.currentProductGalleryImages)
-        ? window.currentProductGalleryImages.filter(Boolean).slice(0, 5)
-        : [];
-    window.currentProductGalleryImages = gallery;
-    const prodImageInput = document.getElementById('prodImage');
-    const primary = prodImageInput ? prodImageInput.value : '';
     container.innerHTML = '';
-    
-    // Add limit check
     const uploadBtn = document.getElementById('uploadImageBtn');
-    if (uploadBtn) {
-        uploadBtn.style.display = gallery.length >= 5 ? 'none' : 'block';
+    if (uploadBtn) uploadBtn.style.display = productImageItems.length >= 5 ? 'none' : 'block';
+    const uploadButton = document.getElementById('confirmUploadBtn');
+    const hasPending = productImageItems.some((item) => item.sourceType === 'local' && item.uploadedUrl === null);
+    if (uploadButton) {
+        uploadButton.textContent = hasPending ? 'رفع الصور إلى GitHub' : 'رفع الصور إلى GitHub';
+        uploadButton.disabled = !hasPending;
     }
-
-    gallery.forEach((imgUrl, index) => {
-        const isPrimary = imgUrl === primary;
-        const item = document.createElement('div');
-        item.className = 'admin-gallery-item' + (isPrimary ? ' primary' : '');
-        item.innerHTML = `
+    productImageItems.forEach((imageItem) => {
+        const isPrimary = imageItem.isPrimary;
+        const imageUrl = productImagePreviewItem(imageItem);
+        const cardItem = document.createElement('div');
+        cardItem.className = 'admin-gallery-item' + (isPrimary ? ' primary' : '') + (imageItem.id === activeProductImageId ? ' active' : '');
+        cardItem.innerHTML = `
             ${isPrimary ? '<div class="admin-gallery-badge">الرئيسية</div>' : ''}
-            <img src="${String(imgUrl).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}">
+            <img src="${String(imageUrl).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}" data-image-preview="${imageItem.id}">
             <div class="admin-gallery-actions">
-                ${!isPrimary ? `<button type="button" class="admin-gallery-btn" onclick="setPrimaryImage('${imgUrl}')" title="جعلها الرئيسية"><i class="fa-solid fa-star"></i></button>` : ''}
-                <button type="button" class="admin-gallery-btn" onclick="removeGalleryImage('${imgUrl}')" title="حذف"><i class="fa-solid fa-trash"></i></button>
+                ${!isPrimary ? '<button type="button" class="admin-gallery-btn" data-image-action="primary" title="جعلها الرئيسية"><i class="fa-solid fa-star"></i></button>' : ''}
+                <button type="button" class="admin-gallery-btn" data-image-action="remove" title="حذف"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
-        container.appendChild(item);
+        cardItem.dataset.imageId = imageItem.id;
+        container.appendChild(cardItem);
     });
+    syncProductImageFields();
+    updateProductMainPreview();
 };
 
-window.setPrimaryImage = function(url) {
-    if (!Array.isArray(window.currentProductGalleryImages)) window.currentProductGalleryImages = [];
-    const prodImageInput = document.getElementById('prodImage');
-    if (prodImageInput) prodImageInput.value = url;
-    
-    // Move primary image to index 0
-    const idx = window.currentProductGalleryImages.indexOf(url);
-    if (idx > -1) {
-        window.currentProductGalleryImages.splice(idx, 1);
-        window.currentProductGalleryImages.unshift(url);
+document.getElementById('adminGalleryContainer')?.addEventListener('click', (event) => {
+    const card = event.target.closest('[data-image-id]');
+    if (!card) return;
+    const image = productImageItems.find((item) => item.id === card.dataset.imageId);
+    if (!image) return;
+    const action = event.target.closest('[data-image-action]')?.dataset.imageAction;
+    if (action === 'remove') {
+        if (!confirm('هل أنت متأكد من إزالة هذه الصورة؟')) return;
+        revokeProductImagePreview(image);
+        productImageItems = productImageItems.filter((item) => item.id !== image.id);
+        setProductImageState(productImageItems, activeProductImageId === image.id ? null : activeProductImageId);
+        return;
     }
-    renderAdminGallery();
-};
-
-window.removeGalleryImage = function(url) {
-    if (!confirm('هل أنت متأكد من إزالة هذه الصورة؟')) return;
-    if (!Array.isArray(window.currentProductGalleryImages)) window.currentProductGalleryImages = [];
-    const idx = window.currentProductGalleryImages.indexOf(url);
-    if (idx > -1) window.currentProductGalleryImages.splice(idx, 1);
-    
-    const prodImageInput = document.getElementById('prodImage');
-    if (prodImageInput && prodImageInput.value === url) {
-        prodImageInput.value = window.currentProductGalleryImages.length ? window.currentProductGalleryImages[0] : '';
+    if (action === 'primary') {
+        productImageItems.forEach((item) => { item.isPrimary = item.id === image.id; });
+        setProductImageState(productImageItems, image.id);
+        return;
     }
+    activeProductImageId = image.id;
     renderAdminGallery();
-};
+});
