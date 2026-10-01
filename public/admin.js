@@ -2677,6 +2677,13 @@ onValue(ref(db, 'settings'), (snapshot) => {
     Object.entries(fields).forEach(([id, value]) => { const el = document.getElementById(id); if (el) el.value = value; });
     const chatbotEnabled = document.getElementById('settingChatbotEnabled');
     if (chatbotEnabled) chatbotEnabled.checked = storeSettings.chatbotEnabled !== false;
+    const buildDiscount = storeSettings.buildGlobalDiscount || {};
+    const buildDiscountEnabled = document.getElementById('settingBuildGlobalDiscountEnabled');
+    const buildDiscountType = document.getElementById('settingBuildGlobalDiscountType');
+    const buildDiscountValue = document.getElementById('settingBuildGlobalDiscountValue');
+    if (buildDiscountEnabled) buildDiscountEnabled.checked = buildDiscount.enabled === true;
+    if (buildDiscountType) buildDiscountType.value = buildDiscount.type === 'fixed' ? 'fixed' : 'percentage';
+    if (buildDiscountValue) buildDiscountValue.value = Number.isFinite(Number(buildDiscount.value)) ? Number(buildDiscount.value) : '';
     const elWa = document.getElementById('settingWhatsapp');
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
@@ -2701,6 +2708,8 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
 
     const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
+    const buildDiscountType = document.getElementById('settingBuildGlobalDiscountType').value === 'fixed' ? 'fixed' : 'percentage';
+    const buildDiscountValue = Math.max(0, Number(document.getElementById('settingBuildGlobalDiscountValue').value || 0));
 
     try {
         await update(ref(db, 'settings'), {
@@ -2718,7 +2727,14 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             heroImage: document.getElementById('settingHeroImage').value.trim(),
             lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
-            deliveryFee: df
+            deliveryFee: df,
+            buildGlobalDiscount: {
+                enabled: document.getElementById('settingBuildGlobalDiscountEnabled').checked === true,
+                type: buildDiscountType,
+                value: buildDiscountValue,
+                updatedAt: Date.now(),
+                updatedBy: currentAdminUser?.uid || null
+            }
         });
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {

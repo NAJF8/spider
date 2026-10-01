@@ -504,6 +504,9 @@
                                 <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
                             </div>
                             <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
+                            <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingBuildGlobalDiscountEnabled"><span>تفعيل الخصم العام على التجميعة</span></label><small class="form-hint">يُطبّق على منتجات Builder فقط بعد خصومات المنتجات.</small></div>
+                            <div class="form-group"><label>نوع خصم التجميعة</label><select id="settingBuildGlobalDiscountType"><option value="percentage">نسبة مئوية</option><option value="fixed">مبلغ ثابت (د.ع)</option></select></div>
+                            <div class="form-group"><label>قيمة خصم التجميعة</label><input type="number" id="settingBuildGlobalDiscountValue" min="0" step="1" placeholder="مثال: 5 أو 25000"></div>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
                     </form>

@@ -848,6 +848,7 @@ async function handleRequest(request, env) {
         ]);
         const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
         const builderDiscounts = builderDiscountsRes.ok ? ((await builderDiscountsRes.json()) || {}) : {};
+        const globalDiscountSetting = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
         if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
           return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
@@ -855,6 +856,7 @@ async function handleRequest(request, env) {
 
         let subtotal = 0;
         let builderDiscount = 0;
+        let builderSubtotal = 0;
         const verifiedItems = [];
 
         validationStage = 'product-validation';
@@ -879,6 +881,7 @@ async function handleRequest(request, env) {
             ? Math.min(livePrice, discountRecord.type === 'percentage' ? Math.round(livePrice * Math.min(100, rawDiscount) / 100) : Math.round(rawDiscount))
             : 0;
           subtotal += (livePrice * item.qty);
+          if (item.source === 'builder') builderSubtotal += (livePrice * item.qty);
           builderDiscount += (itemDiscount * item.qty);
           const finalUnitPrice = livePrice - itemDiscount;
           verifiedItems.push({
@@ -902,7 +905,13 @@ async function handleRequest(request, env) {
           });
         }
 
-        const finalSubtotal = subtotal - builderDiscount;
+        const builderAfterProductDiscount = Math.max(0, builderSubtotal - builderDiscount);
+        const rawGlobalDiscount = Number(globalDiscountSetting.value);
+        const globalDiscountValue = globalDiscountSetting.enabled === true && Number.isFinite(rawGlobalDiscount) && rawGlobalDiscount > 0 ? rawGlobalDiscount : 0;
+        const builderGlobalDiscount = globalDiscountSetting.type === 'fixed'
+          ? Math.min(builderAfterProductDiscount, Math.round(globalDiscountValue))
+          : Math.min(builderAfterProductDiscount, Math.round(builderAfterProductDiscount * Math.min(100, globalDiscountValue) / 100));
+        const finalSubtotal = Math.max(0, subtotal - builderDiscount - builderGlobalDiscount);
         const grandTotal = finalSubtotal + deliveryFee;
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
@@ -921,6 +930,7 @@ async function handleRequest(request, env) {
           notes: String(customer.notes || ''),
           subtotal,
           builderDiscount,
+          builderGlobalDiscount,
           finalSubtotal,
           deliveryFee,
           grandTotal,
@@ -949,6 +959,7 @@ async function handleRequest(request, env) {
           subtotal,
           finalSubtotal,
           builderDiscount,
+          builderGlobalDiscount,
           deliveryFee,
           grandTotal,
           items: verifiedItems
