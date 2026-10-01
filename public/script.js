@@ -39,11 +39,13 @@ const state = {
   compare: ['', ''],
   comparePickerSlot: 0,
   builder: {},
+  builderPriceVisible: false,
   upgrade: {}, upgradeIsNew: {},
   builderCatalog: { part: '', category: '', brand: '', search: '' },
   upgradeCatalog: { category: '', brand: '', search: '' },
   availabilityProductId: '',
   accountProfile: null,
+  accountMode: 'account',
   privatePrices: {}
 };
 
@@ -387,7 +389,12 @@ const SIDEBAR_ICONS = UNIFIED_CATEGORY_ICONS;
 // historical FontAwesome contract from `cat.icon` so the two surfaces stay
 // visually independent.
 function sidebarCategoryIcon(cat) {
-  return `<i class="fa-solid ${esc(cat.icon || 'fa-folder')} sidebar-category-fa"></i>`;
+  const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
+  const icon = key.includes('network') || key.includes('شبك') ? 'fa-circle-nodes'
+    : key.includes('power') || key.includes('طاقة') || key.includes('psu') ? 'fa-power-off'
+      : key.includes('accessor') || key.includes('ملحق') ? 'fa-keyboard'
+        : (cat.icon || 'fa-folder');
+  return `<i class="fa-solid ${esc(icon)} sidebar-category-fa"></i>`;
 }
 
 const FALLBACK_IMAGES = {
@@ -663,9 +670,10 @@ function renderProducts() {
 
 function filterProductsByCategory(categoryId) {
   state.filters = { category: categoryId || '', brand: '', search: '' };
-  $('searchInput').value = '';
+  if ($('searchInput')) $('searchInput').value = '';
   renderProducts();
-  document.querySelector('#productsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  closeSidebar();
+  requestAnimationFrame(() => document.querySelector('#productsSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 window.filterProductsByCategory = filterProductsByCategory;
 
@@ -913,12 +921,43 @@ const builderParts = [
   { id: 'gpu',         categoryId: 'cat-gpus',          label: 'كرت الشاشة GPU',     icon: 'fa-display' },
   { id: 'psu',         categoryId: 'cat-psu',           label: 'مزود الطاقة PSU',    icon: 'fa-plug' },
   { id: 'cooling',     categoryId: 'cat-cooling',       label: 'التبريد',            icon: 'fa-fan' },
-  { id: 'case',        categoryId: 'cat-cases',         label: 'الصندوق Case',       icon: 'fa-box' }
+  { id: 'case',        categoryId: 'cat-cases',         label: 'الصندوق Case',       icon: 'fa-box' },
+  { id: 'monitors',    categoryId: 'cat-monitors',     label: 'الشاشات',            icon: 'fa-display' },
+  { id: 'accessories', categoryId: 'cat-accessories',  label: 'ملحقات الكمبيوتر',  icon: 'fa-keyboard' }
 ];
+const MULTI_BUILDER_PARTS = new Set(['ram', 'storage']);
+function builderSelectionIds(partId) {
+  const raw = state.builder?.[partId];
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.flatMap((item) => {
+    if (item && typeof item === 'object') return Array(Math.max(1, Math.min(10, Number(item.qty) || 1))).fill(String(item.id || ''));
+    return [String(item || '')];
+  }).filter(Boolean);
+  return [String(raw)];
+}
+function builderSelectionsForPart(partId) {
+  return builderSelectionIds(partId).map((id) => state.products.find((product) => product.id === id)).filter(Boolean);
+}
+function invalidateBuilderPricing() { state.builderPriceVisible = false; }
+function setBuilderSelection(partId, productId) {
+  if (MULTI_BUILDER_PARTS.has(partId)) {
+    const ids = builderSelectionIds(partId);
+    if (!ids.includes(String(productId))) ids.push(String(productId));
+    state.builder[partId] = ids;
+  } else state.builder[partId] = String(productId);
+  invalidateBuilderPricing();
+}
+function removeBuilderSelection(partId, productId) {
+  const ids = builderSelectionIds(partId).filter((id) => id !== String(productId));
+  if (ids.length) state.builder[partId] = MULTI_BUILDER_PARTS.has(partId) ? ids : ids[0];
+  else delete state.builder[partId];
+  invalidateBuilderPricing();
+}
 const builderPartLabel = (part) => {
   const labels = language === 'en'
     ? { cpu: 'CPU', motherboard: 'Motherboard', ram: 'RAM', gpu: 'GPU', storage: 'Storage', psu: 'Power supply', case: 'Case', cooling: 'Cooling' }
-    : { cpu: 'المعالج CPU', motherboard: 'اللوحة الأم', ram: 'الذاكرة RAM', gpu: 'كرت الشاشة GPU', storage: 'التخزين', psu: 'مزود الطاقة PSU', case: 'الصندوق Case', cooling: 'التبريد' };
+    : { cpu: 'المعالج CPU', motherboard: 'اللوحة الأم', ram: 'الذاكرة RAM', gpu: 'كرت الشاشة GPU', storage: 'التخزين', psu: 'مزود الطاقة PSU', case: 'الصندوق Case', cooling: 'التبريد', monitors: 'الشاشات', accessories: 'ملحقات الكمبيوتر' };
+  if (language === 'en' && labels[part?.id] === undefined) labels.monitors = 'Monitors', labels.accessories = 'Computer accessories';
   return labels[part?.id] || part?.label || (language === 'en' ? 'Part' : 'قطعة');
 };
 
@@ -974,7 +1013,7 @@ function renderBuilderCatalog() {
   if ($('builderCatalogCount')) $('builderCatalogCount').textContent = `${englishDigits(products.length)} ${t('productCount')}`;
   grid.innerHTML = products.length ? products.map((product) => {
     const part = builderPartForProduct(product);
-    const selected = part && state.builder[part.id] === product.id;
+    const selected = part && builderSelectionIds(part.id).includes(product.id);
     const available = isAvailable(product);
     const specs = topSpecs(product);
     return `<article class="builder-product-card ${selected ? 'is-selected' : ''}">
@@ -986,7 +1025,7 @@ function renderBuilderCatalog() {
     const product = state.products.find((item) => item.id === button.dataset.builderProduct);
     const part = product && builderPartForProduct(product);
     if (!product || !part) return;
-    state.builder[part.id] = product.id;
+    setBuilderSelection(part.id, product.id);
     saveBuilder(); renderBuilder();
   }));
 }
@@ -1007,9 +1046,12 @@ function renderBuilderPickerGrid() {
   const part = builderParts.find((item) => item.id === state.builderPickerPart);
   const query = String($('builderPickerSearch')?.value || '').trim().toLowerCase();
   const products = (part ? productsForPart(part) : []).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>${builderPriceMarkup(p)}<small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small></button>`).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => { const selected = builderSelectionIds(part?.id).includes(p.id); return `<button class="compare-picker-option ${selected ? 'is-selected' : ''}" type="button" data-builder-pick="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>${builderPriceMarkup(p)}<small class="stock ${stockLabel(p)[1]}">${selected && MULTI_BUILDER_PARTS.has(part?.id) ? (language === 'en' ? 'Selected — click to remove' : 'مختارة — اضغط للإزالة') : esc(stockLabel(p)[0])}</small></button>`; }).join('') : `<div class="empty-state">${t('noPublished')}</div>`;
   grid.querySelectorAll('[data-builder-pick]').forEach((button) => button.addEventListener('click', () => {
-    state.builder[state.builderPickerPart] = button.dataset.builderPick;
+    const pickerPart = state.builderPickerPart;
+    const pickerId = button.dataset.builderPick;
+    if (MULTI_BUILDER_PARTS.has(pickerPart) && builderSelectionIds(pickerPart).includes(pickerId)) removeBuilderSelection(pickerPart, pickerId);
+    else setBuilderSelection(pickerPart, pickerId);
     saveBuilder(); renderBuilder(); modal('builderPickerModal', false);
   }));
 }
@@ -1024,7 +1066,8 @@ function renderBuilder() {
   const list = $('builderPartsList');
   const incompatibleChecks = builderCompatibilityReport(selectedBuilderProducts()).filter((check) => check.status === 'incompatible');
   list.innerHTML = builderParts.map((part, index) => {
-    const product = state.products.find((p) => p.id === state.builder[part.id]);
+    const selectedProducts = builderSelectionsForPart(part.id);
+    const product = selectedProducts[0];
     const fallback = `assets/category-fallbacks/${part.id === 'case' ? 'computer' : part.id === 'psu' ? 'power' : part.id}.svg?v=2`;
     const label = builderPartLabel(part);
     const warning = incompatibleChecks.some((check) => check.parts.includes(part.id))
@@ -1034,6 +1077,14 @@ function renderBuilder() {
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Choose a published part' : 'اختر قطعة منشورة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
       <button class="builder-empty-choose" type="button" data-builder-change="${esc(part.id)}"><img src="${fallback}" alt=""><span>${language === 'en' ? `Choose ${esc(label)}` : `اختر ${esc(label)}`}</span><i class="fa-solid fa-plus"></i></button>
     </article>`;
+    if (MULTI_BUILDER_PARTS.has(part.id)) {
+      const counts = selectedProducts.reduce((map, item) => map.set(item.id, (map.get(item.id) || 0) + 1), new Map());
+      return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
+        <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Multiple items allowed' : 'يمكن اختيار أكثر من قطعة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
+        <div class="builder-multi-selection">${[...counts.entries()].map(([productId, qty]) => { const item = state.products.find((entry) => entry.id === productId); return `<div class="builder-multi-row"><img src="${esc(imageFor(item))}" alt="${esc(productName(item))}"><div class="builder-part-product-copy"><strong>${esc(productName(item))}</strong><span>${esc(item.model || item.brand || '')}</span></div><span class="builder-qty-badge">×${qty}</span><button class="builder-remove" type="button" data-builder-remove-product="${esc(part.id)}" data-builder-product-id="${esc(productId)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>`; }).join('')}</div>
+        ${warning}<div class="builder-part-actions"><button class="btn btn-primary" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-plus"></i> ${language === 'en' ? 'Add item' : 'إضافة قطعة'}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
+      </article>`;
+    }
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
       <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div>${builderPriceMarkup(product, 'part')}<button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>${warning}
@@ -1047,11 +1098,14 @@ function renderBuilder() {
     const remove = event.target.closest('[data-builder-remove]');
       const change = event.target.closest('[data-builder-change]');
       const cart = event.target.closest('[data-builder-cart]');
+      const removeProduct = event.target.closest('[data-builder-remove-product]');
+      if (removeProduct) { removeBuilderSelection(removeProduct.dataset.builderRemoveProduct, removeProduct.dataset.builderProductId); saveBuilder(); renderBuilder(); return; }
       const partId = remove?.dataset.builderRemove || change?.dataset.builderChange || cart?.dataset.builderCart;
       if (!partId) return;
       if (cart) { addToCart(state.builder[partId]); return; }
       if (change) { openBuilderPicker(partId); return; }
     delete state.builder[partId];
+    invalidateBuilderPricing();
     saveBuilder();
     renderBuilder();
   };
@@ -1076,9 +1130,7 @@ function saveUpgrade() { localStorage.setItem(UPGRADE_STORAGE_KEY, JSON.stringif
   localStorage.setItem('spider.upgrade.isnew.v1', JSON.stringify(state.upgradeIsNew));
 
 function selectedBuilderProducts() {
-  return Object.values(state.builder)
-    .map((id) => state.products.find((p) => p.id === id))
-    .filter(Boolean);
+  return builderParts.flatMap((part) => builderSelectionsForPart(part.id));
 }
 
 function specValue(p, names) {
@@ -1099,9 +1151,10 @@ function productCompatibility(product, field) {
 
 function builderCompatibilityReport(selected = selectedBuilderProducts()) {
   const byCategory = (categoryId) => selected.find((product) => categoryIdFor(product) === categoryId);
+  const allByCategory = (categoryId) => selected.filter((product) => categoryIdFor(product) === categoryId);
   const cpu = byCategory('cat-cpus');
   const motherboard = byCategory('cat-motherboards');
-  const ram = byCategory('cat-ram');
+  const ramProducts = allByCategory('cat-ram');
   const checks = [];
   if (cpu && motherboard) {
     const cpuSocket = productCompatibility(cpu, 'socket');
@@ -1111,13 +1164,15 @@ function builderCompatibilityReport(selected = selectedBuilderProducts()) {
       : 'unknown';
     checks.push({ kind: 'cpu-motherboard', status, parts: ['cpu', 'motherboard'], cpuSocket, motherboardSocket });
   }
-  if (motherboard && ram) {
-    const ramType = productCompatibility(ram, 'ramType');
+  if (motherboard && ramProducts.length) {
     const supported = productCompatibility(motherboard, 'ramTypes');
-    const status = ramType && supported.length
-      ? supported.some((item) => normalizeCompatibilityToken(item) === normalizeCompatibilityToken(ramType)) ? 'compatible' : 'incompatible'
-      : 'unknown';
-    checks.push({ kind: 'motherboard-ram', status, parts: ['motherboard', 'ram'], ramType, supported });
+    ramProducts.forEach((ram, index) => {
+      const ramType = productCompatibility(ram, 'ramType');
+      const status = ramType && supported.length
+        ? supported.some((item) => normalizeCompatibilityToken(item) === normalizeCompatibilityToken(ramType)) ? 'compatible' : 'incompatible'
+        : 'unknown';
+      checks.push({ kind: 'motherboard-ram', status, parts: ['motherboard', 'ram'], ramType, supported, ramIndex: index });
+    });
   }
   return checks;
 }
@@ -1150,8 +1205,14 @@ function compatibilityStatus(selected) {
 function calculateBuilderTotals(selected) {
   const details = selected.map(builderPriceDetails);
   const subtotal = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.basePrice, 0)));
-  const discount = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.discount, 0)));
-  return { subtotal, discount, finalTotal: Math.max(0, subtotal - discount) };
+  const productDiscount = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.discount, 0)));
+  const afterProductDiscount = Math.max(0, subtotal - productDiscount);
+  const global = state.settings?.buildGlobalDiscount;
+  const globalValue = global?.enabled === true ? Math.max(0, Number(global.value) || 0) : 0;
+  const globalDiscount = global?.type === 'fixed'
+    ? Math.min(afterProductDiscount, Math.round(globalValue))
+    : Math.min(afterProductDiscount, Math.round(afterProductDiscount * Math.min(100, globalValue) / 100));
+  return { subtotal, productDiscount, globalDiscount, discount: productDiscount + globalDiscount, finalTotal: Math.max(0, afterProductDiscount - globalDiscount) };
 }
 
 function updateBuilder() {
@@ -1159,16 +1220,20 @@ function updateBuilder() {
   const selected = selectedBuilderProducts();
   const totals = calculateBuilderTotals(selected);
   const total = totals.finalTotal;
-  $('builderTotal').textContent = formatPrice(total);
+  const visible = state.builderPriceVisible === true;
+  $('builderTotal').textContent = visible ? formatPrice(total) : '—';
+  if ($('builderPriceCards')) $('builderPriceCards').hidden = !visible;
   if ($('builderSubtotal')) $('builderSubtotal').textContent = formatPrice(totals.subtotal);
-  if ($('builderDiscount')) $('builderDiscount').textContent = formatPrice(totals.discount);
-  if ($('builderDiscountRow')) $('builderDiscountRow').hidden = totals.discount <= 0;
+  if ($('builderDiscount')) $('builderDiscount').textContent = formatPrice(totals.productDiscount);
+  if ($('builderDiscountRow')) $('builderDiscountRow').hidden = !visible || totals.productDiscount <= 0;
+  if ($('builderGlobalDiscount')) $('builderGlobalDiscount').textContent = formatPrice(totals.globalDiscount);
+  if ($('builderGlobalDiscountRow')) $('builderGlobalDiscountRow').hidden = !visible || totals.globalDiscount <= 0;
   if ($('builderFinalTotal')) $('builderFinalTotal').textContent = formatPrice(totals.finalTotal);
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
   if ($('compatibilityBox')) { $('compatibilityBox').className = `compatibility-box ${tone}`; $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`; }
-  if ($('addBuilderToCartBtn')) $('addBuilderToCartBtn').disabled = !selected.length || tone === 'bad';
-  if ($('quoteBuilderBtn')) $('quoteBuilderBtn').disabled = !selected.length || tone === 'bad';
+  if ($('addBuilderToCartBtn')) $('addBuilderToCartBtn').disabled = !selected.length || tone === 'bad' || !visible;
+  if ($('quoteBuilderBtn')) $('quoteBuilderBtn').disabled = !selected.length || tone === 'bad' || !visible;
 }
 
 function quoteLines(products) {
@@ -1181,6 +1246,15 @@ function openQuote(products = selectedBuilderProducts()) {
   $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>مجموع القطع بعد خصومات المنتجات</span><span>${formatPrice(totals.subtotal)}</span></div><div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
   $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(builderProductPrice(p))}`).join('\n') + `\nمجموع القطع بعد خصومات المنتجات: ${formatPrice(totals.subtotal)}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
   modal('quoteModal', true);
+}
+
+function clearBuilderSelections() {
+  const selected = selectedBuilderProducts();
+  if (selected.length > 1 && !window.confirm(language === 'en' ? 'Clear all selected build products?' : 'هل تريد مسح كل قطع التجميعة؟')) return;
+  state.builder = {};
+  invalidateBuilderPricing();
+  saveBuilder();
+  renderBuilder();
 }
 
 // ===== UPGRADE =====
@@ -1428,10 +1502,25 @@ function openCart() { const wasOpen = $('cartSidebar')?.classList.contains('open
 function closeCart() { const wasOpen = $('cartSidebar')?.classList.contains('open'); $('cartSidebar').classList.remove('open'); $('cartOverlay').classList.remove('open'); if (wasOpen) setScrollLock(false); }
 
 // ===== Product Details Modal =====
+let activeProductGalleryIndex = 0;
+function setProductGalleryImage(index) {
+  const gallery = document.querySelector('#productDetailsBody .product-gallery');
+  let images = [];
+  try { images = gallery?.dataset.images ? JSON.parse(gallery.dataset.images) : []; } catch { images = []; }
+  if (!images.length) return;
+  activeProductGalleryIndex = (index + images.length) % images.length;
+  const main = $('productMainImage');
+  if (main) main.src = images[activeProductGalleryIndex];
+  gallery.querySelectorAll('.product-thumbnail').forEach((thumb, thumbIndex) => thumb.classList.toggle('active', thumbIndex === activeProductGalleryIndex));
+  const indicator = gallery.querySelector('.gallery-indicator');
+  if (indicator) indicator.textContent = `${activeProductGalleryIndex + 1} / ${images.length}`;
+}
+
 function openProductDetails(id) {
   const p = state.products.find((item) => item.id === id);
   if (!p) return;
   activeProductDetailsId = id;
+  activeProductGalleryIndex = 0;
   const specs = specificationEntries(p);
   $('modalProductTitle').textContent = englishDigits(productName(p));
   
@@ -1439,11 +1528,16 @@ function openProductDetails(id) {
       ? p.images.filter(Boolean).slice(0, 5)
       : (p.image ? [p.image] : ['images/default-product.svg?v=2']);
     $('productDetailsBody').innerHTML = `<div class="product-detail">
-      <div class="product-gallery">
+      <div class="product-gallery" data-images='${esc(JSON.stringify(productImages))}'>
+        <div class="product-gallery-stage">
+        <button class="gallery-nav-btn gallery-nav-prev" type="button" data-gallery-prev aria-label="${language === 'en' ? 'Previous image' : 'الصورة السابقة'}" ${productImages.length < 2 ? 'hidden' : ''}><i class="fa-solid fa-chevron-right"></i></button>
         <img src="${esc(productImages[0])}" alt="${esc(productName(p))}" id="productMainImage">
+        <button class="gallery-nav-btn gallery-nav-next" type="button" data-gallery-next aria-label="${language === 'en' ? 'Next image' : 'الصورة التالية'}" ${productImages.length < 2 ? 'hidden' : ''}><i class="fa-solid fa-chevron-left"></i></button>
+        ${productImages.length > 1 ? `<span class="gallery-indicator">1 / ${productImages.length}</span>` : ''}
+        </div>
         ${productImages.length > 1 ? `
         <div class="product-thumbnails">
-          ${productImages.map((img, i) => `<img src="${esc(img)}" class="product-thumbnail ${i===0?'active':''}" onclick="document.getElementById('productMainImage').src='${esc(img)}'; document.querySelectorAll('.product-thumbnail').forEach(t=>t.classList.remove('active')); this.classList.add('active');">`).join('')}
+          ${productImages.map((img, i) => `<button type="button" class="product-thumbnail ${i===0?'active':''}" data-gallery-index="${i}" aria-label="${language === 'en' ? `Image ${i + 1}` : `الصورة ${i + 1}`} "><img src="${esc(img)}" alt=""></button>`).join('')}
         </div>
         ` : ''}
       </div>
@@ -1465,6 +1559,18 @@ function openProductDetails(id) {
   $('productDetailsBody').querySelector('[data-detail-add]')?.addEventListener('click', () => { addToCart(id); modal('productDetailsModal', false); });
   $('productDetailsBody').querySelector('[data-alert]')?.addEventListener('click', () => openAvailability(id));
   $('productDetailsBody').querySelector('[data-favorite]')?.addEventListener('click', () => { toggleFavorite(id); openProductDetails(id); });
+  $('productDetailsBody').querySelector('[data-gallery-prev]')?.addEventListener('click', () => setProductGalleryImage(activeProductGalleryIndex - 1));
+  $('productDetailsBody').querySelector('[data-gallery-next]')?.addEventListener('click', () => setProductGalleryImage(activeProductGalleryIndex + 1));
+  $('productDetailsBody').querySelectorAll('[data-gallery-index]').forEach((button) => button.addEventListener('click', () => setProductGalleryImage(Number(button.dataset.galleryIndex))));
+  const gallery = $('productDetailsBody').querySelector('.product-gallery');
+  let touchStartX = null;
+  gallery?.addEventListener('touchstart', (event) => { touchStartX = event.changedTouches[0]?.clientX ?? null; }, { passive: true });
+  gallery?.addEventListener('touchend', (event) => {
+    if (touchStartX === null || productImages.length < 2) return;
+    const delta = event.changedTouches[0]?.clientX - touchStartX;
+    if (Math.abs(delta) > 40) setProductGalleryImage(activeProductGalleryIndex + (delta > 0 ? -1 : 1));
+    touchStartX = null;
+  }, { passive: true });
   modal('productDetailsModal', true);
 }
 window.openProductDetails = openProductDetails;
@@ -1504,9 +1610,15 @@ function loadFavorites() {
   catch { state.favorites = []; }
 }
 
-function renderAccount(accountMode = 'login') {
+function renderAccount(accountMode = state.accountMode || 'account') {
   if (!$('accountState') || !$('favoritesList')) return;
+  state.accountMode = accountMode;
   const box = $('accountState');
+  const showAccount = accountMode !== 'favorites';
+  const showFavorites = accountMode === 'favorites';
+  $('accountModal').querySelector('.modal-head h2').textContent = showFavorites ? t('favorites') : (language === 'en' ? 'Account' : 'الحساب');
+  $('accountState').hidden = !showAccount;
+  $('favoritesList').hidden = !showFavorites;
   if (authUser) {
     box.innerHTML = `<div class="favorite-row"><img src="${esc(authUser.photoURL || 'assets/spider-bot.png')}" alt=""><div>${esc(authUser.displayName || authUser.email || (language === 'en' ? 'Account' : 'الحساب'))}<small dir="ltr">${esc(authUser.email || authUser.phoneNumber || '')}</small></div><button class="btn btn-outline" id="logoutBtn" type="button">${t('logout')}</button></div><form class="phone-auth-form" id="phoneLinkForm"><p>${language === 'en' ? 'Add phone login to this account' : 'إضافة تسجيل الدخول بالهاتف لهذا الحساب'}</p><input id="phoneLinkInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><input id="phoneLinkPin" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN (4 digits)"><input id="phoneLinkConfirm" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="تأكيد PIN"><button class="btn btn-outline" type="submit">${language === 'en' ? 'Add phone login' : 'إضافة تسجيل الهاتف'}</button></form><form class="phone-auth-form" id="changePinForm"><p>${language === 'en' ? 'Change PIN' : 'تغيير PIN'}</p><input id="currentPinInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN الحالي"><input id="newPinInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="PIN الجديد"><input id="newPinConfirmInput" required type="password" dir="ltr" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="تأكيد PIN الجديد"><button class="btn btn-outline" type="submit">${language === 'en' ? 'Change PIN' : 'تغيير PIN'}</button></form>`;
     $('logoutBtn').addEventListener('click', () => signOut(auth));
@@ -1519,8 +1631,9 @@ function renderAccount(accountMode = 'login') {
     bindPinInputs(box); $('phoneRegisterBtn').addEventListener('click', () => renderPhoneRegistration());
   }
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
-  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<div class="favorite-row"><img src="${esc(imageFor(p))}" alt=""><div>${esc(productName(p))}<strong>${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</strong></div><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button></div>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
+  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<article class="favorite-card"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div class="favorite-card-copy"><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')}${p.model ? ` · ${esc(p.model)}` : ''}</small><span class="favorite-card-price">${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</span><span class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</span><div class="favorite-card-actions"><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button>${isAvailable(p) && !p.builderOnly ? `<button class="btn btn-primary" type="button" data-favorite-cart="${esc(p.id)}">${t('addToCart')}</button>` : ''}</div></div></article>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
   $('favoritesList').querySelectorAll('[data-favorite-open]').forEach((btn) => btn.addEventListener('click', () => { modal('accountModal', false); openProductDetails(btn.dataset.favoriteOpen); }));
+  $('favoritesList').querySelectorAll('[data-favorite-cart]').forEach((btn) => btn.addEventListener('click', () => addToCart(btn.dataset.favoriteCart)));
 }
 
 function renderPhoneRegistration() {
@@ -1697,7 +1810,7 @@ function requestId() { return crypto.randomUUID?.() || `${Date.now()}-${Math.ran
 
 function checkoutPayload(form) {
   const data = new FormData(form);
-  const builderPartByProductId = Object.fromEntries(Object.entries(state.builder).map(([partId, productId]) => [String(productId), partId]));
+  const builderPartByProductId = Object.fromEntries(builderParts.flatMap((part) => builderSelectionIds(part.id).map((productId) => [String(productId), part.id])));
   const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty), source: i.builderSource ? 'builder' : 'store', ...(i.builderSource && builderPartByProductId[String(i.id)] ? { builderPart: builderPartByProductId[String(i.id)] } : {}) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
   return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
@@ -1737,7 +1850,6 @@ async function submitCheckout(event) {
     const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, result.builderDiscount > 0 ? `خصم التجميعة: ${formatPrice(result.builderDiscount)}` : '', `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}`].filter(Boolean).join('\n');
     pendingReceipt.whatsappMessage = message;
     state.cart = []; renderCart(); modal('checkoutModal', false);
-    try { await generateOrderReceiptPdf(orderSnapshot, language); } catch (pdfError) { console.warn('Receipt PDF generation failed', pdfError); }
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
     $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
     $('downloadReceiptBtn').textContent = language === 'en' ? 'Download receipt PDF' : 'تحميل الوصل PDF';
@@ -1774,6 +1886,8 @@ function bindBuilderPageEvents() {
   $('builderCatalogCategory')?.addEventListener('change', (event) => { state.builderCatalog.category = event.target.value; renderBuilderCatalog(); });
   $('builderCatalogBrand')?.addEventListener('change', (event) => { state.builderCatalog.brand = event.target.value; renderBuilderCatalog(); });
   $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), language === 'en' ? 'Builder added to cart.' : 'تمت إضافة التجميعة إلى السلة', 'builder'); });
+  $('calculateBuilderPriceBtn')?.addEventListener('click', () => { state.builderPriceVisible = true; updateBuilder(); });
+  $('clearBuilderBtn')?.addEventListener('click', clearBuilderSelections);
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
   $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
@@ -1788,7 +1902,24 @@ function bindReceiptEvents() {
     try { await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language); } catch { showToast(language === 'en' ? 'Could not generate the PDF.' : 'تعذر إنشاء ملف PDF.'); }
     finally { button.disabled = false; button.textContent = label; }
   });
-  $('whatsappOrderBtn')?.addEventListener('click', () => { if (pendingReceipt?.whatsappNumber) window.open(`https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(pendingReceipt.whatsappMessage || '')}`, '_blank', 'noopener'); });
+  $('whatsappOrderBtn')?.addEventListener('click', async () => {
+    if (!pendingReceipt?.whatsappNumber) return;
+    const button = $('whatsappOrderBtn');
+    const label = button.innerHTML;
+    button.disabled = true;
+    try {
+      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`, files: [file] });
+        return;
+      }
+      await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: true });
+      window.open(`https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(`${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${pendingReceipt.order.orderNumber || ''}`)}`, '_blank', 'noopener');
+      showToast(language === 'en' ? 'The PDF was downloaded. Attach it in WhatsApp.' : 'تم تحميل الوصل. أرفقه في واتساب.');
+    } catch (error) {
+      if (error?.name !== 'AbortError') showToast(language === 'en' ? 'Could not share the PDF.' : 'تعذر مشاركة الوصل PDF.');
+    } finally { button.disabled = false; button.innerHTML = label; }
+  });
 }
 
 function bindUpgradePageEvents() {
@@ -1913,8 +2044,8 @@ function bindEvents() {
   $('closeSidebarBtn').addEventListener('click', closeSidebar);
   $('sidebarOverlay').addEventListener('click', closeSidebar);
 
-  $('accountBtn').addEventListener('click', () => { renderAccount(); modal('accountModal', true); });
-  $('favBtn').addEventListener('click', () => { renderAccount(); modal('accountModal', true); });
+  $('accountBtn').addEventListener('click', () => { renderAccount('account'); modal('accountModal', true); });
+  $('favBtn').addEventListener('click', () => { renderAccount('favorites'); modal('accountModal', true); });
 
   $('chatbotFab').addEventListener('click', openChat);
   $('closeChatBtn').addEventListener('click', closeChat);

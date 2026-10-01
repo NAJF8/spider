@@ -93,7 +93,7 @@ function receiptStyles() {
   </style>`;
 }
 
-export async function generateOrderReceiptPdf(order, language = 'ar') {
+export async function generateOrderReceiptPdf(order, language = 'ar', options = {}) {
   if (!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDF_LIBRARIES_NOT_READY');
   const items = receiptItems(order);
   const chunkSize = 10;
@@ -114,7 +114,10 @@ export async function generateOrderReceiptPdf(order, language = 'ar') {
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
     }
     const orderKey = String(order.orderNumber || order.orderId || Date.now()).replace(/[^A-Za-z0-9_-]/g, '-');
-    pdf.save(`SPIDER-ORDER-${orderKey}.pdf`);
-    return `SPIDER-ORDER-${orderKey}.pdf`;
+    const filename = `SPIDER-ORDER-${orderKey}.pdf`;
+    const blob = pdf.output('blob');
+    if (options.asFile) return new File([blob], filename, { type: 'application/pdf' });
+    if (options.download !== false) pdf.save(filename);
+    return filename;
   } finally { root.remove(); }
 }
