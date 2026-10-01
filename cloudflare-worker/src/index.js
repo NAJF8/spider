@@ -12,6 +12,7 @@ export {
   resolveProductPrice,
   normalizeIraqPhone,
   validatePin,
+  validatePassword,
   hashPin,
   verifyPin,
   parseServiceAccount,
@@ -43,6 +44,15 @@ function validatePin(pin) {
   return /^[0-9]{4}$/.test(String(pin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))));
 }
 
+function validatePassword(password) {
+  const value = String(password || '');
+  return value.length >= 6 && value.length <= 128 && !/\s/.test(value);
+}
+
+function normalizeLegacyPin(value) {
+  return String(value || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+}
+
 function randomBytes(length) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -71,7 +81,7 @@ async function hashPin(pin, salt = randomBytes(16), iterations = 100000) {
 }
 
 async function verifyPin(pin, credential) {
-  if (!credential?.salt || !credential?.hash || !validatePin(pin)) return false;
+  if (!credential?.salt || !credential?.hash || !(validatePin(pin) || validatePassword(pin))) return false;
   const computed = await hashPin(pin, fromBase64(credential.salt), Number(credential.iterations) || 100000);
   const expected = fromBase64(credential.hash);
   const actual = fromBase64(computed.hash);
@@ -294,25 +304,28 @@ async function handlePhoneAuth(request, env, url) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') return errorResponse('INVALID_REQUEST', 400);
   const phone = normalizeIraqPhone(body.phone);
-  const pin = String(body.pin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-  if (!phone || !validatePin(pin)) return errorResponse('INVALID_PHONE_OR_PIN', 400);
+  const credentialValue = String(body.password ?? body.pin ?? '');
+  const isPasswordRequest = body.password !== undefined;
+  const credential = isPasswordRequest ? credentialValue : normalizeLegacyPin(credentialValue);
+  if (!phone || !(isPasswordRequest ? validatePassword(credential) : validatePin(credential))) return errorResponse('INVALID_PHONE_OR_PIN', 400);
 
   if (url.pathname === '/api/auth/phone/register') {
     const authenticated = await verifyFirebaseIdToken(authToken(request), env);
     const existingProfile = authenticated ? await readServiceDatabase(env, `profiles/${encodeURIComponent(authenticated.uid)}.json`) : null;
     const name = String(body.name || existingProfile?.name || authenticated?.displayName || '').trim().slice(0, 100);
     if (!name) return errorResponse('NAME_REQUIRED', 400);
-    if (String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))) !== pin) return errorResponse('PIN_CONFIRMATION_MISMATCH', 400);
+    const confirmation = String(body.confirmPassword ?? body.confirmPin ?? '');
+    if ((isPasswordRequest ? confirmation : normalizeLegacyPin(confirmation)) !== credential) return errorResponse('PIN_CONFIRMATION_MISMATCH', 400);
     const existingUid = await readServiceDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`) || await findProfileUidByPhone(env, phone, true);
     if (existingUid && (!authenticated || existingUid !== authenticated.uid)) return errorResponse('PHONE_ALREADY_REGISTERED', 409);
     const uid = authenticated?.uid || existingUid || `phone-${crypto.randomUUID()}`;
-    const credential = await hashPin(pin);
+    const credentialHash = await hashPin(credential);
     const profile = { uid, name, phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
     const customToken = await firebaseCustomToken(uid, env);
     await writeServiceDatabase(env, '', {
       [`phone_index/${phone}`]: uid,
       [`profiles/${uid}`]: { ...(await readServiceDatabase(env, `profiles/${uid}.json`)) || {}, ...profile },
-      [`profile_credentials/${uid}`]: credential
+      [`profile_credentials/${uid}`]: credentialHash
     }, 'PATCH');
     return new Response(JSON.stringify({ success: true, uid, customToken }), { status: 201, headers: { 'Content-Type': 'application/json' } });
   }
@@ -321,8 +334,8 @@ async function handlePhoneAuth(request, env, url) {
     const rate = checkLoginRateLimit(request, phone);
     if (!rate.allowed) return errorResponse('AUTH_RATE_LIMITED', 429);
     const uid = await readServiceDatabase(env, `phone_index/${encodeURIComponent(phone)}.json`);
-    const credential = uid ? await readServiceDatabase(env, `profile_credentials/${encodeURIComponent(uid)}.json`) : null;
-    const valid = Boolean(uid && credential && await verifyPin(pin, credential));
+    const credentialHash = uid ? await readServiceDatabase(env, `profile_credentials/${encodeURIComponent(uid)}.json`) : null;
+    const valid = Boolean(uid && credentialHash && await verifyPin(credential, credentialHash));
     if (!valid) { recordFailedLogin(rate); return errorResponse('AUTH_INVALID_CREDENTIALS', 401); }
     clearFailedLogin(rate);
     return jsonResponse({ success: true, uid, customToken: await firebaseCustomToken(uid, env) });
@@ -331,10 +344,12 @@ async function handlePhoneAuth(request, env, url) {
   const user = await verifyFirebaseIdToken(authToken(request), env);
   if (!user) return errorResponse('AUTH_REQUIRED', 401);
   const current = await readServiceDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`);
-  const newPin = String(body.newPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-  const confirmedPin = String(body.confirmPin || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
-  if (!await verifyPin(pin, current) || !validatePin(newPin) || newPin !== confirmedPin) return errorResponse('AUTH_INVALID_CREDENTIALS', 401);
-  await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`, await hashPin(newPin));
+  const currentCredential = body.currentPassword !== undefined ? String(body.currentPassword || '') : normalizeLegacyPin(body.pin);
+  const newCredential = String(body.newPassword ?? body.newPin ?? '');
+  const confirmedCredential = String(body.confirmPassword ?? body.confirmPin ?? '');
+  const legacyNewPin = body.newPassword === undefined;
+  if (!await verifyPin(currentCredential, current) || !(legacyNewPin ? validatePin(normalizeLegacyPin(newCredential)) : validatePassword(newCredential)) || (legacyNewPin ? normalizeLegacyPin(confirmedCredential) : confirmedCredential) !== (legacyNewPin ? normalizeLegacyPin(newCredential) : newCredential)) return errorResponse('AUTH_INVALID_CREDENTIALS', 401);
+  await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(user.uid)}.json`, await hashPin(legacyNewPin ? normalizeLegacyPin(newCredential) : newCredential));
   return jsonResponse({ success: true });
 }
 
@@ -366,9 +381,10 @@ async function handleRequest(request, env) {
         const adminUser = await verifyFirebaseIdToken(authToken(request), env);
         if (!adminUser || adminUser.uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') return errorResponse('FORBIDDEN', 403);
         const targetUid = String(body.targetUid || '');
-        const newPin = String(body.newPin || '');
-        if (!targetUid || !validatePin(newPin)) return errorResponse('INVALID_REQUEST', 400);
-        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(newPin));
+        const newPassword = String(body.newPassword ?? body.newPin ?? '');
+        const legacyReset = body.newPassword === undefined;
+        if (!targetUid || !(legacyReset ? validatePin(normalizeLegacyPin(newPassword)) : validatePassword(newPassword))) return errorResponse('INVALID_REQUEST', 400);
+        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(legacyReset ? normalizeLegacyPin(newPassword) : newPassword));
         await writeServiceDatabase(env, 'auditLogs.json', { [crypto.randomUUID()]: { action: 'admin_reset_pin', targetUid, actorUid: adminUser.uid, message: 'Customer PIN reset by Super Admin', timestamp: Date.now() } }, 'PATCH');
         return jsonResponse({ success: true });
       } catch { return errorResponse('AUTH_ERROR', 500); }
@@ -381,9 +397,10 @@ async function handleRequest(request, env) {
         const adminUser = await verifyFirebaseIdToken(authToken(request), env);
         if (!adminUser || adminUser.uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') return errorResponse('FORBIDDEN', 403);
         const targetUid = String(body.targetUid || '');
-        const newPin = String(body.newPin || '');
-        if (!targetUid || !validatePin(newPin)) return errorResponse('INVALID_REQUEST', 400);
-        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(newPin));
+        const newPassword = String(body.newPassword ?? body.newPin ?? '');
+        const legacyReset = body.newPassword === undefined;
+        if (!targetUid || !(legacyReset ? validatePin(normalizeLegacyPin(newPassword)) : validatePassword(newPassword))) return errorResponse('INVALID_REQUEST', 400);
+        await writeServiceDatabase(env, `profile_credentials/${encodeURIComponent(targetUid)}.json`, await hashPin(legacyReset ? normalizeLegacyPin(newPassword) : newPassword));
         await writeServiceDatabase(env, 'auditLogs.json', { [crypto.randomUUID()]: { action: 'admin_reset_pin', targetUid, actorUid: adminUser.uid, message: 'Customer PIN reset by Super Admin', timestamp: Date.now() } }, 'PATCH');
         return jsonResponse({ success: true });
       } catch { return errorResponse('AUTH_ERROR', 500); }

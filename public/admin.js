@@ -3145,19 +3145,19 @@ document.getElementById('resetPinForm')?.addEventListener('submit', async (e) =>
     if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
     
     const uid = document.getElementById('resetPinUid').value;
-    const newPin = document.getElementById('resetPinNew').value;
-    const confirmPin = document.getElementById('resetPinConfirm').value;
+    const newPassword = document.getElementById('resetPinNew').value;
+    const confirmPassword = document.getElementById('resetPinConfirm').value;
     const errorDiv = document.getElementById('resetPinError');
     const submitBtn = document.getElementById('resetPinSubmitBtn');
     
-    if (newPin !== confirmPin) {
-        errorDiv.textContent = 'رمز PIN غير متطابق!';
+    if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'كلمتا المرور غير متطابقتين!';
         errorDiv.classList.remove('hidden');
         return;
     }
     
-    if (!/^\d{4}$/.test(newPin)) {
-        errorDiv.textContent = 'الرمز يجب أن يكون 4 أرقام.';
+    if (!/^\S{6,128}$/.test(newPassword)) {
+        errorDiv.textContent = 'كلمة المرور يجب أن تكون من 6 إلى 128 حرفاً بدون مسافات.';
         errorDiv.classList.remove('hidden');
         return;
     }
@@ -3171,12 +3171,12 @@ document.getElementById('resetPinForm')?.addEventListener('submit', async (e) =>
         const res = await fetch(SPIDER_BACKEND_ENDPOINT + '/api/auth/admin-reset-pin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-            body: JSON.stringify({ targetUid: uid, newPin: newPin, confirmPin: confirmPin })
+            body: JSON.stringify({ targetUid: uid, newPassword: newPassword, confirmPassword: confirmPassword })
         });
         
         const data = await res.json().catch(()=>null);
         if (res.ok && data?.success) {
-            alert('تم إعادة تعيين الرمز بنجاح!');
+            alert('تم إعادة تعيين كلمة المرور بنجاح!');
             closeResetPinModal();
         } else {
             errorDiv.textContent = 'تعذر تحديث الرمز: ' + (data?.error || 'خطأ غير معروف');
@@ -3187,7 +3187,7 @@ document.getElementById('resetPinForm')?.addEventListener('submit', async (e) =>
         errorDiv.classList.remove('hidden');
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-key"></i> تحديث الرمز';
+        submitBtn.innerHTML = '<i class="fa-solid fa-key"></i> تحديث كلمة المرور';
     }
 });
 

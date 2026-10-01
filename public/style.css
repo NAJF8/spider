@@ -807,6 +807,10 @@ body:has(.chatbot-window:not(.hidden)) .floating-cart{opacity:0;pointer-events:n
 .phone-auth-form .btn-outline{width:100%;min-height:42px}
 .pin-field-group{display:grid;gap:7px;margin-top:3px}
 .pin-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.password-input-wrap{position:relative;display:flex;align-items:center}
+.password-input-wrap input{padding-inline-end:44px}
+.password-toggle{position:absolute;inset-inline-end:6px;display:grid;place-items:center;width:34px;height:34px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+.password-toggle:hover{color:var(--primary)}
 .pin-cell{width:100%!important;min-height:48px!important;text-align:center;font-size:20px!important;font-weight:800}
 .field-error{min-height:0;color:var(--red-dark);font-size:11px;line-height:1.4}
 .input-error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(237,28,36,.1)!important}

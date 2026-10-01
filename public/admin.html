@@ -7,7 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261001-1">
+    <link rel="stylesheet" href="admin.css?v=20261001-2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -958,13 +958,13 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=20260929-4"></script>
+    <script type="module" src="admin.js?v=20261001-2"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>إعادة تعيين رمز PIN</h2>
+                <h2>إعادة تعيين كلمة المرور</h2>
                 <button class="close-btn" onclick="closeResetPinModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body">
@@ -979,15 +979,15 @@
                         <input type="text" id="resetPinPhone" readonly dir="ltr" style="background: #f1f5f9; color: #64748b; font-weight: bold;">
                     </div>
                     <div class="form-group">
-                        <label>رمز PIN الجديد (4 أرقام) <span class="req">*</span></label>
-                        <input type="password" id="resetPinNew" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                        <label>كلمة المرور الجديدة (6 أحرف على الأقل) <span class="req">*</span></label>
+                        <input type="password" id="resetPinNew" required minlength="6" maxlength="128" placeholder="كلمة المرور الجديدة" dir="ltr">
                     </div>
                     <div class="form-group">
-                        <label>تأكيد الرمز <span class="req">*</span></label>
-                        <input type="password" id="resetPinConfirm" required pattern="\d{4}" maxlength="4" placeholder="****" dir="ltr" style="text-align: center; letter-spacing: 12px; font-size: 1.2rem;">
+                        <label>تأكيد كلمة المرور <span class="req">*</span></label>
+                        <input type="password" id="resetPinConfirm" required minlength="6" maxlength="128" placeholder="تأكيد كلمة المرور" dir="ltr">
                     </div>
                     <div id="resetPinError" class="error-msg hidden" style="text-align: center; margin-bottom: 15px;"></div>
-                    <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> تحديث الرمز</button>
+                    <button type="submit" class="btn btn-primary w-100" id="resetPinSubmitBtn"><i class="fa-solid fa-key"></i> تحديث كلمة المرور</button>
                 </form>
             </div>
         </div>
