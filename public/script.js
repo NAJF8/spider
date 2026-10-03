@@ -1829,7 +1829,7 @@ function updateCheckoutFulfilment(subtotal = null) {
   const delivery = method === 'delivery';
   $('deliveryFields')?.toggleAttribute('hidden', !delivery);
   ['orderGov', 'orderDistrict', 'orderAddress'].forEach((id) => $(id)?.toggleAttribute('required', delivery));
-  const total = subtotal ?? Number(String($('checkoutSubtotal')?.textContent || '').replace(/[^0-9.]/g, '')) || 0;
+  const total = subtotal ?? (Number(String($('checkoutSubtotal')?.textContent || '').replace(/[^0-9.]/g, '')) || 0);
   const fee = delivery ? Number(deliveryFee || 0) : 0;
   $('checkoutDeliveryFee').textContent = formatPrice(fee);
   $('checkoutDeliveryRow')?.toggleAttribute('hidden', !delivery);
