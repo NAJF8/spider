@@ -39,7 +39,15 @@ function receiptItems(order) {
 }
 
 let fontPromise;
-async function loadArabicFont(doc) {
+function pdfErrorDetails(error) {
+  return { name: error?.name || 'Error', message: error?.message || String(error), stack: error?.stack };
+}
+
+function logPdfFailure(stage, error) {
+  console.error('PDF_STAGE_FAILED', { stage, ...pdfErrorDetails(error) });
+}
+
+async function loadArabicFont() {
   if (!fontPromise) {
     fontPromise = fetch(RECEIPT_FONT).then((response) => {
       if (!response.ok) throw new Error(`RECEIPT_FONT_${response.status}`);
@@ -49,9 +57,13 @@ async function loadArabicFont(doc) {
       let binary = '';
       for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
       return btoa(binary);
-    });
+    }).catch((error) => { fontPromise = null; throw error; });
   }
-  doc.addFileToVFS('Amiri-Regular.ttf', await fontPromise);
+  return fontPromise;
+}
+
+function applyArabicFont(doc, fontBase64) {
+  doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
   doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
   doc.setFont('Amiri', 'normal');
 }
@@ -198,7 +210,7 @@ function tableRows(items, language) {
 function drawTable(doc, items, language, startY, order, background) {
   const isEnglish = language === 'en';
   const columns = isEnglish ? ['#', 'Product', 'Qty', 'Unit price', 'Total'] : ['ت', 'المنتج', 'الكمية', 'سعر الوحدة', 'الإجمالي'];
-  doc.autoTable({
+  const tableOptions = {
     startY,
     head: [columns.map((value) => arabicText(doc, value, language))],
     body: tableRows(items, language).map((row) => row.map((value) => arabicText(doc, value, language))),
@@ -220,25 +232,45 @@ function drawTable(doc, items, language, startY, order, background) {
         doc.text(arabicText(doc, receiptText(language, 'متابعة المنتجات', 'Items continued'), language), language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT, CONTENT_TOP + 4, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
       }
     }
-  });
+  };
+  if (typeof doc.autoTable === 'function') doc.autoTable(tableOptions);
+  else if (typeof window.jspdfAutoTable === 'function') window.jspdfAutoTable(doc, tableOptions);
+  else throw new Error('AUTOTABLE_UNAVAILABLE');
   return doc.lastAutoTable.finalY;
 }
 
 export async function generateOrderReceiptPdf(order, language = 'ar', options = {}) {
-  if (!window.jspdf?.jsPDF || !window.jspdf?.jsPDF?.API?.autoTable) throw new Error('PDF_LIBRARIES_NOT_READY');
-  const items = receiptItems(order);
-  const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true });
-  await loadArabicFont(doc);
-  const background = await imageData(RECEIPT_BACKGROUND);
-  drawBackground(doc, background);
-  drawHeader(doc, order, language);
-  const customerEndY = drawCustomerBlock(doc, order, language, items);
-  const tableEndY = drawTable(doc, items, language, customerEndY, order, background);
-  drawTotals(doc, order, language, tableEndY + 8, background);
-  const orderKey = String(order.orderNumber || order.orderId || Date.now()).replace(/[^A-Za-z0-9_-]/g, '-');
-  const filename = `SPIDER-ORDER-${orderKey}.pdf`;
-  const blob = doc.output('blob');
-  if (options.asFile) return new File([blob], filename, { type: 'application/pdf' });
-  if (options.download !== false) doc.save(filename);
-  return filename;
+  let stage = 'validate order snapshot';
+  try {
+    if (!order || !Array.isArray(order.items)) throw new Error('ORDER_SNAPSHOT_MISSING');
+    const items = receiptItems(order);
+    stage = 'load jsPDF';
+    const JsPDF = window.jspdf?.jsPDF;
+    if (typeof JsPDF !== 'function') throw new Error('JSPDF_UNAVAILABLE');
+    stage = 'load font';
+    const fontBase64 = await loadArabicFont();
+    stage = 'load background';
+    const background = await imageData(RECEIPT_BACKGROUND);
+    stage = 'create document';
+    const doc = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true });
+    applyArabicFont(doc, fontBase64);
+    drawBackground(doc, background);
+    stage = 'draw customer section';
+    drawHeader(doc, order, language);
+    const customerEndY = drawCustomerBlock(doc, order, language, items);
+    stage = 'draw AutoTable';
+    const tableEndY = drawTable(doc, items, language, customerEndY, order, background);
+    stage = 'draw totals';
+    drawTotals(doc, order, language, tableEndY + 8, background);
+    stage = 'output blob';
+    const orderKey = String(order.orderNumber || order.orderId || Date.now()).replace(/[^A-Za-z0-9_-]/g, '-');
+    const filename = `SPIDER-ORDER-${orderKey}.pdf`;
+    const blob = doc.output('blob');
+    if (options.asFile) return new File([blob], filename, { type: 'application/pdf' });
+    if (options.download !== false) doc.save(filename);
+    return filename;
+  } catch (error) {
+    logPdfFailure(stage, error);
+    throw error;
+  }
 }

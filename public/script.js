@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
-import { generateOrderReceiptPdf } from './pdf-receipt.js';
+import { generateOrderReceiptPdf } from './pdf-receipt.js?v=20261003-1';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
@@ -1903,7 +1903,12 @@ function bindReceiptEvents() {
   $('downloadReceiptBtn')?.addEventListener('click', async () => {
     if (!pendingReceipt) return;
     const button = $('downloadReceiptBtn'); const label = button.textContent; button.disabled = true; button.textContent = language === 'en' ? 'Preparing PDF...' : 'جارٍ تجهيز الوصل...';
-    try { await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language); } catch { showToast(language === 'en' ? 'Could not generate the PDF.' : 'تعذر إنشاء ملف PDF.'); }
+    try {
+      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) { console.error('PDF_GENERATION_FAILED', { name: error?.name, message: error?.message, stack: error?.stack }); showToast(language === 'en' ? 'Could not generate the PDF.' : 'تعذر إنشاء ملف PDF.'); }
     finally { button.disabled = false; button.textContent = label; }
   });
   $('whatsappOrderBtn')?.addEventListener('click', async () => {
@@ -1914,14 +1919,24 @@ function bindReceiptEvents() {
     try {
       const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`, files: [file] });
-        return;
+        try {
+          await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`, files: [file] });
+          return;
+        } catch (error) {
+          if (error?.name === 'AbortError') { console.info('PDF_SHARE_CANCELLED'); return; }
+          console.error('PDF_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
+        }
+      } else {
+        console.info('PDF_SHARE_UNSUPPORTED');
       }
-      await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: true });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       window.open(`https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(`${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${pendingReceipt.order.orderNumber || ''}`)}`, '_blank', 'noopener');
       showToast(language === 'en' ? 'The PDF was downloaded. Attach it in WhatsApp.' : 'تم تحميل الوصل. أرفقه في واتساب.');
     } catch (error) {
-      if (error?.name !== 'AbortError') showToast(language === 'en' ? 'Could not share the PDF.' : 'تعذر مشاركة الوصل PDF.');
+      console.error('PDF_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
+      showToast(language === 'en' ? 'Could not create the PDF for sharing.' : 'تعذر إنشاء الوصل للمشاركة.');
     } finally { button.disabled = false; button.innerHTML = label; }
   });
 }
