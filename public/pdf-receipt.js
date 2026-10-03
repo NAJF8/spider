@@ -26,34 +26,44 @@ function formatIQDParts(value, language) {
   const separator = formatted.lastIndexOf(' ');
   return { number: formatted.slice(0, separator), currency: formatted.slice(separator + 1) };
 }
+function renderCurrencyLetter(letter, fontSize, fontStyle, color) {
+  const pixelsPerMm = 96 / 25.4;
+  const fontPixels = fontSize * pixelsPerMm;
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  const canvasFontStyle = fontStyle === 'bold' ? 'bold ' : '';
+  context.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
+  context.direction = 'ltr';
+  const width = Math.max(2, Math.ceil(context.measureText(letter).width + 2));
+  canvas.width = width;
+  canvas.height = Math.ceil(fontPixels * 1.35);
+  context.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
+  context.fillStyle = `rgb(${color.join(',')})`;
+  context.textBaseline = 'top';
+  context.direction = 'ltr';
+  context.fillText(letter, 1, 0);
+  return { data: canvas.toDataURL('image/png'), width: width / pixelsPerMm };
+}
 function drawIQD(doc, amount, x, y, { fontSize = 8.5, align = 'left', gap = 2, color = [32, 37, 34], language = 'ar', fontStyle = 'normal' } = {}) {
   const parts = formatIQDParts(amount, language);
   doc.setFont('Cairo', fontStyle);
   doc.setFontSize(fontSize);
   doc.setTextColor(...color);
-  const currencyCanvas = document.createElement('canvas');
-  const currencyContext = currencyCanvas.getContext('2d');
-  const pixelsPerMm = 96 / 25.4;
-  const currencyFontSize = Math.max(6, fontSize - 2);
-  const fontPixels = currencyFontSize * pixelsPerMm;
-  const canvasFontStyle = fontStyle === 'bold' ? 'bold ' : '';
-  currencyContext.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
-  currencyContext.direction = 'ltr';
-  // Canvas applies Arabic bidi ordering; this source order renders visually as "د.ع".
-  const currencyText = language === 'en' ? parts.currency : 'ع.د';
-  const currencyPixels = Math.ceil(currencyContext.measureText(currencyText).width + 2);
-  currencyCanvas.width = currencyPixels;
-  currencyCanvas.height = Math.ceil(fontPixels * 1.35);
-  currencyContext.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
-  currencyContext.fillStyle = `rgb(${color.join(',')})`;
-  currencyContext.textBaseline = 'top';
-  currencyContext.direction = 'ltr';
-  currencyContext.fillText(currencyText, 1, 0);
-  const currencyWidth = currencyPixels / pixelsPerMm;
-  const width = doc.getTextWidth(parts.number) + gap + currencyWidth;
+  const currencyFontSize = Math.max(6, Math.min(9, fontSize >= 14 ? fontSize - 5 : fontSize - 2));
+  const currencyGap = 0.8;
+  const numberWidth = doc.getTextWidth(parts.number);
+  const currencyLetters = language === 'en' ? [...parts.currency] : ['د', 'ع'];
+  const renderedLetters = currencyLetters.map((letter) => renderCurrencyLetter(letter, currencyFontSize, fontStyle, color));
+  const currencyWidth = renderedLetters.reduce((sum, value) => sum + value.width, 0) + currencyGap;
+  const width = numberWidth + gap + currencyWidth;
   const startX = align === 'right' ? x - width : align === 'center' ? x - width / 2 : x;
+  doc.setFontSize(fontSize);
   doc.text(parts.number, startX, y, { align: 'left', baseline: 'top' });
-  doc.addImage(currencyCanvas.toDataURL('image/png'), 'PNG', startX + doc.getTextWidth(parts.number) + gap, y - 0.1, currencyWidth, currencyFontSize * 0.5, undefined, 'FAST');
+  let letterX = startX + numberWidth + gap;
+  renderedLetters.forEach((letter, index) => {
+    doc.addImage(letter.data, 'PNG', letterX, y - 0.1, letter.width, currencyFontSize * 0.5, undefined, 'FAST');
+    letterX += letter.width + (index < renderedLetters.length - 1 ? currencyGap : 0);
+  });
 }
 function formatDeliveryMethod(value, language) {
   return String(value || '').toLowerCase() === 'pickup'
