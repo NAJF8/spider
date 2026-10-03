@@ -545,8 +545,10 @@ function renderCategories() {
     btn.addEventListener('click', () => filterProductsByCategory(btn.dataset.categoryId))
   );
 
+  const sidebar = $('sidebarNav');
+  if (!sidebar) return;
   const sidebarItems = sidebarCategories();
-  $('sidebarNav').innerHTML = sidebarItems.map((cat) => {
+  sidebar.innerHTML = sidebarItems.map((cat) => {
     const imgHtml = sidebarCategoryIcon(cat);
     const children = cat.children || [];
     const childMarkup = children.length ? `<ul class="sidebar-sub" data-subcategory-of="${esc(cat.id)}">${children.map((child) => {
@@ -560,7 +562,7 @@ function renderCategories() {
     </li>`;
   }).join('');
 
-  $('sidebarNav').querySelectorAll(':scope > li > button[data-category-id]').forEach((btn) => {
+  sidebar.querySelectorAll(':scope > li > button[data-category-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const sub = btn.parentElement.querySelector(':scope > .sidebar-sub');
       if (sub) {
@@ -573,7 +575,7 @@ function renderCategories() {
       }
     });
   });
-  $('sidebarNav').querySelectorAll('.sidebar-sub [data-category-id]').forEach((btn) => btn.addEventListener('click', () => {
+  sidebar.querySelectorAll('.sidebar-sub [data-category-id]').forEach((btn) => btn.addEventListener('click', () => {
     filterProductsByCategory(btn.dataset.categoryId);
     closeSidebar();
   }));
@@ -2121,39 +2123,60 @@ console.log('CATEGORY_DEBUG', {
   categoriesRefPath: categoriesRef.toString().split('/').slice(-1)[0] || 'categories',
 });
 onValue(categoriesRef, (snapshot) => {
-  const allCategories = [];
-  const rawValue = snapshot.val();
-  if (snapshot.exists() && rawValue && typeof rawValue === 'object') {
-    Object.entries(rawValue).forEach(([id, value]) => allCategories.push(normalizeCategoryRecord(id, value)));
+  let allCategories = [];
+  try {
+    const rawValue = snapshot.val();
+    if (snapshot.exists() && rawValue && typeof rawValue === 'object') {
+      Object.entries(rawValue).forEach(([id, value]) => allCategories.push(normalizeCategoryRecord(id, value)));
+    }
+    const enabledCategories = allCategories.filter((cat) => cat.enabled !== false && cat.isHidden !== true);
+    const hiddenIds = new Set(allCategories
+      .filter((cat) => cat.isHidden === true || cat.enabled === false)
+      .map((cat) => String(cat.id)));
+    state.categories = allCategories.filter((cat) => {
+      if (cat.isHidden === true || cat.enabled === false || /^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) return false;
+      const parentId = categoryParentId(cat);
+      return !parentId || !hiddenIds.has(parentId);
+    });
+    const topLevelCategories = state.categories.filter((cat) => categoryIsTopLevel(cat, state.categories));
+    const childCategories = state.categories.filter((cat) => !!categoryParentId(cat));
+    state.categoryLoad = 'loaded';
+    console.log('CATEGORY_LOAD', {
+      count: allCategories.length,
+      topLevel: topLevelCategories.length,
+    });
+    console.log('CATEGORY_DEBUG', {
+      firebaseProjectId: firebaseConfig.projectId,
+      databaseHost: new URL(firebaseConfig.databaseURL).hostname,
+      categoriesRefPath: 'categories',
+      snapshotExists: snapshot.exists(),
+      rawType: snapshot.val() === null ? 'null' : Array.isArray(snapshot.val()) ? 'array' : typeof snapshot.val(),
+      rawCount: allCategories.length,
+      enabledCount: enabledCategories.length,
+      topLevelCount: topLevelCategories.length,
+      childCount: childCategories.length,
+      renderedCount: topLevelCategories.length,
+      errorCode: null,
+      errorMessage: null,
+    });
+    renderCategories();
+    renderBuilder();
+    renderUpgrade();
+    populateCompareFilters();
+  } catch (error) {
+    state.categories = [];
+    state.categoryLoad = 'error';
+    console.error('CATEGORY_LOAD_ERROR', {
+      name: error?.name || 'Error',
+      message: error?.message || String(error),
+      stack: error?.stack || null,
+      count: allCategories.length,
+      topLevel: 0,
+    });
+  } finally {
+    if (state.categoryLoad === 'loading') state.categoryLoad = 'error';
+    renderCategories();
   }
-  const enabledCategories = allCategories.filter((cat) => cat.enabled !== false && cat.isHidden !== true);
-  const hiddenIds = new Set(allCategories.filter((cat) => cat.isHidden === true || cat.enabled === false).map((cat) => cat.id));
-  state.categories = allCategories.filter((cat) => {
-    if (cat.isHidden === true || cat.enabled === false || /^[-_]?test/i.test(`${cat.id} ${cat.name || ''}`)) return false;
-    const parentId = Object.prototype.hasOwnProperty.call(cat, 'parentId') ? cat.parentId : (cat.parentCategory ?? cat.parent);
-    return !hiddenIds.has(parentId);
-  });
-  const topLevelCategories = state.categories.filter((cat) => categoryIsTopLevel(cat, state.categories));
-  const childCategories = state.categories.filter((cat) => !!categoryParentId(cat));
-  state.categoryLoad = 'loaded';
-  console.log('CATEGORY_DEBUG', {
-    firebaseProjectId: firebaseConfig.projectId,
-    databaseHost: new URL(firebaseConfig.databaseURL).hostname,
-    categoriesRefPath: 'categories',
-    snapshotExists: snapshot.exists(),
-    rawType: rawValue === null ? 'null' : Array.isArray(rawValue) ? 'array' : typeof rawValue,
-    rawCount: allCategories.length,
-    enabledCount: enabledCategories.length,
-    topLevelCount: topLevelCategories.length,
-    childCount: childCategories.length,
-    renderedCount: topLevelCategories.length,
-    errorCode: null,
-    errorMessage: null,
-  });
-  renderCategories();
-  renderBuilder();
-  renderUpgrade();
-  populateCompareFilters();
 }, (error) => {
   state.categories = [];
   state.categoryLoad = 'error';
