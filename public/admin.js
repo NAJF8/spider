@@ -15,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Strict Super Admin Configuration
 const SUPER_ADMIN_UID = 'e8uTdYi5TQOsrztxPnlD7X4GKAx1';
@@ -29,6 +30,8 @@ const errorMsg = document.getElementById('login-error');
 const adminName = document.getElementById('adminName');
 const adminRole = document.getElementById('adminRole');
 const adminAvatar = document.getElementById('adminAvatar');
+const googleLoginDefaultLabel = loginBtn?.innerHTML || 'تسجيل الدخول باستخدام Google';
+let googleLoginInProgress = false;
 
 // Global Data State
 let orders = [];
@@ -204,13 +207,29 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-loginBtn.addEventListener('click', () => {
+loginBtn.addEventListener('click', async () => {
+    if (googleLoginInProgress) return;
+
+    googleLoginInProgress = true;
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'جارٍ تسجيل الدخول...';
     errorMsg.classList.add('hidden');
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider).catch((error) => {
-        errorMsg.textContent = 'فشل تسجيل الدخول: ' + error.message;
+
+    try {
+        await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+        const errorMessages = {
+            'auth/cancelled-popup-request': 'تم إلغاء محاولة تسجيل الدخول السابقة، حاول مرة أخرى.',
+            'auth/popup-closed-by-user': 'تم إغلاق نافذة تسجيل الدخول.',
+            'auth/popup-blocked': 'المتصفح منع نافذة تسجيل الدخول، اسمح بالنوافذ المنبثقة لهذا الموقع.'
+        };
+        errorMsg.textContent = errorMessages[error?.code] || 'فشل تسجيل الدخول: ' + (error?.message || 'خطأ غير معروف');
         errorMsg.classList.remove('hidden');
-    });
+    } finally {
+        googleLoginInProgress = false;
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = googleLoginDefaultLabel;
+    }
 });
 
 logoutBtn.addEventListener('click', () => {
