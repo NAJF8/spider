@@ -320,7 +320,7 @@ function sidebarCategories() {
   }));
 }
 const categoryIdFor = (p) => p?.categoryId || p?.category || '';
-const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), p?.description, ...specificationEntries(p).flatMap((item) => [item.keyAr, item.keyEn, item.valueAr, item.valueEn])].filter(Boolean).join(' ').toLowerCase();
+const productText = (p) => [productName(p), p?.name, p?.nameAr, p?.nameEn, p?.brand, p?.model, categoryName(categoryIdFor(p)), typeof p?.description === 'object' ? p.description.ar : p?.description, typeof p?.description === 'object' ? p.description.en : '', ...specificationEntries(p).flatMap((item) => [item.keyAr, item.keyEn, item.valueAr, item.valueEn])].filter(Boolean).join(' ').toLowerCase();
 const showToast = (msg) => { const t = $('toast'); if (!t) return; t.textContent = englishDigits(msg); t.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => t.classList.remove('show'), 2800); };
 function setScrollLock(locked) {
   if (locked) {
@@ -2031,6 +2031,9 @@ function bindEvents() {
   bindAddressHierarchy();
 
   $('closeProductDetailsBtn').addEventListener('click', () => modal('productDetailsModal', false));
+  $('productDetailsModal').addEventListener('click', (event) => {
+    if (event.target === $('productDetailsModal')) modal('productDetailsModal', false);
+  });
   $('closeQuoteBtn').addEventListener('click', () => modal('quoteModal', false));
   $('closeAccountBtn').addEventListener('click', () => modal('accountModal', false));
   $('closeAvailabilityBtn').addEventListener('click', () => modal('availabilityModal', false));
@@ -2070,6 +2073,12 @@ function bindEvents() {
 
   renderSidebarAll();
 }
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const openModal = document.querySelector('.modal-overlay.open');
+  if (openModal?.id === 'productDetailsModal') modal('productDetailsModal', false);
+});
 
 // ===== Firebase Listeners =====
 const categoriesRef = ref(db, 'categories');

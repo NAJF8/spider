@@ -679,7 +679,10 @@ ul { list-style: none; }
 #productModal .modal-body{padding:24px 30px;overflow-y:auto}
 #productModal #productForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;align-items:start}
 #productModal #productForm>.form-group:first-of-type,#productModal #productForm>#productCompatibilityFields,#productModal #productForm>.form-group:nth-last-of-type(-n+3),#productModal #productForm>.btn-submit{grid-column:1/-1}
-#productModal textarea{min-height:130px;line-height:1.7}
+#productModal textarea{min-height:190px;line-height:1.8;resize:vertical;overflow-y:auto}
+#productModal .product-description-field textarea{min-height:210px}
+#productModal #prodDescAr{direction:rtl;text-align:right}
+#productModal #prodDescEn{direction:ltr;text-align:left}
 .modal-header {
     padding: 20px 24px;
     border-bottom: 1px solid var(--border);

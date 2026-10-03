@@ -53,6 +53,10 @@ let builderDiscountsByProduct = {};
 let pendingPricingIdentities = {};
 let adminModalDepth = 0;
 let adminModalScrollY = 0;
+const productDescriptionParts = (value) => {
+    if (value && typeof value === 'object') return { ar: String(value.ar || ''), en: String(value.en || '') };
+    return { ar: String(value || ''), en: '' };
+};
 
 function setAdminModalOpen(element, open) {
     if (!element) return;
@@ -1058,7 +1062,8 @@ function renderProductsManagementTable() {
     const statusVal = document.getElementById('productStatusFilter')?.value || '';
 
     let filtered = products.filter(p => {
-        const matchesSearch = !searchVal || (p.name && p.name.toLowerCase().includes(searchVal)) || (p.description && p.description.toLowerCase().includes(searchVal));
+        const description = productDescriptionParts(p.description);
+        const matchesSearch = !searchVal || (p.name && p.name.toLowerCase().includes(searchVal)) || description.ar.toLowerCase().includes(searchVal) || description.en.toLowerCase().includes(searchVal);
         const matchesCategory = !categoryVal || (p.categoryId === categoryVal || p.category === categoryVal);
         const matchesStatus = !statusVal || (statusVal === 'visible' && !p.isHidden) || (statusVal === 'hidden' && p.isHidden);
         return matchesSearch && matchesCategory && matchesStatus;
@@ -1290,7 +1295,9 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodOriginalPrice').value = prod.originalPrice || '';
             document.getElementById('prodStock').value = prod.stock || '';
             document.getElementById('prodWarranty').value = prod.warranty || '';
-            document.getElementById('prodDesc').value = prod.description || '';
+            const description = productDescriptionParts(prod.description);
+            document.getElementById('prodDescAr').value = description.ar;
+            document.getElementById('prodDescEn').value = description.en;
             renderProductSpecsEditor(prod.specifications || prod.specs || {});
             document.getElementById('prodBuilderOnly').checked = prod.builderOnly === true;
             const imageItems = productImageItemsFromProduct(prod);
@@ -1370,7 +1377,10 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         originalPrice: document.getElementById('prodOriginalPrice').value ? Number(document.getElementById('prodOriginalPrice').value) : null,
         stock: document.getElementById('prodStock').value ? Number(document.getElementById('prodStock').value) : null,
         warranty: document.getElementById('prodWarranty').value.trim(),
-        description: document.getElementById('prodDesc').value.trim(),
+        description: {
+            ar: document.getElementById('prodDescAr').value.trim(),
+            en: document.getElementById('prodDescEn').value.trim()
+        },
         specifications,
         builderOnly: document.getElementById('prodBuilderOnly').checked === true,
         image: imageFields.primaryUrl,
