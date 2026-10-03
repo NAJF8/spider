@@ -11,10 +11,18 @@ const CONTENT_BOTTOM = 276;
 const HEADER_SAFE_BOTTOM = 54;
 const FOOTER_SAFE_TOP = 276;
 const CONTENT_WIDTH = PAGE_WIDTH - CONTENT_LEFT - CONTENT_RIGHT;
+const INFO_LABEL_VALUE_GAP = 4;
+const LTR_SEGMENT_START = '\u202A';
+const LTR_SEGMENT_END = '\u202C';
 
 const receiptText = (language, ar, en) => language === 'en' ? en : ar;
-const numberFormatter = new Intl.NumberFormat('en-IQ', { maximumFractionDigits: 0 });
-const receiptMoney = (value, language) => `${numberFormatter.format(Number(value || 0))} ${language === 'en' ? 'IQD' : 'د.ع'}`;
+const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+function formatIQD(value, language) {
+  return `${numberFormatter.format(Number(value || 0))} ${language === 'en' ? 'IQD' : 'د.ع'}`;
+}
+function pdfCurrencyText(value, language) {
+  return language === 'en' ? value : `${LTR_SEGMENT_START}${value}${LTR_SEGMENT_END}`;
+}
 function formatDeliveryMethod(value, language) {
   return String(value || '').toLowerCase() === 'pickup'
     ? receiptText(language, 'استلام من المتجر', 'Store Pickup')
@@ -134,8 +142,8 @@ function drawInfoRow(doc, label, value, language, y) {
   doc.setFontSize(8.5);
   doc.setTextColor(23, 139, 112);
   doc.text(arabicText(doc, label, language), labelX, y, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
-  const valueY = drawTextBlock(doc, value || '-', { x: valueX, y: y + 3.5, width: valueWidth, language, fontSize: 9.2, align: language === 'en' ? 'left' : 'right', lineHeight: 1.2 });
-  return Math.max(y + 9, valueY + 1.5);
+  const valueY = drawTextBlock(doc, value || '-', { x: valueX, y: y + INFO_LABEL_VALUE_GAP, width: valueWidth, language, fontSize: 9.2, align: language === 'en' ? 'left' : 'right', lineHeight: 1.2 });
+  return Math.max(y + 9.5, valueY + 1);
 }
 
 function drawInfoPair(doc, left, right, language, y) {
@@ -147,13 +155,13 @@ function drawInfoPair(doc, left, right, language, y) {
     doc.setFontSize(8.2);
     doc.setTextColor(23, 139, 112);
     doc.text(arabicText(doc, label, language), x, y, { align, baseline: 'top' });
-    return drawTextBlock(doc, value || '-', { x: align === 'right' ? x : x, y: y + 3.5, width, language, fontSize: 9.2, align, lineHeight: 1.2 });
+    return drawTextBlock(doc, value || '-', { x: align === 'right' ? x : x, y: y + INFO_LABEL_VALUE_GAP, width, language, fontSize: 9.2, align, lineHeight: 1.2 });
   };
   const leftX = language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT;
   const rightX = language === 'en' ? CONTENT_LEFT + width + gap : CONTENT_LEFT + width;
   const leftEnd = draw(left, leftX, language === 'en' ? 'left' : 'right');
   const rightEnd = draw(right, rightX, language === 'en' ? 'left' : 'right');
-  return Math.max(y + 9, leftEnd, rightEnd) + 1.5;
+  return Math.max(y + 9.5, leftEnd, rightEnd) + 1;
 }
 
 function drawHeader(doc, order, language) {
@@ -200,10 +208,10 @@ function drawTotals(doc, order, language, y, background) {
   const discount = Number(order.discount ?? order.builderDiscount ?? 0);
   const delivery = Number(order.deliveryFee ?? 0);
   const finalTotal = Number(order.finalTotal ?? order.grandTotal ?? order.total ?? (subtotal - discount + delivery));
-  const rows = [[receiptText(language, 'المجموع قبل الخصم', 'Subtotal before discount'), receiptMoney(subtotal, language)]];
-  if (discount > 0) rows.push([receiptText(language, 'الخصم', 'Discount'), receiptMoney(discount, language)]);
-  if (delivery > 0) rows.push([receiptText(language, 'التوصيل', 'Delivery'), receiptMoney(delivery, language)]);
-  rows.push([receiptText(language, 'السعر النهائي', 'Final total'), receiptMoney(finalTotal, language)]);
+  const rows = [[receiptText(language, 'المجموع قبل الخصم', 'Subtotal before discount'), formatIQD(subtotal, language)]];
+  if (discount > 0) rows.push([receiptText(language, 'الخصم', 'Discount'), formatIQD(discount, language)]);
+  if (delivery > 0) rows.push([receiptText(language, 'التوصيل', 'Delivery'), formatIQD(delivery, language)]);
+  rows.push([receiptText(language, 'السعر النهائي', 'Final total'), formatIQD(finalTotal, language)]);
   const height = rows.length * 9 + 8;
   if (y + height > FOOTER_SAFE_TOP) {
     doc.addPage();
@@ -223,13 +231,13 @@ function drawTotals(doc, order, language, y, background) {
     doc.setTextColor(22, 142, 112);
     doc.text(arabicText(doc, label, language), language === 'en' ? boxX + 5 : boxX + boxWidth - 5, rowY, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
     doc.setTextColor(32, 37, 34);
-    doc.text(arabicText(doc, value, language), language === 'en' ? boxX + boxWidth - 5 : boxX + 5, rowY, { align: language === 'en' ? 'right' : 'left', baseline: 'top' });
+    doc.text(pdfCurrencyText(value, language), language === 'en' ? boxX + boxWidth - 5 : boxX + 5, rowY, { align: language === 'en' ? 'right' : 'left', baseline: 'top' });
     if (isFinal) { doc.setDrawColor(22, 142, 112); doc.line(boxX + 5, rowY - 2, boxX + boxWidth - 5, rowY - 2); }
   });
 }
 
 function tableRows(items, language) {
-  const rows = items.map((item, index) => [String(index + 1), item.name || item.product_name || '', String(item.quantity), receiptMoney(item.unitPrice, language), receiptMoney(item.total, language)]);
+  const rows = items.map((item, index) => [String(index + 1), item.name || item.product_name || '', String(item.quantity), formatIQD(item.unitPrice, language), formatIQD(item.total, language)]);
   return language === 'en' ? rows : rows.map((row) => row.reverse());
 }
 
@@ -239,7 +247,10 @@ function drawTable(doc, items, language, startY, order, background) {
   const tableOptions = {
     startY,
     head: [columns.map((value) => arabicText(doc, value, language))],
-    body: tableRows(items, language).map((row) => row.map((value) => arabicText(doc, value, language))),
+    body: tableRows(items, language).map((row) => row.map((value, index) => {
+      const isCurrencyColumn = isEnglish ? index === 3 || index === 4 : index === 0 || index === 1;
+      return isCurrencyColumn ? pdfCurrencyText(value, language) : arabicText(doc, value, language);
+    })),
     theme: 'grid',
     margin: { left: CONTENT_LEFT, right: CONTENT_RIGHT, top: CONTENT_TOP + 20, bottom: PAGE_HEIGHT - FOOTER_SAFE_TOP + 8 },
     tableWidth: CONTENT_WIDTH,
