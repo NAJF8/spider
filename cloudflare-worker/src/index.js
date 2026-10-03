@@ -511,6 +511,43 @@ async function handleRequest(request, env) {
       finally { chatInFlight.delete(clientKey); }
     }
 
+    if (url.pathname === '/api/admin/translate-description' && request.method === 'POST') {
+      try {
+        const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+        if (!token) return errorResponse('AUTH_REQUIRED', 401);
+        const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        const uid = verifyData?.users?.[0]?.localId;
+        if (!verifyRes.ok || !uid) return errorResponse('AUTH_INVALID', 401);
+        let allowed = uid === env.ADMIN_UID;
+        if (!allowed) {
+          const adminData = await readServiceDatabase(env, `admins/${encodeURIComponent(uid)}.json`);
+          allowed = canUploadImage({ uid, adminUid: env.ADMIN_UID, operation: 'edit', adminData }) || canUploadImage({ uid, adminUid: env.ADMIN_UID, operation: 'add', adminData });
+        }
+        if (!allowed) return errorResponse('FORBIDDEN', 403);
+        const body = await request.json().catch(() => ({}));
+        const text = String(body?.text || '').trim().slice(0, 2000);
+        if (!text) return errorResponse('TEXT_REQUIRED', 400);
+        const kieKey = String(env.KIE_API_KEY || '').trim();
+        if (!kieKey) return errorResponse('TRANSLATION_BACKEND_NOT_CONFIGURED', 503);
+        const kieRes = await fetch('https://api.kie.ai/openai/v1/responses', {
+          method: 'POST', headers: { Authorization: `Bearer ${kieKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'deepseek-v4-1-flash', stream: false, thinking: { type: 'disabled' }, input: [
+            { role: 'system', content: [{ type: 'input_text', text: 'Translate Arabic product descriptions into concise natural English. Return only the translation, with no quotes, explanation, or labels.' }] },
+            { role: 'user', content: [{ type: 'input_text', text }] }
+          ] })
+        });
+        const kieData = await readProviderResponse(kieRes);
+        if (!kieRes.ok || providerRejected(kieData.body)) return errorResponse('TRANSLATION_FAILED', 502);
+        const translation = extractProviderReply(kieData.body).slice(0, 2000);
+        if (!translation) return errorResponse('TRANSLATION_EMPTY', 502);
+        return jsonResponse({ success: true, translation });
+      } catch (error) {
+        console.error(JSON.stringify({ code: 'TRANSLATION_ERROR', message: String(error?.message || 'unknown').slice(0, 120) }));
+        return errorResponse('TRANSLATION_FAILED', 502);
+      }
+    }
+
     if (url.pathname === '/api/admin/products/upload-image' && request.method === 'POST') {
       try {
         // 1. Verify Authentication (Signature, Expiry, Project, UID)
@@ -765,6 +802,7 @@ async function handleRequest(request, env) {
       try {
         const body = await request.json();
         const { items, customer } = body;
+        const deliveryMethod = body.deliveryMethod === 'pickup' ? 'pickup' : 'delivery';
         const requestId = String(body.requestId || request.headers?.get?.('X-Request-Id') || '').trim();
         let validationStage = 'request-shape';
         const rejectCheckout = (code, status, details = {}) => {
@@ -777,6 +815,9 @@ async function handleRequest(request, env) {
         }
         if (!customer || !customer.name || !customer.phone) {
           return rejectCheckout('CUSTOMER_INFO_MISSING', 400);
+        }
+        if (deliveryMethod === 'delivery' && (!customer.governorate || !customer.district || !customer.addressDetails)) {
+          return rejectCheckout('DELIVERY_ADDRESS_REQUIRED', 400);
         }
 
         validationStage = 'item-shape';
@@ -850,9 +891,10 @@ async function handleRequest(request, env) {
         const builderDiscounts = builderDiscountsRes.ok ? ((await builderDiscountsRes.json()) || {}) : {};
         const globalDiscountSetting = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
-        if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+        if (deliveryMethod === 'delivery' && (!Number.isFinite(deliveryFee) || deliveryFee < 0)) {
           return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
         }
+        const appliedDeliveryFee = deliveryMethod === 'pickup' ? 0 : deliveryFee;
 
         let subtotal = 0;
         let builderDiscount = 0;
@@ -912,7 +954,7 @@ async function handleRequest(request, env) {
           ? Math.min(builderAfterProductDiscount, Math.round(globalDiscountValue))
           : Math.min(builderAfterProductDiscount, Math.round(builderAfterProductDiscount * Math.min(100, globalDiscountValue) / 100));
         const finalSubtotal = Math.max(0, subtotal - builderDiscount - builderGlobalDiscount);
-        const grandTotal = finalSubtotal + deliveryFee;
+        const grandTotal = finalSubtotal + appliedDeliveryFee;
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
 
@@ -920,6 +962,7 @@ async function handleRequest(request, env) {
           orderNumber,
           customerName: String(customer.name),
           customerPhone: String(customer.phone),
+          deliveryMethod,
           governorate: String(customer.governorate || customer.gov || ''),
           city: String(customer.district || customer.city || ''),
           district: String(customer.district || ''),
@@ -932,7 +975,7 @@ async function handleRequest(request, env) {
           builderDiscount,
           builderGlobalDiscount,
           finalSubtotal,
-          deliveryFee,
+          deliveryFee: appliedDeliveryFee,
           grandTotal,
           timestamp: Date.now(),
           status: 'pending',
@@ -956,11 +999,12 @@ async function handleRequest(request, env) {
           success: true,
           orderId: newOrderId,
           orderNumber,
+          deliveryMethod,
           subtotal,
           finalSubtotal,
           builderDiscount,
           builderGlobalDiscount,
-          deliveryFee,
+          deliveryFee: appliedDeliveryFee,
           grandTotal,
           items: verifiedItems
         };

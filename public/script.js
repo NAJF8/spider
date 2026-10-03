@@ -1804,8 +1804,7 @@ function openCheckout() {
   }
   const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p ? (item.builderSource ? builderProductPrice(p) : productPrice(p)) * item.qty : 0); }, 0);
   $('checkoutSubtotal').textContent = formatPrice(total);
-  $('checkoutDeliveryFee').textContent = formatPrice(deliveryFee);
-  $('checkoutTotal').textContent = formatPrice(total + deliveryFee);
+  updateCheckoutFulfilment(total);
   closeCart();
   modal('checkoutModal', true);
 }
@@ -1814,10 +1813,25 @@ function requestId() { return crypto.randomUUID?.() || `${Date.now()}-${Math.ran
 
 function checkoutPayload(form) {
   const data = new FormData(form);
+  const deliveryMethod = data.get('deliveryMethod') === 'pickup' ? 'pickup' : 'delivery';
   const builderPartByProductId = Object.fromEntries(builderParts.flatMap((part) => builderSelectionIds(part.id).map((productId) => [String(productId), part.id])));
   const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty), source: i.builderSource ? 'builder' : 'store', ...(i.builderSource && builderPartByProductId[String(i.id)] ? { builderPart: builderPartByProductId[String(i.id)] } : {}) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
-  return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
+  return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), deliveryMethod, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
+}
+
+function updateCheckoutFulfilment(subtotal = null) {
+  const form = $('checkoutForm');
+  if (!form) return;
+  const method = form.querySelector('input[name="deliveryMethod"]:checked')?.value === 'pickup' ? 'pickup' : 'delivery';
+  const delivery = method === 'delivery';
+  $('deliveryFields')?.toggleAttribute('hidden', !delivery);
+  ['orderGov', 'orderDistrict', 'orderAddress'].forEach((id) => $(id)?.toggleAttribute('required', delivery));
+  const total = subtotal ?? Number(String($('checkoutSubtotal')?.textContent || '').replace(/[^0-9.]/g, '')) || 0;
+  const fee = delivery ? Number(deliveryFee || 0) : 0;
+  $('checkoutDeliveryFee').textContent = formatPrice(fee);
+  $('checkoutDeliveryRow')?.toggleAttribute('hidden', !delivery);
+  $('checkoutTotal').textContent = formatPrice(total + fee);
 }
 
 function checkoutDebugSummary(payload) {
@@ -1848,10 +1862,11 @@ async function submitCheckout(event) {
       console.error('Checkout failed', { status: response.status, code: result.code || result.error || 'CHECKOUT_FAILED', message: result.message || null, validationStage: result.validationStage || null, details: result.details || null, requestId: payload.requestId, summary: debugSummary });
       throw new Error(result.error || result.code || 'CHECKOUT_FAILED');
     }
-    const orderSnapshot = { ...result, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
+    const orderSnapshot = { ...result, deliveryMethod: payload.deliveryMethod, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
     pendingReceipt = { order: orderSnapshot, language, whatsappNumber: normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942') };
     const lines = (orderSnapshot.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
-    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `المجموع: ${formatPrice(result.subtotal)}`, result.builderDiscount > 0 ? `خصم التجميعة: ${formatPrice(result.builderDiscount)}` : '', `التوصيل: ${formatPrice(result.deliveryFee)}`, `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}`].filter(Boolean).join('\n');
+    const addressLine = payload.deliveryMethod === 'delivery' ? `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}` : '';
+    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `طريقة الاستلام: ${payload.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}`, `المجموع: ${formatPrice(result.subtotal)}`, result.builderDiscount > 0 ? `خصم التجميعة: ${formatPrice(result.builderDiscount)}` : '', result.deliveryFee > 0 ? `التوصيل: ${formatPrice(result.deliveryFee)}` : '', `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, addressLine].filter(Boolean).join('\n');
     pendingReceipt.whatsappMessage = message;
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
@@ -2043,6 +2058,7 @@ function bindEvents() {
   $('checkoutBtn').addEventListener('click', openCheckout);
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
+  $('checkoutForm').querySelectorAll('input[name="deliveryMethod"]').forEach((input) => input.addEventListener('change', () => updateCheckoutFulfilment()));
   bindAddressHierarchy();
 
   $('closeProductDetailsBtn').addEventListener('click', () => modal('productDetailsModal', false));

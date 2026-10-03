@@ -123,11 +123,29 @@ function drawInfoRow(doc, label, value, language, y) {
   const valueX = language === 'en' ? CONTENT_LEFT + labelWidth + 5 : PAGE_WIDTH - CONTENT_RIGHT;
   const labelX = language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT;
   doc.setFont('Amiri', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(23, 139, 112);
   doc.text(arabicText(doc, label, language), labelX, y, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
-  const valueY = drawTextBlock(doc, value || '-', { x: valueX, y: y + 4, width: valueWidth, language, fontSize: 10, align: language === 'en' ? 'left' : 'right' });
-  return Math.max(y + 11, valueY + 2);
+  const valueY = drawTextBlock(doc, value || '-', { x: valueX, y: y + 3.5, width: valueWidth, language, fontSize: 9.2, align: language === 'en' ? 'left' : 'right', lineHeight: 1.2 });
+  return Math.max(y + 9, valueY + 1.5);
+}
+
+function drawInfoPair(doc, left, right, language, y) {
+  const gap = 7;
+  const width = (CONTENT_WIDTH - gap) / 2;
+  const draw = (entry, x, align) => {
+    const [label, value] = entry;
+    doc.setFont('Amiri', 'normal');
+    doc.setFontSize(8.2);
+    doc.setTextColor(23, 139, 112);
+    doc.text(arabicText(doc, label, language), x, y, { align, baseline: 'top' });
+    return drawTextBlock(doc, value || '-', { x: align === 'right' ? x : x, y: y + 3.5, width, language, fontSize: 9.2, align, lineHeight: 1.2 });
+  };
+  const leftX = language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT;
+  const rightX = language === 'en' ? CONTENT_LEFT + width + gap : CONTENT_LEFT + width;
+  const leftEnd = draw(left, leftX, language === 'en' ? 'left' : 'right');
+  const rightEnd = draw(right, rightX, language === 'en' ? 'left' : 'right');
+  return Math.max(y + 9, leftEnd, rightEnd) + 1.5;
 }
 
 function drawHeader(doc, order, language) {
@@ -155,17 +173,17 @@ function drawHeader(doc, order, language) {
 
 function drawCustomerBlock(doc, order, language, items) {
   let y = drawSectionTitle(doc, receiptText(language, 'بيانات الزبون', 'Customer details'), language, 92);
-  const address = [order.governorate, order.district, order.subdistrict, order.neighborhood, order.addressDetails || order.address].filter(Boolean).join(' - ');
-  const rows = [
+  const isPickup = String(order.deliveryMethod || '').toLowerCase() === 'pickup';
+  const address = isPickup ? '' : [order.governorate, order.district, order.subdistrict, order.neighborhood, order.addressDetails || order.address].filter(Boolean).join(' - ');
+  y = drawInfoPair(doc,
     [receiptText(language, 'اسم الزبون', 'Customer name'), order.customerName],
-    [receiptText(language, 'رقم الهاتف', 'Phone'), order.customerPhone],
-    [receiptText(language, 'العنوان', 'Address'), address],
-    [receiptText(language, 'طريقة الاستلام', 'Fulfilment'), order.fulfilment || order.fulfillment || order.deliveryMethod || receiptText(language, 'توصيل', 'Delivery')],
-    [receiptText(language, 'نوع الطلب', 'Order type'), items.some((item) => item.source === 'builder') ? receiptText(language, 'تجميعة كمبيوتر', 'Build Your PC') : receiptText(language, 'طلب عادي', 'Regular order')]
-  ];
-  if (order.notes) rows.push([receiptText(language, 'الملاحظات', 'Notes'), order.notes]);
-  rows.forEach(([label, value]) => { y = drawInfoRow(doc, label, value, language, y); });
-  return y + 4;
+    [receiptText(language, 'رقم الهاتف', 'Phone'), order.customerPhone], language, y);
+  y = drawInfoPair(doc,
+    [receiptText(language, 'طريقة الاستلام', 'Fulfilment'), isPickup ? receiptText(language, 'استلام من المتجر', 'Store pickup') : receiptText(language, 'توصيل', 'Delivery')],
+    [receiptText(language, 'نوع الطلب', 'Order type'), items.some((item) => item.source === 'builder') ? receiptText(language, 'تجميعة كمبيوتر', 'Build Your PC') : receiptText(language, 'طلب عادي', 'Regular order')], language, y);
+  if (!isPickup) y = drawInfoRow(doc, receiptText(language, 'العنوان', 'Address'), address, language, y);
+  if (order.notes) y = drawInfoRow(doc, receiptText(language, 'الملاحظات', 'Notes'), order.notes, language, y);
+  return y + 2;
 }
 
 function drawTotals(doc, order, language, y, background) {
@@ -202,14 +220,13 @@ function drawTotals(doc, order, language, y, background) {
 }
 
 function tableRows(items, language) {
-  return items.map((item, index) => [
-    String(index + 1), item.name || item.product_name || '', String(item.quantity), receiptMoney(item.unitPrice, language), receiptMoney(item.total, language)
-  ]);
+  const rows = items.map((item, index) => [String(index + 1), item.name || item.product_name || '', String(item.quantity), receiptMoney(item.unitPrice, language), receiptMoney(item.total, language)]);
+  return language === 'en' ? rows : rows.map((row) => row.reverse());
 }
 
 function drawTable(doc, items, language, startY, order, background) {
   const isEnglish = language === 'en';
-  const columns = isEnglish ? ['#', 'Product', 'Qty', 'Unit price', 'Total'] : ['ت', 'المنتج', 'الكمية', 'سعر الوحدة', 'الإجمالي'];
+  const columns = isEnglish ? ['#', 'Product', 'Qty', 'Unit price', 'Total'] : ['الإجمالي', 'سعر الوحدة', 'الكمية', 'المنتج', 'ت'];
   const tableOptions = {
     startY,
     head: [columns.map((value) => arabicText(doc, value, language))],
@@ -219,10 +236,12 @@ function drawTable(doc, items, language, startY, order, background) {
     tableWidth: CONTENT_WIDTH,
     rowPageBreak: 'avoid',
     showHead: 'everyPage',
-    styles: { font: 'Amiri', fontStyle: 'normal', fontSize: 9, cellPadding: 2.2, overflow: 'linebreak', valign: 'middle', halign: isEnglish ? 'left' : 'right', textColor: [32, 37, 34], lineColor: [216, 223, 213], lineWidth: 0.2 },
+    styles: { font: 'Amiri', fontStyle: 'normal', fontSize: 8.5, cellPadding: 1.6, overflow: 'linebreak', valign: 'middle', halign: isEnglish ? 'left' : 'right', textColor: [32, 37, 34], lineColor: [216, 223, 213], lineWidth: 0.2 },
     headStyles: { fillColor: [22, 142, 112], textColor: [255, 255, 255], fontStyle: 'normal', halign: 'center' },
     alternateRowStyles: { fillColor: [243, 247, 233] },
-    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 75, halign: isEnglish ? 'left' : 'right' }, 2: { cellWidth: 16, halign: 'center' }, 3: { cellWidth: 38.5, halign: 'center' }, 4: { cellWidth: 38.5, halign: 'center' } },
+    columnStyles: isEnglish
+      ? { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 75, halign: 'left' }, 2: { cellWidth: 16, halign: 'center' }, 3: { cellWidth: 38.5, halign: 'center' }, 4: { cellWidth: 38.5, halign: 'center' } }
+      : { 0: { cellWidth: 38.5, halign: 'center' }, 1: { cellWidth: 38.5, halign: 'center' }, 2: { cellWidth: 16, halign: 'center' }, 3: { cellWidth: 75, halign: 'right' }, 4: { cellWidth: 10, halign: 'center' } },
     willDrawPage: ({ pageNumber }) => {
       if (pageNumber > 1) {
         drawBackground(doc, background);

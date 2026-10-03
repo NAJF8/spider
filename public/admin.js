@@ -54,6 +54,8 @@ let customers = [];
 let privatePricesByProduct = {};
 let builderDiscountsByProduct = {};
 let pendingPricingIdentities = {};
+let englishDescriptionManuallyEdited = false;
+let descriptionTranslationTimer = null;
 let adminModalDepth = 0;
 let adminModalScrollY = 0;
 const productDescriptionParts = (value) => {
@@ -1292,6 +1294,10 @@ window.openProductModal = function(id = null) {
     closeOrderModal();
 
     const form = document.getElementById('productForm');
+    englishDescriptionManuallyEdited = false;
+    if (descriptionTranslationTimer) clearTimeout(descriptionTranslationTimer);
+    const translationStatus = document.getElementById('translationStatus');
+    if (translationStatus) translationStatus.textContent = '';
     form.reset();
     document.getElementById('prodId').value = '';
     resetProductImageState();
@@ -1355,6 +1361,39 @@ window.closeProductModal = function() {
 };
 
 document.getElementById('prodCategory')?.addEventListener('change', updateProductCompatibilityFields);
+
+async function translateProductDescription(force = false) {
+    const arabic = document.getElementById('prodDescAr')?.value.trim() || '';
+    const english = document.getElementById('prodDescEn');
+    const status = document.getElementById('translationStatus');
+    if (!arabic || (!force && englishDescriptionManuallyEdited)) return;
+    if (!auth.currentUser) return;
+    if (status) status.textContent = 'جارٍ الترجمة...';
+    const button = document.getElementById('retranslateDescriptionBtn');
+    if (button) button.disabled = true;
+    try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/translate-description`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ text: arabic })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success || !result.translation) throw new Error(result.error || 'TRANSLATION_FAILED');
+        english.value = result.translation;
+        if (force) englishDescriptionManuallyEdited = false;
+        if (status) status.textContent = '';
+    } catch (error) {
+        console.error('Product description translation failed', { code: error.message });
+        if (status) status.textContent = 'تعذرت الترجمة؛ يمكنك إدخال English يدويًا.';
+    } finally { if (button) button.disabled = false; }
+}
+
+document.getElementById('prodDescEn')?.addEventListener('input', () => { englishDescriptionManuallyEdited = true; });
+document.getElementById('prodDescAr')?.addEventListener('input', () => {
+    if (descriptionTranslationTimer) clearTimeout(descriptionTranslationTimer);
+    if (englishDescriptionManuallyEdited) return;
+    descriptionTranslationTimer = setTimeout(() => translateProductDescription(false), 850);
+});
+document.getElementById('retranslateDescriptionBtn')?.addEventListener('click', () => translateProductDescription(true));
 
 document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1894,7 +1933,8 @@ window.viewOrder = function(orderId) {
                 <p><strong>اسم العميل:</strong> ${order.customerName}</p>
                 <p><strong>رقم الهاتف:</strong> <a href="tel:${order.customerPhone}" style="color:var(--primary);">${order.customerPhone}</a></p>
             </div>
-            <p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>
+            <p style="margin-top:8px;"><strong>طريقة الاستلام:</strong> ${order.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}</p>
+            ${order.deliveryMethod === 'pickup' ? '' : `<p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>`}
             ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>ملاحظات العميل:</strong> ${order.notes}</p>` : ''}
         </div>
 
@@ -1903,7 +1943,7 @@ window.viewOrder = function(orderId) {
 
         <div style="margin-top:20px;padding-top:15px;border-top:2px solid #eee;">
             <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>مجموع المنتجات:</span> <strong>${formatPrice(order.subtotal || 0)}</strong></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>أجور التوصيل:</span> <strong>${formatPrice(order.deliveryFee || 5000)}</strong></div>
+            ${order.deliveryMethod === 'pickup' ? '' : `<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>أجور التوصيل:</span> <strong>${formatPrice(order.deliveryFee || 0)}</strong></div>`}
             <div style="display:flex;justify-content:space-between;color:var(--primary);font-size:1.25rem;font-weight:900;margin-top:10px;padding-top:10px;border-top:1px dashed #ddd;">
                 <span>المبلغ الكلي:</span> <strong>${formatPrice(order.grandTotal || 0)}</strong>
             </div>

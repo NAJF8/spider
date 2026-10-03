@@ -321,6 +321,12 @@
       <form id="checkoutForm" class="modal-body">
         <input name="customerName" id="orderName" required placeholder="الاسم الكامل">
         <input name="customerPhone" id="orderPhone" required type="tel" placeholder="رقم الهاتف (07XXXXXXXXX)">
+        <fieldset class="checkout-fulfilment">
+          <legend>طريقة الاستلام</legend>
+          <label><input type="radio" name="deliveryMethod" value="delivery" checked> توصيل</label>
+          <label><input type="radio" name="deliveryMethod" value="pickup"> استلام من المتجر</label>
+        </fieldset>
+        <div id="deliveryFields">
         <select name="governorate" id="orderGov" required>
           <option value="">اختر المحافظة...</option>
         </select>
@@ -328,10 +334,11 @@
         <select name="subdistrict" id="orderSubdistrict" disabled><option value="">اختر المنطقة / الناحية...</option></select>
         <input name="neighborhood" id="orderNeighborhood" placeholder="الحي / المنطقة">
         <textarea name="addressDetails" id="orderAddress" required placeholder="العنوان التفصيلي"></textarea>
+        </div>
         <textarea name="notes" id="orderNotes" placeholder="ملاحظات إضافية (اختياري)"></textarea>
         <div class="order-summary">
           <span>المجموع <b id="checkoutSubtotal">0 د.ع</b></span>
-          <span>التوصيل <b id="checkoutDeliveryFee">0 د.ع</b></span>
+          <span id="checkoutDeliveryRow">التوصيل <b id="checkoutDeliveryFee">0 د.ع</b></span>
           <strong>الإجمالي <b id="checkoutTotal">0 د.ع</b></strong>
         </div>
         <button class="btn btn-primary" type="submit">تأكيد وحفظ الطلب ثم فتح واتساب</button>
@@ -469,6 +476,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script type="module" src="script.js?v=20261003-1"></script>
+  <script type="module" src="script.js?v=20261003-2"></script>
 </body>
 </html>
