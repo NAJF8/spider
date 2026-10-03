@@ -15,11 +15,19 @@ const CONTENT_WIDTH = PAGE_WIDTH - CONTENT_LEFT - CONTENT_RIGHT;
 const receiptText = (language, ar, en) => language === 'en' ? en : ar;
 const numberFormatter = new Intl.NumberFormat('en-IQ', { maximumFractionDigits: 0 });
 const receiptMoney = (value, language) => `${numberFormatter.format(Number(value || 0))} ${language === 'en' ? 'IQD' : 'د.ع'}`;
+function formatDeliveryMethod(value, language) {
+  return String(value || '').toLowerCase() === 'pickup'
+    ? receiptText(language, 'استلام من المتجر', 'Store Pickup')
+    : receiptText(language, 'توصيل', 'Delivery');
+}
 const receiptDate = (timestamp, language) => {
   const date = new Date(Number(timestamp) || Date.now());
+  const pad = (value) => String(value).padStart(2, '0');
+  const hours = date.getHours();
+  const hour12 = hours % 12 || 12;
   return {
-    date: date.toLocaleDateString(language === 'en' ? 'en-IQ' : 'ar-IQ'),
-    time: date.toLocaleTimeString(language === 'en' ? 'en-IQ' : 'ar-IQ', { hour: '2-digit', minute: '2-digit' })
+    date: `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`,
+    time: `${pad(hour12)}:${pad(date.getMinutes())} ${language === 'en' ? (hours >= 12 ? 'PM' : 'AM') : (hours >= 12 ? 'م' : 'ص')}`
   };
 };
 
@@ -165,21 +173,22 @@ function drawHeader(doc, order, language) {
     doc.setFontSize(9);
     doc.setTextColor(23, 139, 112);
     doc.text(arabicText(doc, label, language), x, HEADER_SAFE_BOTTOM + 18, { align: 'center', baseline: 'top' });
-    doc.setFontSize(10);
+    doc.setFontSize(9.2);
     doc.setTextColor(32, 37, 34);
-    doc.text(arabicText(doc, value, language), x, HEADER_SAFE_BOTTOM + 24, { align: 'center', baseline: 'top' });
+    doc.text(arabicText(doc, value, language), x, HEADER_SAFE_BOTTOM + 24, { align: 'center', baseline: 'top', maxWidth: cellWidth - 8 });
   });
 }
 
 function drawCustomerBlock(doc, order, language, items) {
   let y = drawSectionTitle(doc, receiptText(language, 'بيانات الزبون', 'Customer details'), language, 92);
-  const isPickup = String(order.deliveryMethod || '').toLowerCase() === 'pickup';
+  const deliveryMethod = String(order.deliveryMethod || order.fulfilment || order.fulfillment || 'delivery').toLowerCase();
+  const isPickup = deliveryMethod === 'pickup';
   const address = isPickup ? '' : [order.governorate, order.district, order.subdistrict, order.neighborhood, order.addressDetails || order.address].filter(Boolean).join(' - ');
   y = drawInfoPair(doc,
     [receiptText(language, 'اسم الزبون', 'Customer name'), order.customerName],
     [receiptText(language, 'رقم الهاتف', 'Phone'), order.customerPhone], language, y);
   y = drawInfoPair(doc,
-    [receiptText(language, 'طريقة الاستلام', 'Fulfilment'), isPickup ? receiptText(language, 'استلام من المتجر', 'Store pickup') : receiptText(language, 'توصيل', 'Delivery')],
+    [receiptText(language, 'طريقة الاستلام', 'Fulfilment'), formatDeliveryMethod(deliveryMethod, language)],
     [receiptText(language, 'نوع الطلب', 'Order type'), items.some((item) => item.source === 'builder') ? receiptText(language, 'تجميعة كمبيوتر', 'Build Your PC') : receiptText(language, 'طلب عادي', 'Regular order')], language, y);
   if (!isPickup) y = drawInfoRow(doc, receiptText(language, 'العنوان', 'Address'), address, language, y);
   if (order.notes) y = drawInfoRow(doc, receiptText(language, 'الملاحظات', 'Notes'), order.notes, language, y);
