@@ -1,9 +1,20 @@
 const RECEIPT_BACKGROUND = 'assets/spider-receipt-background.jpg';
+const RECEIPT_FONT = 'assets/fonts/Amiri-Regular.ttf';
 const RECEIPT_PART_ORDER = ['cpu', 'motherboard', 'ram', 'storage', 'gpu', 'psu', 'cooling', 'case'];
 
+const PAGE_WIDTH = 210;
+const PAGE_HEIGHT = 297;
+const CONTENT_LEFT = 16;
+const CONTENT_RIGHT = 16;
+const CONTENT_TOP = 58;
+const CONTENT_BOTTOM = 276;
+const HEADER_SAFE_BOTTOM = 54;
+const FOOTER_SAFE_TOP = 276;
+const CONTENT_WIDTH = PAGE_WIDTH - CONTENT_LEFT - CONTENT_RIGHT;
+
 const receiptText = (language, ar, en) => language === 'en' ? en : ar;
-const escapeReceipt = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const receiptMoney = (value, language) => `${Number(value || 0).toLocaleString('en-IQ')} ${language === 'en' ? 'IQD' : 'د.ع'}`;
+const numberFormatter = new Intl.NumberFormat('en-IQ', { maximumFractionDigits: 0 });
+const receiptMoney = (value, language) => `${numberFormatter.format(Number(value || 0))} ${language === 'en' ? 'IQD' : 'د.ع'}`;
 const receiptDate = (timestamp, language) => {
   const date = new Date(Number(timestamp) || Date.now());
   return {
@@ -16,8 +27,8 @@ function receiptItems(order) {
   const items = Array.isArray(order?.items) ? order.items.map((item) => ({
     ...item,
     quantity: Number(item.quantity ?? item.qty ?? 1),
-    unitPrice: Number(item.unit_price ?? item.price ?? 0),
-    total: Number(item.line_total ?? (Number(item.unit_price ?? item.price ?? 0) * Number(item.quantity ?? item.qty ?? 1)))
+    unitPrice: Number(item.unit_price ?? item.unitPrice ?? item.price ?? 0),
+    total: Number(item.line_total ?? item.lineTotal ?? item.total ?? (Number(item.unit_price ?? item.unitPrice ?? item.price ?? 0) * Number(item.quantity ?? item.qty ?? 1)))
   })) : [];
   if (!items.some((item) => item.source === 'builder')) return items;
   return items.sort((a, b) => {
@@ -27,134 +38,207 @@ function receiptItems(order) {
   });
 }
 
-function receiptPageMarkup({ order, language, items, pageNumber, pageCount, itemOffset = 0, showTotals = pageNumber === pageCount }) {
-  const isEnglish = language === 'en';
+let fontPromise;
+async function loadArabicFont(doc) {
+  if (!fontPromise) {
+    fontPromise = fetch(RECEIPT_FONT).then((response) => {
+      if (!response.ok) throw new Error(`RECEIPT_FONT_${response.status}`);
+      return response.arrayBuffer();
+    }).then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
+      return btoa(binary);
+    });
+  }
+  doc.addFileToVFS('Amiri-Regular.ttf', await fontPromise);
+  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+  doc.setFont('Amiri', 'normal');
+}
+
+async function imageData(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`RECEIPT_BACKGROUND_${response.status}`);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function drawBackground(doc, background) {
+  const imageRatio = 902 / 1280;
+  const pageRatio = PAGE_WIDTH / PAGE_HEIGHT;
+  const width = pageRatio < imageRatio ? PAGE_WIDTH : PAGE_HEIGHT * imageRatio;
+  const height = width / imageRatio;
+  doc.addImage(background, 'JPEG', (PAGE_WIDTH - width) / 2, (PAGE_HEIGHT - height) / 2, width, height, undefined, 'FAST');
+}
+
+function arabicText(doc, value, language) {
+  const text = String(value ?? '');
+  return language === 'en' || typeof doc.processArabic !== 'function' ? text : doc.processArabic(text);
+}
+
+function wrapText(doc, value, width, language) {
+  return doc.splitTextToSize(arabicText(doc, value, language), width);
+}
+
+function drawTextBlock(doc, value, { x, y, width, language, fontSize = 10, align = 'right', lineHeight = 1.35, color = [32, 37, 34] }) {
+  doc.setFont('Amiri', 'normal');
+  doc.setFontSize(fontSize);
+  doc.setTextColor(...color);
+  const lines = wrapText(doc, value, width, language);
+  doc.text(lines, x, y, { align, baseline: 'top', maxWidth: width });
+  return y + Math.max(1, lines.length) * fontSize * 0.3528 * lineHeight;
+}
+
+function drawSectionTitle(doc, value, language, y) {
+  doc.setDrawColor(219, 235, 158);
+  doc.setLineWidth(0.5);
+  doc.line(CONTENT_LEFT, y + 5, PAGE_WIDTH - CONTENT_RIGHT, y + 5);
+  doc.setFont('Amiri', 'normal');
+  doc.setFontSize(13);
+  doc.setTextColor(22, 142, 112);
+  doc.text(arabicText(doc, value, language), PAGE_WIDTH / 2, y, { align: 'center', baseline: 'top' });
+  return y + 10;
+}
+
+function drawInfoRow(doc, label, value, language, y) {
+  const labelWidth = 35;
+  const valueWidth = CONTENT_WIDTH - labelWidth - 5;
+  const valueX = language === 'en' ? CONTENT_LEFT + labelWidth + 5 : PAGE_WIDTH - CONTENT_RIGHT;
+  const labelX = language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT;
+  doc.setFont('Amiri', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(23, 139, 112);
+  doc.text(arabicText(doc, label, language), labelX, y, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
+  const valueY = drawTextBlock(doc, value || '-', { x: valueX, y: y + 4, width: valueWidth, language, fontSize: 10, align: language === 'en' ? 'left' : 'right' });
+  return Math.max(y + 11, valueY + 2);
+}
+
+function drawHeader(doc, order, language) {
   const { date, time } = receiptDate(order.timestamp, language);
-  const customer = [order.customerName, order.customerPhone, [order.governorate, order.district, order.subdistrict, order.neighborhood, order.addressDetails || order.address].filter(Boolean).join(' - ')].filter(Boolean);
-  const rows = items.map((item, index) => `<tr>
-    <td>${escapeReceipt(itemOffset + index + 1)}</td>
-    <td class="item-name">${escapeReceipt(item.name || item.product_name || '')}</td>
-    <td>${escapeReceipt(item.quantity)}</td>
-    <td>${escapeReceipt(receiptMoney(item.unitPrice, language))}</td>
-    <td>${escapeReceipt(receiptMoney(item.total, language))}</td>
-  </tr>`).join('');
-  const firstPage = pageNumber === 1;
-  return `<section class="spider-pdf-page" dir="${isEnglish ? 'ltr' : 'rtl'}">
-    <img class="spider-pdf-background" src="${RECEIPT_BACKGROUND}" alt="">
-    <div class="spider-pdf-content">
-      <div class="spider-pdf-page-meta">${pageCount > 1 ? `${escapeReceipt(isEnglish ? `Page ${pageNumber} of ${pageCount}` : `صفحة ${pageNumber} من ${pageCount}`)}` : ''}</div>
-      ${firstPage ? `<div class="spider-pdf-title">${escapeReceipt(receiptText(language, 'وصل طلب', 'Order Receipt'))}</div>
-      <div class="spider-pdf-order-meta">
-        <div><b>${escapeReceipt(receiptText(language, 'رقم الطلب', 'Order number'))}</b><span>${escapeReceipt(order.orderNumber || order.orderId || '')}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'التاريخ', 'Date'))}</b><span>${escapeReceipt(date)}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'الوقت', 'Time'))}</b><span>${escapeReceipt(time)}</span></div>
-      </div>
-      <div class="spider-pdf-section-title">${escapeReceipt(receiptText(language, 'بيانات الزبون', 'Customer details'))}</div>
-      <div class="spider-pdf-customer">
-        <div><b>${escapeReceipt(receiptText(language, 'الاسم', 'Name'))}</b><span>${escapeReceipt(customer[0] || '')}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'الهاتف', 'Phone'))}</b><span>${escapeReceipt(customer[1] || '')}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'العنوان', 'Address'))}</b><span>${escapeReceipt(customer[2] || '')}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'نوع الطلب', 'Order type'))}</b><span>${escapeReceipt(items.some((item) => item.source === 'builder') ? receiptText(language, 'تجميعة كمبيوتر', 'Build Your PC') : receiptText(language, 'طلب عادي', 'Regular order'))}</span></div>
-        <div><b>${escapeReceipt(receiptText(language, 'طريقة الاستلام', 'Fulfilment'))}</b><span>${escapeReceipt(receiptText(language, 'توصيل', 'Delivery'))}</span></div>
-        ${order.notes ? `<div><b>${escapeReceipt(receiptText(language, 'ملاحظات', 'Notes'))}</b><span>${escapeReceipt(order.notes)}</span></div>` : ''}
-      </div>` : `<div class="spider-pdf-continuation">${escapeReceipt(receiptText(language, 'متابعة المنتجات', 'Items continued'))}</div>`}
-      <table class="spider-pdf-table"><thead><tr>
-        <th>${escapeReceipt(receiptText(language, 'ت', '#'))}</th>
-        <th>${escapeReceipt(receiptText(language, 'المنتج', 'Product'))}</th>
-        <th>${escapeReceipt(receiptText(language, 'الكمية', 'Qty'))}</th>
-        <th>${escapeReceipt(receiptText(language, 'سعر الوحدة', 'Unit price'))}</th>
-        <th>${escapeReceipt(receiptText(language, 'الإجمالي', 'Total'))}</th>
-      </tr></thead><tbody>${rows}</tbody></table>
-      ${showTotals ? `<div class="spider-pdf-totals">
-        <div><span>${escapeReceipt(receiptText(language, 'المجموع قبل الخصم', 'Subtotal before discount'))}</span><b>${escapeReceipt(receiptMoney(order.subtotal, language))}</b></div>
-        ${Number(order.builderDiscount || 0) > 0 ? `<div><span>${escapeReceipt(receiptText(language, 'خصم التجميعة', 'Build discount'))}</span><b>${escapeReceipt(receiptMoney(order.builderDiscount, language))}</b></div>` : ''}
-        ${Number(order.deliveryFee || 0) > 0 ? `<div><span>${escapeReceipt(receiptText(language, 'التوصيل', 'Delivery'))}</span><b>${escapeReceipt(receiptMoney(order.deliveryFee, language))}</b></div>` : ''}
-        <div class="grand"><span>${escapeReceipt(receiptText(language, 'السعر النهائي', 'Final total'))}</span><b>${escapeReceipt(receiptMoney(order.grandTotal, language))}</b></div>
-      </div>` : ''}
-    </div>
-  </section>`;
+  doc.setFont('Amiri', 'normal');
+  doc.setFontSize(20);
+  doc.setTextColor(22, 142, 112);
+  doc.text(arabicText(doc, receiptText(language, 'تفاصيل الطلب', 'Order details'), language), PAGE_WIDTH / 2, HEADER_SAFE_BOTTOM + 7, { align: 'center', baseline: 'top' });
+  const meta = [
+    [receiptText(language, 'رقم الطلب', 'Order number'), order.orderNumber || order.orderId || '-'],
+    [receiptText(language, 'التاريخ', 'Date'), date],
+    [receiptText(language, 'الوقت', 'Time'), time]
+  ];
+  const cellWidth = CONTENT_WIDTH / 3;
+  meta.forEach(([label, value], index) => {
+    const x = language === 'en' ? CONTENT_LEFT + index * cellWidth + cellWidth / 2 : PAGE_WIDTH - CONTENT_RIGHT - index * cellWidth - cellWidth / 2;
+    doc.setFontSize(9);
+    doc.setTextColor(23, 139, 112);
+    doc.text(arabicText(doc, label, language), x, HEADER_SAFE_BOTTOM + 18, { align: 'center', baseline: 'top' });
+    doc.setFontSize(10);
+    doc.setTextColor(32, 37, 34);
+    doc.text(arabicText(doc, value, language), x, HEADER_SAFE_BOTTOM + 24, { align: 'center', baseline: 'top' });
+  });
 }
 
-function receiptStyles() {
-  return `<style>
-    .spider-pdf-root{position:fixed;left:-100000px;top:0;width:794px;background:#fbfbef;color:#202522;font-family:Cairo,Arial,sans-serif}
-    .spider-pdf-page{position:relative;width:794px;height:1123px;overflow:hidden;background:#fbfbef;box-sizing:border-box}
-    .spider-pdf-background{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:fill}
-    .spider-pdf-content{position:absolute;left:92px;right:92px;top:210px;bottom:126px;z-index:1;font-size:15px;line-height:1.55;direction:inherit;overflow:hidden}
-    .spider-pdf-page-meta{display:none;height:20px;text-align:left;color:#4b5d55;font-size:11px;direction:ltr}
-    .spider-pdf-title{text-align:center;font-size:25px;font-weight:800;color:#168e70;margin:3px 0 12px}
-    .spider-pdf-order-meta,.spider-pdf-customer{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;background:rgba(255,255,255,.9);border:1px solid #dce3d1;border-radius:10px;padding:10px 12px;margin-bottom:10px}
-    .spider-pdf-order-meta div,.spider-pdf-customer div{display:flex;gap:5px;min-width:0;flex-direction:column}
-    .spider-pdf-order-meta b,.spider-pdf-customer b{color:#178b70;font-size:11px}.spider-pdf-order-meta span,.spider-pdf-customer span{overflow-wrap:anywhere}
-    .spider-pdf-section-title,.spider-pdf-continuation{font-size:16px;font-weight:800;color:#168e70;margin:9px 0 6px;border-bottom:2px solid #dbeb9e;padding-bottom:3px}
-    .spider-pdf-table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.94);table-layout:fixed;direction:inherit;font-size:12px}
-    .spider-pdf-table th{background:#168e70;color:#fff;padding:7px 5px;text-align:center;font-weight:800}.spider-pdf-table td{border:1px solid #d8dfd5;padding:6px 5px;vertical-align:top;text-align:center;overflow-wrap:anywhere}.spider-pdf-table tr:nth-child(even){background:#f3f7e9}.spider-pdf-table th:nth-child(1){width:6%}.spider-pdf-table th:nth-child(2){width:42%;text-align:inherit}.spider-pdf-table th:nth-child(3){width:10%}.spider-pdf-table th:nth-child(4),.spider-pdf-table th:nth-child(5){width:21%}.spider-pdf-table .item-name{text-align:inherit;word-break:break-word}
-    .spider-pdf-totals{margin-top:14px;margin-inline-start:auto;width:58%;background:rgba(255,255,255,.94);border:1px solid #dce3d1;border-radius:10px;padding:8px 12px}.spider-pdf-totals div{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.spider-pdf-totals span,.spider-pdf-totals b{overflow-wrap:anywhere}.spider-pdf-totals .grand{border-top:2px solid #168e70;margin-top:4px;padding-top:7px;font-size:17px;color:#168e70;font-weight:800}.spider-pdf-continuation{margin-top:8px}
-  </style>`;
+function drawCustomerBlock(doc, order, language, items) {
+  let y = drawSectionTitle(doc, receiptText(language, 'بيانات الزبون', 'Customer details'), language, 92);
+  const address = [order.governorate, order.district, order.subdistrict, order.neighborhood, order.addressDetails || order.address].filter(Boolean).join(' - ');
+  const rows = [
+    [receiptText(language, 'اسم الزبون', 'Customer name'), order.customerName],
+    [receiptText(language, 'رقم الهاتف', 'Phone'), order.customerPhone],
+    [receiptText(language, 'العنوان', 'Address'), address],
+    [receiptText(language, 'طريقة الاستلام', 'Fulfilment'), order.fulfilment || order.fulfillment || order.deliveryMethod || receiptText(language, 'توصيل', 'Delivery')],
+    [receiptText(language, 'نوع الطلب', 'Order type'), items.some((item) => item.source === 'builder') ? receiptText(language, 'تجميعة كمبيوتر', 'Build Your PC') : receiptText(language, 'طلب عادي', 'Regular order')]
+  ];
+  if (order.notes) rows.push([receiptText(language, 'الملاحظات', 'Notes'), order.notes]);
+  rows.forEach(([label, value]) => { y = drawInfoRow(doc, label, value, language, y); });
+  return y + 4;
 }
 
-function receiptPageFits(root, { order, language, items, pageNumber, pageCount, itemOffset, showTotals }) {
-  root.innerHTML = receiptStyles() + receiptPageMarkup({ order, language, items, pageNumber, pageCount, itemOffset, showTotals });
-  const content = root.querySelector('.spider-pdf-content');
-  return content && content.scrollHeight <= content.clientHeight + 1;
+function drawTotals(doc, order, language, y, background) {
+  const subtotal = Number(order.subtotal ?? order.subtotalBeforeDiscount ?? 0);
+  const discount = Number(order.discount ?? order.builderDiscount ?? 0);
+  const delivery = Number(order.deliveryFee ?? 0);
+  const finalTotal = Number(order.finalTotal ?? order.grandTotal ?? order.total ?? (subtotal - discount + delivery));
+  const rows = [[receiptText(language, 'المجموع قبل الخصم', 'Subtotal before discount'), receiptMoney(subtotal, language)]];
+  if (discount > 0) rows.push([receiptText(language, 'الخصم', 'Discount'), receiptMoney(discount, language)]);
+  if (delivery > 0) rows.push([receiptText(language, 'التوصيل', 'Delivery'), receiptMoney(delivery, language)]);
+  rows.push([receiptText(language, 'السعر النهائي', 'Final total'), receiptMoney(finalTotal, language)]);
+  const height = rows.length * 9 + 8;
+  if (y + height > FOOTER_SAFE_TOP) {
+    doc.addPage();
+    drawBackground(doc, background);
+    return drawTotals(doc, order, language, CONTENT_TOP + 6, background);
+  }
+  const boxWidth = 110;
+  const boxX = language === 'en' ? PAGE_WIDTH - CONTENT_RIGHT - boxWidth : CONTENT_LEFT;
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(220, 227, 209);
+  doc.roundedRect(boxX, y, boxWidth, height, 3, 3, 'FD');
+  rows.forEach(([label, value], index) => {
+    const rowY = y + 6 + index * 9;
+    const isFinal = index === rows.length - 1;
+    doc.setFont('Amiri', 'normal');
+    doc.setFontSize(isFinal ? 14 : 10);
+    doc.setTextColor(22, 142, 112);
+    doc.text(arabicText(doc, label, language), language === 'en' ? boxX + 5 : boxX + boxWidth - 5, rowY, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
+    doc.setTextColor(32, 37, 34);
+    doc.text(arabicText(doc, value, language), language === 'en' ? boxX + boxWidth - 5 : boxX + 5, rowY, { align: language === 'en' ? 'right' : 'left', baseline: 'top' });
+    if (isFinal) { doc.setDrawColor(22, 142, 112); doc.line(boxX + 5, rowY - 2, boxX + boxWidth - 5, rowY - 2); }
+  });
 }
 
-function paginateReceiptItems(order, language, items) {
-  const measureRoot = document.createElement('div');
-  measureRoot.className = 'spider-pdf-root';
-  document.body.appendChild(measureRoot);
-  const chunks = [];
-  let current = [];
-  let offset = 0;
-  try {
-    for (const item of items) {
-      const candidate = [...current, item];
-      const fits = receiptPageFits(measureRoot, { order, language, items: candidate, pageNumber: chunks.length + 1, pageCount: 999, itemOffset: offset, showTotals: false });
-      if (current.length && !fits) {
-        chunks.push(current);
-        offset += current.length;
-        current = [item];
-      } else current = candidate;
+function tableRows(items, language) {
+  return items.map((item, index) => [
+    String(index + 1), item.name || item.product_name || '', String(item.quantity), receiptMoney(item.unitPrice, language), receiptMoney(item.total, language)
+  ]);
+}
+
+function drawTable(doc, items, language, startY, order, background) {
+  const isEnglish = language === 'en';
+  const columns = isEnglish ? ['#', 'Product', 'Qty', 'Unit price', 'Total'] : ['ت', 'المنتج', 'الكمية', 'سعر الوحدة', 'الإجمالي'];
+  doc.autoTable({
+    startY,
+    head: [columns.map((value) => arabicText(doc, value, language))],
+    body: tableRows(items, language).map((row) => row.map((value) => arabicText(doc, value, language))),
+    theme: 'grid',
+    margin: { left: CONTENT_LEFT, right: CONTENT_RIGHT, top: CONTENT_TOP + 20, bottom: PAGE_HEIGHT - FOOTER_SAFE_TOP + 8 },
+    tableWidth: CONTENT_WIDTH,
+    rowPageBreak: 'avoid',
+    showHead: 'everyPage',
+    styles: { font: 'Amiri', fontStyle: 'normal', fontSize: 9, cellPadding: 2.2, overflow: 'linebreak', valign: 'middle', halign: isEnglish ? 'left' : 'right', textColor: [32, 37, 34], lineColor: [216, 223, 213], lineWidth: 0.2 },
+    headStyles: { fillColor: [22, 142, 112], textColor: [255, 255, 255], fontStyle: 'normal', halign: 'center' },
+    alternateRowStyles: { fillColor: [243, 247, 233] },
+    columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 75, halign: isEnglish ? 'left' : 'right' }, 2: { cellWidth: 16, halign: 'center' }, 3: { cellWidth: 38.5, halign: 'center' }, 4: { cellWidth: 38.5, halign: 'center' } },
+    willDrawPage: ({ pageNumber }) => {
+      if (pageNumber > 1) {
+        drawBackground(doc, background);
+        doc.setFont('Amiri', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(22, 142, 112);
+        doc.text(arabicText(doc, receiptText(language, 'متابعة المنتجات', 'Items continued'), language), language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT, CONTENT_TOP + 4, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
+      }
     }
-    if (current.length || !chunks.length) chunks.push(current);
-    while (chunks.length > 1 && !receiptPageFits(measureRoot, { order, language, items: chunks.at(-1), pageNumber: chunks.length, pageCount: chunks.length, itemOffset: items.length - chunks.at(-1).length, showTotals: true })) {
-      const last = chunks.at(-1);
-      if (last.length <= 1) break;
-      const moved = last.shift();
-      chunks.splice(chunks.length - 1, 1, last);
-      chunks.push([moved]);
-    }
-    return chunks;
-  } finally { measureRoot.remove(); }
+  });
+  return doc.lastAutoTable.finalY;
 }
 
 export async function generateOrderReceiptPdf(order, language = 'ar', options = {}) {
-  if (!window.html2canvas || !window.jspdf?.jsPDF) throw new Error('PDF_LIBRARIES_NOT_READY');
+  if (!window.jspdf?.jsPDF || !window.jspdf?.jsPDF?.API?.autoTable) throw new Error('PDF_LIBRARIES_NOT_READY');
   const items = receiptItems(order);
-  const chunks = paginateReceiptItems(order, language, items);
-  const root = document.createElement('div');
-  root.className = 'spider-pdf-root';
-  let itemOffset = 0;
-  root.innerHTML = receiptStyles() + chunks.map((chunk, index) => {
-    const markup = receiptPageMarkup({ order, language, items: chunk, pageNumber: index + 1, pageCount: chunks.length, itemOffset });
-    itemOffset += chunk.length;
-    return markup;
-  }).join('');
-  document.body.appendChild(root);
-  try {
-    await Promise.all([...root.querySelectorAll('img')].map((image) => image.complete ? Promise.resolve() : new Promise((resolve) => { image.onload = resolve; image.onerror = resolve; })));
-    const pdf = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-    const pages = [...root.querySelectorAll('.spider-pdf-page')];
-    for (let index = 0; index < pages.length; index += 1) {
-      const canvas = await window.html2canvas(pages[index], { scale: 2.5, useCORS: true, backgroundColor: '#fbfbef', logging: false, width: 794, height: 1123 });
-      if (index) pdf.addPage();
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
-    }
-    const orderKey = String(order.orderNumber || order.orderId || Date.now()).replace(/[^A-Za-z0-9_-]/g, '-');
-    const filename = `SPIDER-ORDER-${orderKey}.pdf`;
-    const blob = pdf.output('blob');
-    if (options.asFile) return new File([blob], filename, { type: 'application/pdf' });
-    if (options.download !== false) pdf.save(filename);
-    return filename;
-  } finally { root.remove(); }
+  const doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true });
+  await loadArabicFont(doc);
+  const background = await imageData(RECEIPT_BACKGROUND);
+  drawBackground(doc, background);
+  drawHeader(doc, order, language);
+  const customerEndY = drawCustomerBlock(doc, order, language, items);
+  const tableEndY = drawTable(doc, items, language, customerEndY, order, background);
+  drawTotals(doc, order, language, tableEndY + 8, background);
+  const orderKey = String(order.orderNumber || order.orderId || Date.now()).replace(/[^A-Za-z0-9_-]/g, '-');
+  const filename = `SPIDER-ORDER-${orderKey}.pdf`;
+  const blob = doc.output('blob');
+  if (options.asFile) return new File([blob], filename, { type: 'application/pdf' });
+  if (options.download !== false) doc.save(filename);
+  return filename;
 }
