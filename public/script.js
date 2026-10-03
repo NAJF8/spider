@@ -273,15 +273,13 @@ const builderPriceMarkup = (product, variant = 'catalog') => {
 };
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
 const storeWhatsAppNumber = () => normalizeWhatsApp(state.settings.storeWhatsApp || state.settings.whatsappNumber || state.settings.whatsapp || state.settings.storePhone || '9647805700503');
-const canShareReceiptFile = (file) => Boolean(typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }));
-const receiptFileShareSupported = () => { try { return canShareReceiptFile(new File(['receipt'], 'SPIDER-ORDER-share.pdf', { type: 'application/pdf' })); } catch { return false; } };
-const setReceiptShareMode = (canShare) => {
+const setReceiptShareMode = () => {
   const button = $('whatsappOrderBtn');
   const note = $('receiptWhatsappNote');
-  if (button) button.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${canShare ? (language === 'en' ? 'Share receipt' : 'مشاركة الوصل') : (language === 'en' ? 'Download receipt and open WhatsApp' : 'تحميل الوصل وفتح واتساب')}`;
-  if (note) note.textContent = canShare
-    ? (language === 'en' ? 'Choose WhatsApp from the file share sheet to send the receipt.' : 'اختر واتساب من نافذة المشاركة لإرسال ملف الوصل.')
-    : (language === 'en' ? 'The receipt will download and the store WhatsApp chat will open. Attach the downloaded PDF there.' : 'سيُحمّل الوصل وتفتح محادثة واتساب المتجر. أرفق ملف PDF المحمّل في المحادثة.');
+  if (button) button.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${language === 'en' ? 'Download receipt and open WhatsApp' : 'تحميل الوصل وفتح واتساب'}`;
+  if (note) note.textContent = language === 'en'
+    ? 'The receipt will download and the store WhatsApp chat will open. Attach the downloaded PDF there.'
+    : 'سيُحمّل الوصل وتفتح محادثة واتساب المتجر. أرفق ملف PDF المحمّل في المحادثة.';
 };
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
@@ -1881,7 +1879,7 @@ async function submitCheckout(event) {
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
     $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
     $('downloadReceiptBtn').textContent = language === 'en' ? 'Download receipt PDF' : 'تحميل الوصل PDF';
-    setReceiptShareMode(receiptFileShareSupported());
+    setReceiptShareMode();
     modal('orderSuccessModal', true);
   } catch (e) {
     const code = e.message;
@@ -1941,26 +1939,17 @@ function bindReceiptEvents() {
     button.disabled = true;
     try {
       const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
-      if (canShareReceiptFile(file)) {
-        try {
-          await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`.trim(), files: [file] });
-          showToast(language === 'en' ? 'Choose WhatsApp to share the receipt.' : 'اختر واتساب من نافذة المشاركة لإرسال الوصل.');
-        } catch (error) {
-          if (error?.name !== 'AbortError') throw error;
-        }
-      } else {
-        const blobUrl = URL.createObjectURL(file);
-        const link = document.createElement('a'); link.href = blobUrl; link.download = file.name; link.click();
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-        const waUrl = `https://wa.me/${pendingReceipt.whatsappNumber}`;
-        const opened = window.open(waUrl, '_blank', 'noopener');
-        if (!opened) window.location.href = waUrl;
-        showToast(language === 'en' ? 'The receipt was downloaded. Attach it in the open WhatsApp chat.' : 'تم تحميل الوصل. أرفقه في محادثة واتساب المفتوحة.');
-      }
+      const blobUrl = URL.createObjectURL(file);
+      const link = document.createElement('a'); link.href = blobUrl; link.download = file.name; link.click();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      const waUrl = `https://wa.me/${pendingReceipt.whatsappNumber}`;
+      const opened = window.open(waUrl, '_blank');
+      if (!opened) window.location.href = waUrl;
+      showToast(language === 'en' ? 'The receipt was downloaded. Attach it in the open WhatsApp chat.' : 'تم تحميل الوصل. أرفقه في محادثة واتساب المفتوحة.');
     } catch (error) {
       console.error('RECEIPT_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
       showToast(language === 'en' ? 'Could not prepare the receipt.' : 'تعذر تجهيز الوصل.');
-    } finally { button.disabled = false; setReceiptShareMode(receiptFileShareSupported()); }
+    } finally { button.disabled = false; setReceiptShareMode(); }
   });
 }
 

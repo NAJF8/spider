@@ -26,22 +26,25 @@ function formatIQDParts(value, language) {
   const separator = formatted.lastIndexOf(' ');
   return { number: formatted.slice(0, separator), currency: formatted.slice(separator + 1) };
 }
-function drawIQD(doc, amount, x, y, { fontSize = 8.5, align = 'left', gap = 2, color = [32, 37, 34], language = 'ar' } = {}) {
+function drawIQD(doc, amount, x, y, { fontSize = 8.5, align = 'left', gap = 2, color = [32, 37, 34], language = 'ar', fontStyle = 'normal' } = {}) {
   const parts = formatIQDParts(amount, language);
-  doc.setFont('Cairo', 'normal');
+  doc.setFont('Cairo', fontStyle);
   doc.setFontSize(fontSize);
   doc.setTextColor(...color);
   const currencyCanvas = document.createElement('canvas');
   const currencyContext = currencyCanvas.getContext('2d');
   const pixelsPerMm = 96 / 25.4;
-  const fontPixels = fontSize * pixelsPerMm;
-  currencyContext.font = `${fontPixels}px Cairo, Arial, sans-serif`;
+  const currencyFontSize = Math.max(6, fontSize - 2);
+  const fontPixels = currencyFontSize * pixelsPerMm;
+  const canvasFontStyle = fontStyle === 'bold' ? 'bold ' : '';
+  currencyContext.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
   currencyContext.direction = 'ltr';
+  // Canvas applies Arabic bidi ordering; this source order renders visually as "د.ع".
   const currencyText = language === 'en' ? parts.currency : 'ع.د';
   const currencyPixels = Math.ceil(currencyContext.measureText(currencyText).width + 2);
   currencyCanvas.width = currencyPixels;
   currencyCanvas.height = Math.ceil(fontPixels * 1.35);
-  currencyContext.font = `${fontPixels}px Cairo, Arial, sans-serif`;
+  currencyContext.font = `${canvasFontStyle}${fontPixels}px Cairo, Arial, sans-serif`;
   currencyContext.fillStyle = `rgb(${color.join(',')})`;
   currencyContext.textBaseline = 'top';
   currencyContext.direction = 'ltr';
@@ -50,7 +53,7 @@ function drawIQD(doc, amount, x, y, { fontSize = 8.5, align = 'left', gap = 2, c
   const width = doc.getTextWidth(parts.number) + gap + currencyWidth;
   const startX = align === 'right' ? x - width : align === 'center' ? x - width / 2 : x;
   doc.text(parts.number, startX, y, { align: 'left', baseline: 'top' });
-  doc.addImage(currencyCanvas.toDataURL('image/png'), 'PNG', startX + doc.getTextWidth(parts.number) + gap, y - 0.4, currencyWidth, fontSize * 0.5, undefined, 'FAST');
+  doc.addImage(currencyCanvas.toDataURL('image/png'), 'PNG', startX + doc.getTextWidth(parts.number) + gap, y - 0.1, currencyWidth, currencyFontSize * 0.5, undefined, 'FAST');
 }
 function formatDeliveryMethod(value, language) {
   return String(value || '').toLowerCase() === 'pickup'
@@ -265,7 +268,7 @@ function drawTotals(doc, order, language, y, background) {
     if (language === 'en') {
       doc.text(value, valueX, rowY, { align: 'right', baseline: 'top' });
     } else {
-      drawIQD(doc, value, valueX, rowY, { fontSize: isFinal ? 14 : 10, language });
+      drawIQD(doc, value, valueX, rowY, { fontSize: isFinal ? 14 : 10, fontStyle: isFinal ? 'bold' : 'normal', language });
     }
     if (isFinal) { doc.setDrawColor(22, 142, 112); doc.line(boxX + 5, rowY - 2, boxX + boxWidth - 5, rowY - 2); }
   });
