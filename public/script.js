@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
-import { generateOrderReceiptPdf } from './pdf-receipt.js?v=20261003-2';
+import { generateOrderReceiptPdf } from './pdf-receipt.js?v=20261003-3';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
@@ -272,7 +272,17 @@ const builderPriceMarkup = (product, variant = 'catalog') => {
   return `<div class="${priceClass}"><strong>${formatPrice(details.basePrice)}</strong></div>`;
 };
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
-const storeWhatsAppNumber = () => normalizeWhatsApp(state.settings.storeWhatsApp || state.settings.whatsappNumber || state.settings.whatsapp || state.settings.storePhone || '9647827337942');
+const storeWhatsAppNumber = () => normalizeWhatsApp(state.settings.storeWhatsApp || state.settings.whatsappNumber || state.settings.whatsapp || state.settings.storePhone || '9647805700503');
+const canShareReceiptFile = (file) => Boolean(typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }));
+const receiptFileShareSupported = () => { try { return canShareReceiptFile(new File(['receipt'], 'SPIDER-ORDER-share.pdf', { type: 'application/pdf' })); } catch { return false; } };
+const setReceiptShareMode = (canShare) => {
+  const button = $('whatsappOrderBtn');
+  const note = $('receiptWhatsappNote');
+  if (button) button.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${canShare ? (language === 'en' ? 'Share receipt' : 'مشاركة الوصل') : (language === 'en' ? 'Download receipt and open WhatsApp' : 'تحميل الوصل وفتح واتساب')}`;
+  if (note) note.textContent = canShare
+    ? (language === 'en' ? 'Choose WhatsApp from the file share sheet to send the receipt.' : 'اختر واتساب من نافذة المشاركة لإرسال ملف الوصل.')
+    : (language === 'en' ? 'The receipt will download and the store WhatsApp chat will open. Attach the downloaded PDF there.' : 'سيُحمّل الوصل وتفتح محادثة واتساب المتجر. أرفق ملف PDF المحمّل في المحادثة.');
+};
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
 const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === undefined || Number(productStock(p)) > 0);
@@ -495,7 +505,7 @@ function applySettings(settings = {}) {
   if ($('upgradePromoDescription')) $('upgradePromoDescription').textContent = language === 'en' ? 'Choose the right parts to improve your computer performance.' : 'اختَر القطع المناسبة لتطوير أداء جهازك';
 
   const instagram = safeUrl(settings.instagramUrl || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==') || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==';
-  const whatsapp = normalizeWhatsApp(settings.storeWhatsApp || settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
+  const whatsapp = normalizeWhatsApp(settings.storeWhatsApp || settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647805700503');
   const map = safeUrl(settings.googleMapsUrl || settings.mapUrl || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic') || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic';
 
   [['instagramLink', instagram], ['footerWhatsapp', whatsapp ? `https://wa.me/${whatsapp}` : ''], ['mapLink', map]].forEach(([id, url]) => {
@@ -1866,12 +1876,12 @@ async function submitCheckout(event) {
       throw new Error(result.error || result.code || 'CHECKOUT_FAILED');
     }
     const orderSnapshot = { ...result, deliveryMethod: payload.deliveryMethod, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
-    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: storeWhatsAppNumber(), whatsappMessage: `${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${result.orderNumber || ''}`.trim() };
+    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: storeWhatsAppNumber() };
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
     $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
     $('downloadReceiptBtn').textContent = language === 'en' ? 'Download receipt PDF' : 'تحميل الوصل PDF';
-    $('whatsappOrderBtn').innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${language === 'en' ? 'Send via WhatsApp' : 'إرسال عبر واتساب'}`;
+    setReceiptShareMode(receiptFileShareSupported());
     modal('orderSuccessModal', true);
   } catch (e) {
     const code = e.message;
@@ -1908,7 +1918,7 @@ function bindBuilderPageEvents() {
   $('clearBuilderBtn')?.addEventListener('click', clearBuilderSelections);
   $('closeQuoteBtn')?.addEventListener('click', () => modal('quoteModal', false));
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(language === 'en' ? 'Quote copied.' : 'تم نسخ عرض السعر.'); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
-  $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
+  $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647805700503'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
   $('builderBackLink')?.addEventListener('click', () => { window.location.href = 'index.html'; });
 }
 
@@ -1928,17 +1938,29 @@ function bindReceiptEvents() {
   $('whatsappOrderBtn')?.addEventListener('click', async () => {
     if (!pendingReceipt?.whatsappNumber) return;
     const button = $('whatsappOrderBtn');
-    const label = button.innerHTML;
     button.disabled = true;
     try {
-      const message = pendingReceipt.whatsappMessage || `${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${pendingReceipt.order.orderNumber || ''}`.trim();
-      const url = `https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(message)}`;
-      const opened = window.open(url, '_blank', 'noopener');
-      if (!opened) window.location.href = url;
+      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
+      if (canShareReceiptFile(file)) {
+        try {
+          await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`.trim(), files: [file] });
+          showToast(language === 'en' ? 'Choose WhatsApp to share the receipt.' : 'اختر واتساب من نافذة المشاركة لإرسال الوصل.');
+        } catch (error) {
+          if (error?.name !== 'AbortError') throw error;
+        }
+      } else {
+        const blobUrl = URL.createObjectURL(file);
+        const link = document.createElement('a'); link.href = blobUrl; link.download = file.name; link.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        const waUrl = `https://wa.me/${pendingReceipt.whatsappNumber}`;
+        const opened = window.open(waUrl, '_blank', 'noopener');
+        if (!opened) window.location.href = waUrl;
+        showToast(language === 'en' ? 'The receipt was downloaded. Attach it in the open WhatsApp chat.' : 'تم تحميل الوصل. أرفقه في محادثة واتساب المفتوحة.');
+      }
     } catch (error) {
-      console.error('WHATSAPP_OPEN_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
-      showToast(language === 'en' ? 'Could not open WhatsApp.' : 'تعذر فتح واتساب.');
-    } finally { button.disabled = false; button.innerHTML = label; }
+      console.error('RECEIPT_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
+      showToast(language === 'en' ? 'Could not prepare the receipt.' : 'تعذر تجهيز الوصل.');
+    } finally { button.disabled = false; setReceiptShareMode(receiptFileShareSupported()); }
   });
 }
 
@@ -2080,7 +2102,7 @@ function bindEvents() {
   $('addBuilderToCartBtn')?.addEventListener('click', () => { addMultipleToCart(selectedBuilderProducts().map(p => p.id), language === 'en' ? 'Builder added to cart.' : 'تمت إضافة التجميعة إلى السلة'); });
   $('quoteBuilderBtn')?.addEventListener('click', () => openQuote());
   $('copyQuoteBtn')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText($('quoteModal').dataset.text || ''); showToast(t('copyQuote')); } catch { showToast(language === 'en' ? 'Copy failed.' : 'تعذر النسخ.'); } });
-  $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
+  $('shareQuoteBtn')?.addEventListener('click', () => { const wa = normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647805700503'); if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent($('quoteModal').dataset.text || '')}`, '_blank', 'noopener'); });
 
   $('toggleBrandsBtn').addEventListener('click', () => { state.showBrands = !state.showBrands; renderBrands(); });
 

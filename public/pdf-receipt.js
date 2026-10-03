@@ -1,5 +1,6 @@
 const RECEIPT_BACKGROUND = 'assets/spider-receipt-background.jpg';
-const RECEIPT_FONT = 'assets/fonts/Amiri-Regular.ttf';
+// Before the jsPDF rebuild this receipt used Cairo in the browser.
+const RECEIPT_FONT = 'assets/fonts/Cairo-Regular.ttf';
 const RECEIPT_PART_ORDER = ['cpu', 'motherboard', 'ram', 'storage', 'gpu', 'psu', 'cooling', 'case'];
 
 const PAGE_WIDTH = 210;
@@ -12,8 +13,6 @@ const HEADER_SAFE_BOTTOM = 54;
 const FOOTER_SAFE_TOP = 276;
 const CONTENT_WIDTH = PAGE_WIDTH - CONTENT_LEFT - CONTENT_RIGHT;
 const INFO_LABEL_VALUE_GAP = 4;
-const LTR_SEGMENT_START = '\u202A';
-const LTR_SEGMENT_END = '\u202C';
 
 const receiptText = (language, ar, en) => language === 'en' ? en : ar;
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
@@ -27,12 +26,31 @@ function formatIQDParts(value, language) {
   const separator = formatted.lastIndexOf(' ');
   return { number: formatted.slice(0, separator), currency: formatted.slice(separator + 1) };
 }
-function pdfCurrencyText(value, language) {
-  if (language === 'en') return value;
-  const text = String(value);
-  const separator = text.lastIndexOf(' ');
-  if (separator < 0) return `${LTR_SEGMENT_START}${text}${LTR_SEGMENT_END}`;
-  return `${LTR_SEGMENT_START}${text.slice(0, separator)}${LTR_SEGMENT_END} ${text.slice(separator + 1)}`;
+function drawIQD(doc, amount, x, y, { fontSize = 8.5, align = 'left', gap = 2, color = [32, 37, 34], language = 'ar' } = {}) {
+  const parts = formatIQDParts(amount, language);
+  doc.setFont('Cairo', 'normal');
+  doc.setFontSize(fontSize);
+  doc.setTextColor(...color);
+  const currencyCanvas = document.createElement('canvas');
+  const currencyContext = currencyCanvas.getContext('2d');
+  const pixelsPerMm = 96 / 25.4;
+  const fontPixels = fontSize * pixelsPerMm;
+  currencyContext.font = `${fontPixels}px Cairo, Arial, sans-serif`;
+  currencyContext.direction = 'ltr';
+  const currencyText = language === 'en' ? parts.currency : 'ع.د';
+  const currencyPixels = Math.ceil(currencyContext.measureText(currencyText).width + 2);
+  currencyCanvas.width = currencyPixels;
+  currencyCanvas.height = Math.ceil(fontPixels * 1.35);
+  currencyContext.font = `${fontPixels}px Cairo, Arial, sans-serif`;
+  currencyContext.fillStyle = `rgb(${color.join(',')})`;
+  currencyContext.textBaseline = 'top';
+  currencyContext.direction = 'ltr';
+  currencyContext.fillText(currencyText, 1, 0);
+  const currencyWidth = currencyPixels / pixelsPerMm;
+  const width = doc.getTextWidth(parts.number) + gap + currencyWidth;
+  const startX = align === 'right' ? x - width : align === 'center' ? x - width / 2 : x;
+  doc.text(parts.number, startX, y, { align: 'left', baseline: 'top' });
+  doc.addImage(currencyCanvas.toDataURL('image/png'), 'PNG', startX + doc.getTextWidth(parts.number) + gap, y - 0.4, currencyWidth, fontSize * 0.5, undefined, 'FAST');
 }
 function formatDeliveryMethod(value, language) {
   return String(value || '').toLowerCase() === 'pickup'
@@ -90,10 +108,10 @@ async function loadArabicFont() {
 }
 
 function applyArabicFont(doc, fontBase64) {
-  doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
-  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'bold');
-  doc.setFont('Amiri', 'normal');
+  doc.addFileToVFS('Cairo-Regular.ttf', fontBase64);
+  doc.addFont('Cairo-Regular.ttf', 'Cairo', 'normal');
+  doc.addFont('Cairo-Regular.ttf', 'Cairo', 'bold');
+  doc.setFont('Cairo', 'normal');
 }
 
 async function imageData(url) {
@@ -126,7 +144,7 @@ function wrapText(doc, value, width, language) {
 }
 
 function drawTextBlock(doc, value, { x, y, width, language, fontSize = 10, align = 'right', lineHeight = 1.35, color = [32, 37, 34] }) {
-  doc.setFont('Amiri', 'normal');
+  doc.setFont('Cairo', 'normal');
   doc.setFontSize(fontSize);
   doc.setTextColor(...color);
   const lines = wrapText(doc, value, width, language);
@@ -138,7 +156,7 @@ function drawSectionTitle(doc, value, language, y) {
   doc.setDrawColor(219, 235, 158);
   doc.setLineWidth(0.5);
   doc.line(CONTENT_LEFT, y + 5, PAGE_WIDTH - CONTENT_RIGHT, y + 5);
-  doc.setFont('Amiri', 'normal');
+  doc.setFont('Cairo', 'normal');
   doc.setFontSize(13);
   doc.setTextColor(22, 142, 112);
   doc.text(arabicText(doc, value, language), PAGE_WIDTH / 2, y, { align: 'center', baseline: 'top' });
@@ -150,7 +168,7 @@ function drawInfoRow(doc, label, value, language, y) {
   const valueWidth = CONTENT_WIDTH - labelWidth - 5;
   const valueX = language === 'en' ? CONTENT_LEFT + labelWidth + 5 : PAGE_WIDTH - CONTENT_RIGHT;
   const labelX = language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT;
-  doc.setFont('Amiri', 'normal');
+  doc.setFont('Cairo', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(23, 139, 112);
   doc.text(arabicText(doc, label, language), labelX, y, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
@@ -163,7 +181,7 @@ function drawInfoPair(doc, left, right, language, y) {
   const width = (CONTENT_WIDTH - gap) / 2;
   const draw = (entry, x, align) => {
     const [label, value] = entry;
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('Cairo', 'normal');
     doc.setFontSize(8.2);
     doc.setTextColor(23, 139, 112);
     doc.text(arabicText(doc, label, language), x, y, { align, baseline: 'top' });
@@ -178,7 +196,7 @@ function drawInfoPair(doc, left, right, language, y) {
 
 function drawHeader(doc, order, language) {
   const { date, time } = receiptDate(order.timestamp, language);
-  doc.setFont('Amiri', 'normal');
+  doc.setFont('Cairo', 'normal');
   doc.setFontSize(20);
   doc.setTextColor(22, 142, 112);
   doc.text(arabicText(doc, receiptText(language, 'تفاصيل الطلب', 'Order details'), language), PAGE_WIDTH / 2, HEADER_SAFE_BOTTOM + 7, { align: 'center', baseline: 'top' });
@@ -238,7 +256,7 @@ function drawTotals(doc, order, language, y, background) {
   rows.forEach(([label, value], index) => {
     const rowY = y + 6 + index * 9;
     const isFinal = index === rows.length - 1;
-    doc.setFont('Amiri', isFinal ? 'bold' : 'normal');
+    doc.setFont('Cairo', isFinal ? 'bold' : 'normal');
     doc.setFontSize(isFinal ? 14 : 10);
     doc.setTextColor(22, 142, 112);
     doc.text(arabicText(doc, label, language), language === 'en' ? boxX + 5 : boxX + boxWidth - 5, rowY, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
@@ -247,9 +265,7 @@ function drawTotals(doc, order, language, y, background) {
     if (language === 'en') {
       doc.text(value, valueX, rowY, { align: 'right', baseline: 'top' });
     } else {
-      const parts = formatIQDParts(value, language);
-      doc.text(parts.number, valueX, rowY, { align: 'left', baseline: 'top' });
-      doc.text(parts.currency, valueX + doc.getTextWidth(parts.number) + 2, rowY, { align: 'left', baseline: 'top' });
+      drawIQD(doc, value, valueX, rowY, { fontSize: isFinal ? 14 : 10, language });
     }
     if (isFinal) { doc.setDrawColor(22, 142, 112); doc.line(boxX + 5, rowY - 2, boxX + boxWidth - 5, rowY - 2); }
   });
@@ -268,14 +284,14 @@ function drawTable(doc, items, language, startY, order, background) {
     head: [columns.map((value) => arabicText(doc, value, language))],
     body: tableRows(items, language).map((row) => row.map((value, index) => {
       const isCurrencyColumn = isEnglish ? index === 3 || index === 4 : index === 0 || index === 1;
-      return isCurrencyColumn ? pdfCurrencyText(value, language) : arabicText(doc, value, language);
+      return isCurrencyColumn ? value : arabicText(doc, value, language);
     })),
     theme: 'grid',
     margin: { left: CONTENT_LEFT, right: CONTENT_RIGHT, top: CONTENT_TOP + 20, bottom: PAGE_HEIGHT - FOOTER_SAFE_TOP + 8 },
     tableWidth: CONTENT_WIDTH,
     rowPageBreak: 'avoid',
     showHead: 'everyPage',
-    styles: { font: 'Amiri', fontStyle: 'normal', fontSize: 8.5, cellPadding: 1.6, overflow: 'linebreak', valign: 'middle', halign: isEnglish ? 'left' : 'right', textColor: [32, 37, 34], lineColor: [216, 223, 213], lineWidth: 0.2 },
+    styles: { font: 'Cairo', fontStyle: 'normal', fontSize: 8.5, cellPadding: 1.6, overflow: 'linebreak', valign: 'middle', halign: isEnglish ? 'left' : 'right', textColor: [32, 37, 34], lineColor: [216, 223, 213], lineWidth: 0.2 },
     headStyles: { fillColor: [22, 142, 112], textColor: [255, 255, 255], fontStyle: 'normal', halign: 'center' },
     alternateRowStyles: { fillColor: [243, 247, 233] },
     columnStyles: isEnglish
@@ -284,12 +300,20 @@ function drawTable(doc, items, language, startY, order, background) {
     willDrawPage: ({ pageNumber }) => {
       if (pageNumber > 1) {
         drawBackground(doc, background);
-        doc.setFont('Amiri', 'normal');
+        doc.setFont('Cairo', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(22, 142, 112);
         doc.text(arabicText(doc, receiptText(language, 'متابعة المنتجات', 'Items continued'), language), language === 'en' ? CONTENT_LEFT : PAGE_WIDTH - CONTENT_RIGHT, CONTENT_TOP + 4, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
       }
     }
+  };
+  tableOptions.willDrawCell = ({ cell, row, column }) => {
+    const isCurrencyColumn = isEnglish ? column.index === 3 || column.index === 4 : column.index === 0 || column.index === 1;
+    if (isCurrencyColumn && row.section === 'body') cell.text = [];
+  };
+  tableOptions.didDrawCell = ({ cell, row, column }) => {
+    const isCurrencyColumn = isEnglish ? column.index === 3 || column.index === 4 : column.index === 0 || column.index === 1;
+    if (isCurrencyColumn && row.section === 'body') drawIQD(doc, row.raw[column.index], cell.x + cell.width / 2, cell.y + cell.height / 2 - 1.8, { fontSize: 8.5, align: 'center', language });
   };
   if (typeof doc.autoTable === 'function') doc.autoTable(tableOptions);
   else if (typeof window.jspdfAutoTable === 'function') window.jspdfAutoTable(doc, tableOptions);
@@ -307,6 +331,7 @@ export async function generateOrderReceiptPdf(order, language = 'ar', options = 
     if (typeof JsPDF !== 'function') throw new Error('JSPDF_UNAVAILABLE');
     stage = 'load font';
     const fontBase64 = await loadArabicFont();
+    if (document.fonts?.load) await document.fonts.load('400 16px Cairo');
     stage = 'load background';
     const background = await imageData(RECEIPT_BACKGROUND);
     stage = 'create document';
