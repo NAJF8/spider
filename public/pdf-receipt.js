@@ -20,8 +20,19 @@ const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 
 function formatIQD(value, language) {
   return `${numberFormatter.format(Number(value || 0))} ${language === 'en' ? 'IQD' : 'د.ع'}`;
 }
+function formatIQDParts(value, language) {
+  const formatted = typeof value === 'string' && value.includes(' ')
+    ? value
+    : formatIQD(value, language);
+  const separator = formatted.lastIndexOf(' ');
+  return { number: formatted.slice(0, separator), currency: formatted.slice(separator + 1) };
+}
 function pdfCurrencyText(value, language) {
-  return language === 'en' ? value : `${LTR_SEGMENT_START}${value}${LTR_SEGMENT_END}`;
+  if (language === 'en') return value;
+  const text = String(value);
+  const separator = text.lastIndexOf(' ');
+  if (separator < 0) return `${LTR_SEGMENT_START}${text}${LTR_SEGMENT_END}`;
+  return `${LTR_SEGMENT_START}${text.slice(0, separator)}${LTR_SEGMENT_END} ${text.slice(separator + 1)}`;
 }
 function formatDeliveryMethod(value, language) {
   return String(value || '').toLowerCase() === 'pickup'
@@ -81,6 +92,7 @@ async function loadArabicFont() {
 function applyArabicFont(doc, fontBase64) {
   doc.addFileToVFS('Amiri-Regular.ttf', fontBase64);
   doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'bold');
   doc.setFont('Amiri', 'normal');
 }
 
@@ -226,12 +238,19 @@ function drawTotals(doc, order, language, y, background) {
   rows.forEach(([label, value], index) => {
     const rowY = y + 6 + index * 9;
     const isFinal = index === rows.length - 1;
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('Amiri', isFinal ? 'bold' : 'normal');
     doc.setFontSize(isFinal ? 14 : 10);
     doc.setTextColor(22, 142, 112);
     doc.text(arabicText(doc, label, language), language === 'en' ? boxX + 5 : boxX + boxWidth - 5, rowY, { align: language === 'en' ? 'left' : 'right', baseline: 'top' });
     doc.setTextColor(32, 37, 34);
-    doc.text(pdfCurrencyText(value, language), language === 'en' ? boxX + boxWidth - 5 : boxX + 5, rowY, { align: language === 'en' ? 'right' : 'left', baseline: 'top' });
+    const valueX = language === 'en' ? boxX + boxWidth - 5 : boxX + 6;
+    if (language === 'en') {
+      doc.text(value, valueX, rowY, { align: 'right', baseline: 'top' });
+    } else {
+      const parts = formatIQDParts(value, language);
+      doc.text(parts.number, valueX, rowY, { align: 'left', baseline: 'top' });
+      doc.text(parts.currency, valueX + doc.getTextWidth(parts.number) + 2, rowY, { align: 'left', baseline: 'top' });
+    }
     if (isFinal) { doc.setDrawColor(22, 142, 112); doc.line(boxX + 5, rowY - 2, boxX + boxWidth - 5, rowY - 2); }
   });
 }

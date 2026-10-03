@@ -272,6 +272,7 @@ const builderPriceMarkup = (product, variant = 'catalog') => {
   return `<div class="${priceClass}"><strong>${formatPrice(details.basePrice)}</strong></div>`;
 };
 const normalizeWhatsApp = (v) => String(v || '').replace(/[^0-9]/g, '').replace(/^00/, '');
+const storeWhatsAppNumber = () => normalizeWhatsApp(state.settings.storeWhatsApp || state.settings.whatsappNumber || state.settings.whatsapp || state.settings.storePhone || '9647827337942');
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
 const isAvailable = (p) => p && p.inStock !== false && (productStock(p) === undefined || Number(productStock(p)) > 0);
@@ -494,7 +495,7 @@ function applySettings(settings = {}) {
   if ($('upgradePromoDescription')) $('upgradePromoDescription').textContent = language === 'en' ? 'Choose the right parts to improve your computer performance.' : 'اختَر القطع المناسبة لتطوير أداء جهازك';
 
   const instagram = safeUrl(settings.instagramUrl || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==') || 'https://www.instagram.com/spider_najaf?stkn=MTM2ZXZpZXlxb2kzcg==';
-  const whatsapp = normalizeWhatsApp(settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
+  const whatsapp = normalizeWhatsApp(settings.storeWhatsApp || settings.whatsappNumber || settings.whatsapp || settings.storePhone || '9647827337942');
   const map = safeUrl(settings.googleMapsUrl || settings.mapUrl || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic') || 'https://maps.app.goo.gl/J53JRrLtw2JK27My6?g_st=ic';
 
   [['instagramLink', instagram], ['footerWhatsapp', whatsapp ? `https://wa.me/${whatsapp}` : ''], ['mapLink', map]].forEach(([id, url]) => {
@@ -1865,11 +1866,7 @@ async function submitCheckout(event) {
       throw new Error(result.error || result.code || 'CHECKOUT_FAILED');
     }
     const orderSnapshot = { ...result, deliveryMethod: payload.deliveryMethod, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
-    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: normalizeWhatsApp(state.settings.whatsappNumber || state.settings.whatsapp || '9647827337942') };
-    const lines = (orderSnapshot.items || []).map((i) => `- ${i.name} × ${i.quantity}: ${formatPrice(i.price * i.quantity)}`).join('\n');
-    const addressLine = payload.deliveryMethod === 'delivery' ? `العنوان: ${payload.customer.governorate} - ${payload.customer.district} - ${payload.customer.subdistrict} - ${payload.customer.neighborhood} - ${payload.customer.addressDetails}` : '';
-    const message = [`طلب سبايدر رقم ${result.orderNumber}`, lines, `طريقة الاستلام: ${payload.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}`, `المجموع: ${formatPrice(result.subtotal)}`, result.builderDiscount > 0 ? `خصم التجميعة: ${formatPrice(result.builderDiscount)}` : '', result.deliveryFee > 0 ? `التوصيل: ${formatPrice(result.deliveryFee)}` : '', `الإجمالي: ${formatPrice(result.grandTotal)}`, `الاسم: ${payload.customer.name}`, `الهاتف: ${payload.customer.phone}`, addressLine].filter(Boolean).join('\n');
-    pendingReceipt.whatsappMessage = message;
+    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: storeWhatsAppNumber(), whatsappMessage: `${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${result.orderNumber || ''}`.trim() };
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
     $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
@@ -1925,7 +1922,7 @@ function bindReceiptEvents() {
       const url = URL.createObjectURL(file);
       const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) { console.error('PDF_GENERATION_FAILED', { name: error?.name, message: error?.message, stack: error?.stack }); showToast(language === 'en' ? 'Could not generate the PDF.' : 'تعذر إنشاء ملف PDF.'); }
+    } catch (error) { console.error('PDF_GENERATION_FAILED', { name: error?.name, message: error?.message, stack: error?.stack }); showToast(language === 'en' ? 'Could not create the receipt; you can continue via WhatsApp.' : 'تعذر إنشاء الوصل، يمكنك متابعة الطلب عبر واتساب.'); }
     finally { button.disabled = false; button.textContent = label; }
   });
   $('whatsappOrderBtn')?.addEventListener('click', async () => {
@@ -1934,26 +1931,13 @@ function bindReceiptEvents() {
     const label = button.innerHTML;
     button.disabled = true;
     try {
-      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        try {
-          await navigator.share({ title: `SPIDER ${pendingReceipt.order.orderNumber || ''}`, files: [file] });
-          return;
-        } catch (error) {
-          if (error?.name === 'AbortError') { console.info('PDF_SHARE_CANCELLED'); return; }
-          console.error('PDF_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
-        }
-      } else {
-        console.info('PDF_SHARE_UNSUPPORTED');
-      }
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      window.open(`https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(`${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${pendingReceipt.order.orderNumber || ''}`)}`, '_blank', 'noopener');
-      showToast(language === 'en' ? 'The PDF was downloaded. Attach it in WhatsApp.' : 'تم تحميل الوصل. أرفقه في واتساب.');
+      const message = pendingReceipt.whatsappMessage || `${language === 'en' ? 'Order created: ' : 'تم إنشاء الطلب رقم '}${pendingReceipt.order.orderNumber || ''}`.trim();
+      const url = `https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(message)}`;
+      const opened = window.open(url, '_blank', 'noopener');
+      if (!opened) window.location.href = url;
     } catch (error) {
-      console.error('PDF_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
-      showToast(language === 'en' ? 'Could not create the PDF for sharing.' : 'تعذر إنشاء الوصل للمشاركة.');
+      console.error('WHATSAPP_OPEN_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
+      showToast(language === 'en' ? 'Could not open WhatsApp.' : 'تعذر فتح واتساب.');
     } finally { button.disabled = false; button.innerHTML = label; }
   });
 }
