@@ -80,7 +80,7 @@ function receiptStyles() {
     .spider-pdf-root{position:fixed;left:-100000px;top:0;width:794px;background:#fbfbef;color:#202522;font-family:Cairo,Arial,sans-serif}
     .spider-pdf-page{position:relative;width:794px;height:1123px;overflow:hidden;background:#fbfbef;box-sizing:border-box}
     .spider-pdf-background{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:fill}
-    .spider-pdf-content{position:absolute;left:92px;right:92px;top:156px;bottom:126px;z-index:1;font-size:15px;line-height:1.55;direction:inherit;overflow:hidden}
+    .spider-pdf-content{position:absolute;left:92px;right:92px;top:210px;bottom:126px;z-index:1;font-size:15px;line-height:1.55;direction:inherit;overflow:hidden}
     .spider-pdf-page-meta{display:none;height:20px;text-align:left;color:#4b5d55;font-size:11px;direction:ltr}
     .spider-pdf-title{text-align:center;font-size:25px;font-weight:800;color:#168e70;margin:3px 0 12px}
     .spider-pdf-order-meta,.spider-pdf-customer{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 14px;background:rgba(255,255,255,.9);border:1px solid #dce3d1;border-radius:10px;padding:10px 12px;margin-bottom:10px}
