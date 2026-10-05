@@ -6,9 +6,9 @@
     <!-- UPS Outline -->
     <rect x="60" y="40" width="80" height="120" rx="10" stroke="#1d222b" stroke-width="12" />
     <!-- Display -->
-    <rect x="75" y="60" width="50" height="30" rx="4" stroke="#ed1c24" stroke-width="10" />
+    <rect x="75" y="60" width="50" height="30" rx="4" stroke="#1f8f4c" stroke-width="10" />
     <!-- Power Button -->
-    <circle cx="100" cy="120" r="10" stroke="#ed1c24" stroke-width="10" />
+    <circle cx="100" cy="120" r="10" stroke="#1f8f4c" stroke-width="10" />
     <!-- Line accent -->
     <line x1="75" y1="145" x2="125" y2="145" stroke="#1d222b" stroke-width="10" />
 

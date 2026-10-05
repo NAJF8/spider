@@ -4,13 +4,13 @@
   <g stroke-linecap="round" stroke-linejoin="round" fill="none">
 
     <!-- Headphone Arch -->
-    <path d="M40 110 C40 40 160 40 160 110" stroke="#ed1c24" stroke-width="14" />
+    <path d="M40 110 C40 40 160 40 160 110" stroke="#1f8f4c" stroke-width="14" />
     <!-- Earcup Left -->
     <rect x="30" y="100" width="20" height="50" rx="10" stroke="#1d222b" stroke-width="12" fill="#fff" />
     <!-- Earcup Right -->
     <rect x="150" y="100" width="20" height="50" rx="10" stroke="#1d222b" stroke-width="12" fill="#fff" />
     <!-- Mic stick -->
-    <path d="M40 140 L70 160" stroke="#ed1c24" stroke-width="10" />
+    <path d="M40 140 L70 160" stroke="#1f8f4c" stroke-width="10" />
     <!-- Sound wave accent -->
     <path d="M80 120 A25 25 0 0 1 120 120 M70 140 A45 45 0 0 1 130 140" stroke="#1d222b" stroke-width="8" />
 
