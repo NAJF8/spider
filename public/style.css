@@ -6,6 +6,10 @@
   --spider-primary-dark: #176b39;
   --spider-secondary: #f2c230;
   --spider-secondary-soft: #fff8d9;
+  --spider-green: #249b73;
+  --spider-green-dark: #167455;
+  --spider-yellow: #f2c230;
+  --spider-yellow-soft: #fff8d9;
   --red: #ed1c24;
   --red-dark: #c81019;
   --red-soft: #fff1f2;
@@ -1100,6 +1104,77 @@ html[data-theme="dark"] .builder-part-product>img{background:#24262C}
   .builder-summary{bottom:6px}
   .builder-summary .summary-label{font-size:10px}
   .builder-summary .compatibility-box{font-size:11px;line-height:1.4}
+}
+
+/* ===== Auth / account visual rebuild ===== */
+#accountModal .modal-content{width:min(620px,calc(100vw - 24px));max-height:min(90dvh,820px);display:flex;flex-direction:column;overflow:hidden;border-radius:24px}
+#accountModal .modal-head{flex:0 0 auto;background:linear-gradient(135deg,var(--spider-green),var(--spider-green-dark));color:#fff;border-bottom:0;padding-inline:20px}
+#accountModal .modal-head h2{font-size:20px;color:#fff}
+#accountModal .modal-head .icon-btn{color:#fff}
+#accountModal .modal-head .icon-btn:hover{background:rgba(255,255,255,.16);color:#fff}
+#accountModal .account-body{overflow-y:auto;min-height:0;padding:20px;scrollbar-width:thin}
+#accountModal .auth-intro{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+#accountModal .auth-intro>div{display:grid;gap:2px;min-width:0}
+#accountModal .auth-intro strong{font-size:18px;line-height:1.35}
+#accountModal .auth-intro small{font-size:12px;color:var(--muted);line-height:1.6}
+#accountModal .auth-mark,.account-avatar{width:46px;height:46px;display:grid;place-items:center;flex:0 0 46px;border-radius:14px;background:var(--spider-yellow);color:#2d3a30;font-size:20px;box-shadow:0 6px 16px rgba(242,194,48,.25)}
+#accountModal .auth-tabs{margin:0 0 20px;padding:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;gap:0}
+#accountModal .account-tab{position:relative;border-radius:0;background:transparent;min-height:46px;color:var(--muted);font-size:14px}
+#accountModal .account-tab.active{background:transparent;color:var(--spider-green);box-shadow:none;border-bottom:3px solid var(--spider-yellow)}
+#accountModal .phone-auth-form{gap:8px}
+#accountModal .phone-auth-form label{font-size:13px;margin-top:5px}
+#accountModal .phone-auth-form input{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--soft);padding-inline:14px;outline:none;transition:border-color .18s,box-shadow .18s}
+#accountModal .phone-auth-form input:focus{border-color:var(--spider-green);box-shadow:0 0 0 3px rgba(36,155,115,.18)}
+#accountModal .phone-auth-form .btn-primary{background:var(--spider-green);box-shadow:0 5px 16px rgba(36,155,115,.22);min-height:48px;margin-top:12px}
+#accountModal .phone-auth-form .btn-primary:hover{background:var(--spider-green-dark)}
+#accountModal .btn-google{border-color:var(--line);min-height:46px;margin-top:0}
+#accountModal .auth-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:18px 0 12px}
+#accountModal .auth-divider::before,#accountModal .auth-divider::after{content:"";height:1px;background:var(--line);flex:1}
+#accountModal .account-forgot-link{color:var(--spider-green);font-size:12px;margin:12px auto 0}
+#accountModal .password-input-wrap{width:100%}
+#accountModal .password-input-wrap input{padding-inline-start:14px;padding-inline-end:58px;direction:ltr;text-align:left}
+#accountModal .password-toggle{right:6px;left:auto;inset-inline-end:auto;width:42px;height:42px;min-width:42px;color:var(--spider-green);border-radius:10px}
+#accountModal .password-toggle:focus-visible{outline:2px solid var(--spider-yellow);outline-offset:-2px}
+#accountModal .account-summary{display:flex;align-items:center;gap:12px;padding:0 0 18px;border-bottom:1px solid var(--line)}
+#accountModal .account-summary>div{min-width:0;flex:1;display:grid;gap:2px}
+#accountModal .account-summary strong{font-size:18px;overflow-wrap:anywhere}
+#accountModal .account-summary small{font-size:12px;color:var(--muted);overflow-wrap:anywhere;text-align:start;margin:0}
+#accountModal .account-logout{min-height:40px;color:var(--spider-green);border-color:var(--spider-green)}
+#accountModal .account-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:18px 0 20px}
+#accountModal .account-nav button{min-height:42px;border:1px solid var(--line);border-radius:11px;padding:7px 8px;color:var(--muted);font-size:12px;font-weight:800}
+#accountModal .account-nav button.active{border-color:var(--spider-yellow);background:var(--spider-yellow-soft);color:var(--spider-green-dark)}
+#accountModal .account-panel{display:grid;gap:14px}
+#accountModal .account-panel>h3{font-size:17px;color:var(--spider-green);margin:0}
+#accountModal .account-profile-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+#accountModal .account-profile-grid>div{padding:12px;border-radius:12px;background:var(--soft);border:1px solid var(--line)}
+#accountModal .account-profile-grid dt{font-size:11px;color:var(--muted)}
+#accountModal .account-profile-grid dd{font-size:13px;margin-top:4px;overflow-wrap:anywhere}
+#accountModal .account-collapsible{border:1px solid var(--line);border-radius:12px;background:var(--soft);overflow:hidden}
+#accountModal .account-collapsible summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;cursor:pointer;font-weight:800;font-size:13px;list-style:none}
+#accountModal .account-collapsible summary::-webkit-details-marker{display:none}
+#accountModal .account-collapsible summary::before{content:'+';color:var(--spider-green);font-size:20px;line-height:1}
+#accountModal .account-collapsible[open] summary::before{content:'−'}
+#accountModal .account-collapsible summary span{margin-inline-start:auto;color:var(--muted);font-size:11px;font-weight:600}
+#accountModal .account-collapsible .phone-auth-form{padding:0 14px 14px}
+#accountModal .account-orders{display:grid;gap:8px;list-style:none}
+#accountModal .account-orders li{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft);font-size:12px}
+#accountModal .account-orders strong{color:var(--spider-green)}
+#accountModal .account-muted{color:var(--muted);font-size:13px}
+#accountModal .account-delete-panel{padding:16px;border:1px solid rgba(242,194,48,.55);border-radius:14px;background:var(--spider-yellow-soft)}
+#accountModal .account-delete-panel p{font-size:12px;color:var(--muted);margin:0;line-height:1.7}
+#accountModal .account-delete-panel .btn-outline{border-color:var(--spider-yellow);color:var(--spider-green-dark);background:transparent}
+html[data-theme="dark"] #accountModal .account-body{background:#24262c}
+html[data-theme="dark"] #accountModal .account-tab.active{color:#8ee0bb}
+html[data-theme="dark"] #accountModal .account-nav button.active{background:rgba(242,194,48,.14);color:#f5d86a}
+html[data-theme="dark"] #accountModal .account-delete-panel{background:rgba(242,194,48,.1)}
+html[data-theme="dark"] #accountModal .phone-auth-form input{background:#1d1f24}
+@media (max-width:600px){
+  #accountModal .modal-content{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:20px}
+  #accountModal .account-body{padding:16px}
+  #accountModal .account-profile-grid{grid-template-columns:1fr}
+  #accountModal .account-summary{align-items:flex-start}
+  #accountModal .account-logout{padding-inline:10px;font-size:11px}
+  #accountModal .account-nav button{font-size:11px}
 }
 
 /* ===== Theme and bilingual UI ===== */
