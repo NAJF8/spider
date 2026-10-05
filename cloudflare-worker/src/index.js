@@ -529,17 +529,22 @@ async function handleRequest(request, env) {
         }
         if (!allowed) return errorResponse('FORBIDDEN', 403);
         const body = await request.json().catch(() => ({}));
-        const type = body?.type === 'specification' ? 'specification' : 'description';
+        const type = body?.type === 'specification' ? 'specification' : body?.type === 'specifications_batch' ? 'specifications_batch' : 'description';
         const text = String(body?.text || '').trim().slice(0, 2000);
         const property = String(body?.property ?? body?.key_ar ?? '').trim().slice(0, 180);
         const value = String(body?.value ?? body?.value_ar ?? '').trim().slice(0, 500);
         if (type === 'description' && !text) return errorResponse('TEXT_REQUIRED', 400);
         if (type === 'specification' && (!property || !value)) return errorResponse('SPECIFICATION_FIELDS_REQUIRED', 400);
+        const batchItems = type === 'specifications_batch' && Array.isArray(body?.items) ? body.items.map((item) => ({ property: String(item?.property ?? item?.key_ar ?? '').trim().slice(0, 180), value: String(item?.value ?? item?.value_ar ?? '').trim().slice(0, 500) })).filter((item) => item.property && item.value).slice(0, 18) : [];
+        if (type === 'specifications_batch' && (!batchItems.length || batchItems.length !== body.items.length)) return errorResponse('SPECIFICATIONS_BATCH_INVALID', 400);
         const kieKey = String(env.KIE_API_KEY || '').trim();
         if (!kieKey) return errorResponse('TRANSLATION_BACKEND_NOT_CONFIGURED', 503);
         const kieRes = await fetch('https://api.kie.ai/openai/v1/responses', {
           method: 'POST', headers: { Authorization: `Bearer ${kieKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'deepseek-v4-1-flash', stream: false, thinking: { type: 'disabled' }, input: type === 'specification' ? [
+          body: JSON.stringify({ model: 'deepseek-v4-1-flash', stream: false, thinking: { type: 'disabled' }, input: type === 'specifications_batch' ? [
+            { role: 'system', content: [{ type: 'input_text', text: 'Translate each Arabic product specification property and value into concise natural English. Return valid JSON only as an array with one object per input item, each object having exactly two string keys: property and value. Preserve model numbers, units, dimensions, Wi-Fi names, and technical notation exactly in values; do not translate or alter technical values.' }] },
+            { role: 'user', content: [{ type: 'input_text', text: JSON.stringify(batchItems) }] }
+          ] : type === 'specification' ? [
             { role: 'system', content: [{ type: 'input_text', text: 'Translate the Arabic product specification property and value into concise natural English. Return valid JSON only with exactly two string keys: property and value. Preserve model numbers, units, dimensions, and technical notation.' }] },
             { role: 'user', content: [{ type: 'input_text', text: JSON.stringify({ property, value }) }] }
           ] : [
@@ -551,6 +556,14 @@ async function handleRequest(request, env) {
         if (!kieRes.ok || providerRejected(kieData.body)) return errorResponse('TRANSLATION_FAILED', 502);
         const translation = extractProviderReply(kieData.body).slice(0, 2000);
         if (!translation) return errorResponse('TRANSLATION_EMPTY', 502);
+        if (type === 'specifications_batch') {
+          let translatedItems;
+          try { translatedItems = JSON.parse(translation.replace(/^```json\s*|\s*```$/gi, '').trim()); } catch { return errorResponse('TRANSLATION_INVALID_RESPONSE', 502); }
+          if (!Array.isArray(translatedItems) || translatedItems.length !== batchItems.length) return errorResponse('TRANSLATION_INVALID_RESPONSE', 502);
+          const items = translatedItems.map((item) => ({ key_en: String(item?.property || item?.key_en || '').trim().slice(0, 180), value_en: String(item?.value || item?.value_en || '').trim().slice(0, 500) }));
+          if (items.some((item) => !item.key_en || !item.value_en)) return errorResponse('TRANSLATION_EMPTY', 502);
+          return jsonResponse({ success: true, items });
+        }
         if (type === 'specification') {
           let translated;
           try { translated = JSON.parse(translation.replace(/^```json\s*|\s*```$/gi, '').trim()); } catch { return errorResponse('TRANSLATION_INVALID_RESPONSE', 502); }

@@ -865,6 +865,19 @@
                     </div>
                     <div class="form-group">
                         <label>مواصفات المنتج ثنائية اللغة (اختياري)</label>
+                        <label for="prodSpecsBulk" class="spec-bulk-label">المواصفات بالعربي</label>
+                        <textarea id="prodSpecsBulk" class="spec-bulk-input" dir="rtl" rows="7" placeholder="سرعة النقل: 300MB/s
+عدد المنافذ: 4
+الذاكرة: 256MB
+عدد الأنوية: 6
+التردد: 2.4GHz + 5GHz
+التغطية: مثالي للمساحات المتوسطة والكبيرة"></textarea>
+                        <div class="spec-bulk-actions">
+                            <button type="button" class="btn btn-outline btn-sm" id="parseSpecsBtn">تحليل المواصفات</button>
+                            <small id="specBulkStatus" class="form-hint" aria-live="polite"></small>
+                        </div>
+                        <div id="specBulkInvalid" class="spec-bulk-invalid" hidden></div>
+                        <div class="spec-preview-title">المواصفات المحللة</div>
                         <div id="prodSpecsEditor" class="spec-editor"></div>
                         <button type="button" class="btn btn-outline btn-sm" id="addSpecRowBtn">إضافة مواصفة</button>
                         <small class="form-hint">لكل مواصفة أدخل الاسم والقيمة بالعربية والإنجليزية. المنتجات القديمة ذات الصيغة العربية تبقى مدعومة وتظهر fallback آمنًا.</small>
@@ -969,7 +982,7 @@
         </div>
     </div>
 
-    <script type="module" src="admin.js?v=20261003-1"></script>
+    <script type="module" src="admin.js?v=20261006-1"></script>
 
     <!-- Reset PIN Modal -->
     <div class="modal-overlay" id="resetPinModal">
