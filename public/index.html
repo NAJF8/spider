@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#ed1c24">
+  <meta name="theme-color" content="#1f8f4c">
+  <link rel="manifest" href="manifest.webmanifest">
   <script>try{const t=localStorage.getItem('spider.theme.v1');const l=localStorage.getItem('spider.language.v1');if(t==='dark')document.documentElement.dataset.theme='dark';if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}</script>
   <title>سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -36,8 +37,9 @@
         <div class="header-actions" aria-label="اختصارات المتجر">
           <button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة" title="English">EN</button>
           <button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع" title="الوضع الليلي"><i class="fa-solid fa-moon"></i></button>
-          <button class="icon-btn" id="accountBtn" type="button" aria-label="حسابي">
+          <button class="account-header-control" id="accountBtn" type="button" aria-label="حسابي">
             <i class="fa-regular fa-user"></i>
+            <span id="accountGreeting" class="account-greeting" hidden></span>
           </button>
           <button class="icon-btn" id="favBtn" type="button" aria-label="المفضلة">
             <i class="fa-regular fa-heart"></i>
