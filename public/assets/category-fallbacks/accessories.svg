@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
   <!-- Background subtle circle, similar to some icons -->
-  <circle cx="100" cy="100" r="85" fill="#effaf4" opacity="0.9" />
+  <circle cx="100" cy="100" r="85" fill="none" opacity="0.9" />
   <g stroke-linecap="round" stroke-linejoin="round" fill="none">
 
     <!-- Headphone Arch -->
-    <path d="M40 110 C40 40 160 40 160 110" stroke="#1f8f4c" stroke-width="14" />
+    <path d="M40 110 C40 40 160 40 160 110" stroke="#22a39e" stroke-width="14" />
     <!-- Earcup Left -->
-    <rect x="30" y="100" width="20" height="50" rx="10" stroke="#1d222b" stroke-width="12" fill="#fff" />
+    <rect x="30" y="100" width="20" height="50" rx="10" stroke="#22a39e" stroke-width="12" fill="#22a39e" />
     <!-- Earcup Right -->
-    <rect x="150" y="100" width="20" height="50" rx="10" stroke="#1d222b" stroke-width="12" fill="#fff" />
+    <rect x="150" y="100" width="20" height="50" rx="10" stroke="#22a39e" stroke-width="12" fill="#22a39e" />
     <!-- Mic stick -->
-    <path d="M40 140 L70 160" stroke="#1f8f4c" stroke-width="10" />
+    <path d="M40 140 L70 160" stroke="#22a39e" stroke-width="10" />
     <!-- Sound wave accent -->
-    <path d="M80 120 A25 25 0 0 1 120 120 M70 140 A45 45 0 0 1 130 140" stroke="#1d222b" stroke-width="8" />
+    <path d="M80 120 A25 25 0 0 1 120 120 M70 140 A45 45 0 0 1 130 140" stroke="#22a39e" stroke-width="8" />
 
   </g>
 </svg>
