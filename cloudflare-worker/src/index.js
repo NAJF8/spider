@@ -531,8 +531,8 @@ async function handleRequest(request, env) {
         const body = await request.json().catch(() => ({}));
         const type = body?.type === 'specification' ? 'specification' : 'description';
         const text = String(body?.text || '').trim().slice(0, 2000);
-        const property = String(body?.property || '').trim().slice(0, 180);
-        const value = String(body?.value || '').trim().slice(0, 500);
+        const property = String(body?.property ?? body?.key_ar ?? '').trim().slice(0, 180);
+        const value = String(body?.value ?? body?.value_ar ?? '').trim().slice(0, 500);
         if (type === 'description' && !text) return errorResponse('TEXT_REQUIRED', 400);
         if (type === 'specification' && (!property || !value)) return errorResponse('SPECIFICATION_FIELDS_REQUIRED', 400);
         const kieKey = String(env.KIE_API_KEY || '').trim();
@@ -557,7 +557,7 @@ async function handleRequest(request, env) {
           const translatedProperty = String(translated?.property || '').trim().slice(0, 180);
           const translatedValue = String(translated?.value || '').trim().slice(0, 500);
           if (!translatedProperty || !translatedValue) return errorResponse('TRANSLATION_EMPTY', 502);
-          return jsonResponse({ success: true, property: translatedProperty, value: translatedValue });
+          return jsonResponse({ success: true, property: translatedProperty, value: translatedValue, key_en: translatedProperty, value_en: translatedValue });
         }
         return jsonResponse({ success: true, translation });
       } catch (error) {
