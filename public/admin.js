@@ -1287,21 +1287,65 @@ function adminSpecificationEntries(source) {
         value_en: typeof value === 'object' ? String(value.value_en ?? value.valueEn ?? value.en ?? value.value ?? '') : ''
     }));
 }
+function parseBulkSpecifications(text) {
+    const rows = [], invalid = [];
+    String(text || '').split(/\r?\n/).forEach((raw, index) => {
+        const line = raw.trim();
+        if (!line) return;
+        const match = line.match(/^(.*?)(?:\s*:\s*|\s*：\s*|\s+-\s+|\s*=\s*)(.+)$/);
+        if (!match || !match[1].trim() || !match[2].trim()) { invalid.push({ line: index + 1, text: line }); return; }
+        rows.push({ key_ar: match[1].trim(), key_en: '', value_ar: match[2].trim(), value_en: '' });
+    });
+    return { rows, invalid };
+}
+function bulkSpecificationsText(rows) {
+    return rows.filter((item) => item.key_ar || item.value_ar).map((item) => item.key_ar && item.value_ar ? `${item.key_ar}: ${item.value_ar}` : item.key_ar || item.value_ar).join('\n');
+}
+function setBulkSpecificationStatus(text = '') { const status = document.getElementById('specBulkStatus'); if (status) status.textContent = text; }
+function renderBulkSpecificationInvalid(invalid) {
+    const box = document.getElementById('specBulkInvalid');
+    if (!box) return;
+    box.hidden = !invalid.length;
+    box.innerHTML = invalid.length ? `<strong>يوجد ${invalid.length} سطر يحتاج مراجعة</strong>${invalid.map((item) => `<div>السطر ${item.line}: ${escapeHtml(item.text)}</div>`).join('')}` : '';
+}
 function renderProductSpecsEditor(source = []) {
     const editor = document.getElementById('prodSpecsEditor');
     if (!editor) return;
     const entries = adminSpecificationEntries(source);
     editor.innerHTML = `<div class="spec-editor-head"><span>الاسم بالعربي</span><span>Property in English</span><span>القيمة بالعربي</span><span>Value in English</span><span></span><span></span></div>` +
-        entries.map((item) => `<div class="spec-editor-row"><input type="text" data-spec-field="key_ar" value="${escapeHtml(item.key_ar)}" maxlength="80"><input type="text" data-spec-field="key_en" value="${escapeHtml(item.key_en)}" maxlength="180"><input type="text" data-spec-field="value_ar" value="${escapeHtml(item.value_ar)}" maxlength="180"><input type="text" data-spec-field="value_en" value="${escapeHtml(item.value_en)}" maxlength="180"><button type="button" class="btn btn-outline spec-retranslate-btn" data-retranslate-spec aria-label="إعادة ترجمة المواصفة">↻</button><button type="button" class="btn btn-outline" data-remove-spec aria-label="حذف المواصفة"><i class="fa-solid fa-xmark"></i></button><small class="spec-translation-status" data-spec-status aria-live="polite"></small></div>`).join('');
+        entries.map((item) => `<div class="spec-editor-row"><input type="text" data-spec-field="key_ar" value="${escapeHtml(item.key_ar)}" maxlength="80"><input type="text" data-spec-field="key_en" value="${escapeHtml(item.key_en)}" maxlength="180"${item._keyManual ? ' data-manual="true"' : ''}><input type="text" data-spec-field="value_ar" value="${escapeHtml(item.value_ar)}" maxlength="180"><input type="text" data-spec-field="value_en" value="${escapeHtml(item.value_en)}" maxlength="180"${item._valueManual ? ' data-manual="true"' : ''}><button type="button" class="btn btn-outline spec-retranslate-btn" data-retranslate-spec aria-label="إعادة ترجمة المواصفة">↻</button><button type="button" class="btn btn-outline" data-remove-spec aria-label="حذف المواصفة"><i class="fa-solid fa-xmark"></i></button><small class="spec-translation-status" data-spec-status aria-live="polite"></small></div>`).join('');
     bindSpecificationTranslation(editor);
 }
 function readProductSpecsEditor() {
     return [...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].map((row) => Object.fromEntries([...row.querySelectorAll('[data-spec-field]')].map((input) => [input.dataset.specField, input.value.trim()]))).filter((item) => item.key_ar || item.key_en || item.value_ar || item.value_en).slice(0, 18);
 }
+function syncBulkSpecificationTextFromRows() {
+    const bulk = document.getElementById('prodSpecsBulk');
+    if (bulk) {
+        const invalid = parseBulkSpecifications(bulk.value).invalid;
+        const parsedRows = bulkSpecificationsText(readProductSpecsEditor());
+        bulk.value = [parsedRows, ...invalid.map((item) => item.text)].filter(Boolean).join('\n');
+    }
+}
+function applyBulkSpecifications(translate = true) {
+    const bulk = document.getElementById('prodSpecsBulk');
+    if (!bulk) return;
+    const parsed = parseBulkSpecifications(bulk.value);
+    const previous = [...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].map((row) => Object.fromEntries([...row.querySelectorAll('[data-spec-field]')].map((input) => [input.dataset.specField, input.value.trim()])));
+    parsed.rows = parsed.rows.map((item, index) => {
+        const prior = previous.find((candidate) => candidate.key_ar === item.key_ar) || previous[index];
+        return prior ? { ...item, key_en: prior.key_en, value_en: prior.value_en, _keyManual: document.querySelectorAll('#prodSpecsEditor .spec-editor-row')[previous.indexOf(prior)]?.querySelector('[data-spec-field="key_en"]')?.dataset.manual === 'true', _valueManual: document.querySelectorAll('#prodSpecsEditor .spec-editor-row')[previous.indexOf(prior)]?.querySelector('[data-spec-field="value_en"]')?.dataset.manual === 'true' } : item;
+    });
+    renderProductSpecsEditor(parsed.rows);
+    renderBulkSpecificationInvalid(parsed.invalid);
+    setBulkSpecificationStatus(parsed.invalid.length ? `يوجد ${parsed.invalid.length} سطر يحتاج مراجعة` : `تم تحليل ${parsed.rows.length} مواصفة`);
+    if (translate && parsed.rows.length) translateSpecificationsBatch(false);
+}
 document.getElementById('addSpecRowBtn')?.addEventListener('click', () => {
     const current = readProductSpecsEditor();
     current.push({ key_ar: '', key_en: '', value_ar: '', value_en: '' });
     renderProductSpecsEditor(current);
+    syncBulkSpecificationTextFromRows();
 });
 document.getElementById('prodSpecsEditor')?.addEventListener('click', (event) => {
     const remove = event.target.closest('[data-remove-spec]');
@@ -1309,12 +1353,19 @@ document.getElementById('prodSpecsEditor')?.addEventListener('click', (event) =>
     const rows = readProductSpecsEditor();
     rows.splice([...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].indexOf(remove.closest('.spec-editor-row')), 1);
     renderProductSpecsEditor(rows);
+    syncBulkSpecificationTextFromRows();
+});
+document.getElementById('parseSpecsBtn')?.addEventListener('click', () => applyBulkSpecifications(true));
+document.getElementById('prodSpecsBulk')?.addEventListener('input', () => {
+    setBulkSpecificationStatus('جاري تحليل المواصفات...');
+    clearTimeout(window.bulkSpecificationTimer);
+    window.bulkSpecificationTimer = setTimeout(() => applyBulkSpecifications(true), 450);
 });
 
 function bindSpecificationTranslation(editor) {
     editor.querySelectorAll('.spec-editor-row').forEach((row) => {
         row.querySelectorAll('[data-spec-field="key_en"],[data-spec-field="value_en"]').forEach((input) => input.addEventListener('input', () => { input.dataset.manual = 'true'; }));
-        row.querySelectorAll('[data-spec-field="key_ar"],[data-spec-field="value_ar"]').forEach((input) => input.addEventListener('input', () => scheduleSpecificationTranslation(row)));
+        row.querySelectorAll('[data-spec-field="key_ar"],[data-spec-field="value_ar"]').forEach((input) => input.addEventListener('input', () => { syncBulkSpecificationTextFromRows(); scheduleSpecificationTranslation(row); }));
         row.querySelector('[data-retranslate-spec]')?.addEventListener('click', () => translateSpecificationRow(row, true));
     });
 }
@@ -1326,6 +1377,45 @@ function scheduleSpecificationTranslation(row) {
 }
 
 async function translateSpecificationRow(row, force = false) {
+    await translateSpecificationsBatch(force, [row]);
+}
+async function translateSpecificationsBatch(force = false, onlyRows = null) {
+    const rows = onlyRows || [...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')];
+    const items = rows.map((row) => ({ row, propertyInput: row.querySelector('[data-spec-field="key_ar"]'), valueInput: row.querySelector('[data-spec-field="value_ar"]'), propertyEnglish: row.querySelector('[data-spec-field="key_en"]'), valueEnglish: row.querySelector('[data-spec-field="value_en"]'), status: row.querySelector('[data-spec-status]'), button: row.querySelector('[data-retranslate-spec]') }))
+        .filter((item) => item.propertyInput?.value.trim() && item.valueInput?.value.trim() && (force || item.propertyEnglish?.dataset.manual !== 'true' || item.valueEnglish?.dataset.manual !== 'true'));
+    if (!items.length) return;
+    if (!auth.currentUser) { items.forEach((item) => { if (item.status) item.status.textContent = 'تسجيل دخول الأدمن مطلوب'; }); return; }
+    items.forEach((item) => { if (item.status) item.status.textContent = 'جارٍ الترجمة...'; if (item.button) item.button.disabled = true; });
+    setBulkSpecificationStatus('جاري الترجمة...');
+    try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/translate-description`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type: 'specifications_batch', items: items.map((item) => ({ key_ar: item.propertyInput.value.trim(), value_ar: item.valueInput.value.trim() })) }) });
+        const result = await response.json().catch(() => ({}));
+        let translatedItems = result.items;
+        if (!response.ok || !result.success || !Array.isArray(translatedItems) || translatedItems.length !== items.length) {
+            // Keep compatibility with a Worker that has the older one-row endpoint.
+            translatedItems = await Promise.all(items.map(async (item) => {
+                const fallbackResponse = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/translate-description`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type: 'specification', property: item.propertyInput.value.trim(), value: item.valueInput.value.trim() }) });
+                const fallback = await fallbackResponse.json().catch(() => ({}));
+                if (!fallbackResponse.ok || !fallback.success) throw new Error(fallback.error || 'TRANSLATION_FAILED');
+                return fallback;
+            }));
+        }
+        translatedItems.forEach((translated, index) => {
+            const item = items[index];
+            if (force || item.propertyEnglish?.dataset.manual !== 'true') { item.propertyEnglish.value = translated.key_en || translated.property || ''; item.propertyEnglish.dataset.manual = 'false'; }
+            if (force || item.valueEnglish?.dataset.manual !== 'true') { item.valueEnglish.value = translated.value_en || translated.value || ''; item.valueEnglish.dataset.manual = 'false'; }
+            if (item.status) item.status.textContent = 'تمت الترجمة';
+        });
+        setBulkSpecificationStatus('تمت الترجمة');
+    } catch (error) {
+        console.error('Specification translation failed', { code: error.message });
+        items.forEach((item) => { if (item.status) item.status.textContent = 'تعذرت الترجمة؛ يمكنك إدخال English يدويًا.'; });
+        setBulkSpecificationStatus('تعذرت الترجمة؛ يمكنك إدخال English يدويًا.');
+    } finally { items.forEach((item) => { if (item.button) item.button.disabled = false; }); }
+}
+/* Legacy single-row function retained as a safe fallback for older callers. */
+async function translateSpecificationRowLegacy(row, force = false) {
     const propertyInput = row.querySelector('[data-spec-field="key_ar"]');
     const valueInput = row.querySelector('[data-spec-field="value_ar"]');
     const propertyEnglish = row.querySelector('[data-spec-field="key_en"]');
@@ -1386,7 +1476,11 @@ window.openProductModal = function(id = null) {
             const description = productDescriptionParts(prod.description);
             document.getElementById('prodDescAr').value = description.ar;
             document.getElementById('prodDescEn').value = description.en;
-            renderProductSpecsEditor(prod.specifications || prod.specs || {});
+            const existingSpecifications = adminSpecificationEntries(prod.specifications || prod.specs || {});
+            document.getElementById('prodSpecsBulk').value = bulkSpecificationsText(existingSpecifications);
+            renderBulkSpecificationInvalid([]);
+            setBulkSpecificationStatus(existingSpecifications.length ? `تم تحميل ${existingSpecifications.length} مواصفة قديمة` : '');
+            renderProductSpecsEditor(existingSpecifications);
             document.getElementById('prodBuilderOnly').checked = prod.builderOnly === true;
             const imageItems = productImageItemsFromProduct(prod);
             setProductImageState(imageItems, imageItems[0]?.id || null);
@@ -1410,6 +1504,9 @@ window.openProductModal = function(id = null) {
     } else {
         document.getElementById('productModalTitle').textContent = 'إضافة منتج جديد';
         document.getElementById('prodStatus').value = 'published';
+        document.getElementById('prodSpecsBulk').value = '';
+        renderBulkSpecificationInvalid([]);
+        setBulkSpecificationStatus('');
         renderProductSpecsEditor([]);
         document.getElementById('prodBuilderOnly').checked = false;
     }
