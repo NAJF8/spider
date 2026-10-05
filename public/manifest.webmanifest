@@ -4,9 +4,9 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1f8f4c",
+  "theme_color": "#22a39e",
   "icons": [{
-    "src": "assets/spider-logo.png?v=20261005-brand1",
+    "src": "assets/spider-logo.png?v=20261006-brand-migration1",
     "sizes": "512x512",
     "type": "image/png",
     "purpose": "any maskable"
