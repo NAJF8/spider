@@ -1342,9 +1342,11 @@ async function translateSpecificationRow(row, force = false) {
         const token = await auth.currentUser.getIdToken();
         const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/translate-description`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type: 'specification', property, value }) });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result.success || !result.property || !result.value) throw new Error(result.error || 'TRANSLATION_FAILED');
-        if (force || propertyEnglish?.dataset.manual !== 'true') { propertyEnglish.value = result.property; propertyEnglish.dataset.manual = 'false'; }
-        if (force || valueEnglish?.dataset.manual !== 'true') { valueEnglish.value = result.value; valueEnglish.dataset.manual = 'false'; }
+        const translatedProperty = result.property || result.key_en;
+        const translatedValue = result.value || result.value_en;
+        if (!response.ok || !result.success || !translatedProperty || !translatedValue) throw new Error(result.error || 'TRANSLATION_FAILED');
+        if (force || propertyEnglish?.dataset.manual !== 'true') { propertyEnglish.value = translatedProperty; propertyEnglish.dataset.manual = 'false'; }
+        if (force || valueEnglish?.dataset.manual !== 'true') { valueEnglish.value = translatedValue; valueEnglish.dataset.manual = 'false'; }
         if (status) status.textContent = 'تمت الترجمة';
     } catch (error) { console.error('Specification translation failed', { code: error.message }); if (status) status.textContent = 'تعذرت الترجمة؛ يمكنك إدخال English يدويًا.'; }
     finally { if (button) button.disabled = false; }
