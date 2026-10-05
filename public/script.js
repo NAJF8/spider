@@ -404,24 +404,24 @@ const modal = (id, open) => {
 
 const UNIFIED_CATEGORY_ICONS = {
   // Top-Level Categories
-  'cat-computers': 'assets/category-fallbacks/computer.svg?v=2',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=2',
-  'cat-security': 'assets/category-fallbacks/security.svg?v=2',
-  'cat-printers': 'assets/icon_3.png',
-  'cat-monitors': 'assets/icon_6.png',
-  'cat-network': 'assets/icon_5.png',
-  'cat-power': 'assets/category-fallbacks/power.svg?v=2',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=2',
+  'cat-computers': 'assets/category-fallbacks/computer.svg?v=3',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=3',
+  'cat-security': 'assets/category-fallbacks/security.svg?v=3',
+  'cat-printers': 'assets/category-fallbacks/printer.svg?v=3',
+  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=3',
+  'cat-network': 'assets/category-fallbacks/network.svg?v=3',
+  'cat-power': 'assets/category-fallbacks/power.svg?v=3',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=3',
 
   // PC Parts Subcategories
-  'cat-storage': 'assets/icon_1.png',
-  'cat-ram': 'assets/icon_2.png',
-  'cat-motherboards': 'assets/icon_7.png',
-  'cat-cpus': 'assets/icon_8.png',
-  'cat-cases': 'assets/icon_9.png',
-  'cat-psu': 'assets/category-fallbacks/power.svg?v=2',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=2',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=2'
+  'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
+  'cat-ram': 'assets/category-fallbacks/ram.svg?v=3',
+  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=3',
+  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=3',
+  'cat-cases': 'assets/category-fallbacks/computer.svg?v=3',
+  'cat-psu': 'assets/category-fallbacks/power.svg?v=3',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=3',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=3'
 };
 
 const CUSTOM_ICONS = UNIFIED_CATEGORY_ICONS;
@@ -440,22 +440,22 @@ function sidebarCategoryIcon(cat) {
 }
 
 const FALLBACK_IMAGES = {
-  'cat-computers': 'assets/category-fallbacks/computer.svg?v=2',
-  'cat-storage': 'assets/category-fallbacks/storage.svg?v=2',
-  'cat-ram': 'assets/category-fallbacks/ram.svg?v=2',
-  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=2',
-  'cat-printers': 'assets/category-fallbacks/printer.svg?v=2',
-  'cat-network': 'assets/category-fallbacks/network.svg?v=2',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=2',
-  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=2',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=2',
-  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=2',
-  'cat-psu': 'assets/category-fallbacks/power.svg?v=2',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=2',
-  'cat-cases': 'assets/category-fallbacks/computer.svg?v=2',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=2',
-  'cat-power': 'assets/category-fallbacks/power.svg?v=2',
-  'cat-security': 'assets/category-fallbacks/security.svg?v=2'
+  'cat-computers': 'assets/category-fallbacks/computer.svg?v=3',
+  'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
+  'cat-ram': 'assets/category-fallbacks/ram.svg?v=3',
+  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=3',
+  'cat-printers': 'assets/category-fallbacks/printer.svg?v=3',
+  'cat-network': 'assets/category-fallbacks/network.svg?v=3',
+  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=3',
+  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=3',
+  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=3',
+  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=3',
+  'cat-psu': 'assets/category-fallbacks/power.svg?v=3',
+  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=3',
+  'cat-cases': 'assets/category-fallbacks/computer.svg?v=3',
+  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=3',
+  'cat-power': 'assets/category-fallbacks/power.svg?v=3',
+  'cat-security': 'assets/category-fallbacks/security.svg?v=3'
 };
 const FALLBACK_KEYWORDS = [
   ['معالج', 'cpu'], ['cpu', 'cpu'], ['رام', 'ram'], ['ذاكرة', 'ram'],
@@ -574,7 +574,7 @@ function renderCategories() {
 
 
   row.innerHTML = categories.map((cat) => {
-    const imgSrc = cat.image || CUSTOM_ICONS[cat.id] || categoryFallback(cat);
+    const imgSrc = CUSTOM_ICONS[cat.id] || cat.image || categoryFallback(cat);
     const fallback = categoryFallback(cat);
     const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     return `<button class="cat-circle-item" type="button" data-category-id="${esc(cat.id)}" title="${esc(categoryLabel(cat))}">

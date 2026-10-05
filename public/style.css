@@ -291,14 +291,14 @@ img{max-width:100%;display:block}
 .cat-circle-item.active .cat-circle{
   border-color:var(--red);
   box-shadow:0 0 0 2px rgba(31,143,76,.15),0 3px 12px rgba(31,143,76,.22);
-  background:#f4fbf6;
+  background:var(--spider-green-soft);
 }
-.cat-circle-item:hover .cat-circle{border-color:#2aaa68;box-shadow:0 0 0 2px rgba(31,143,76,.14),0 4px 15px rgba(31,143,76,.25)}
+.cat-circle-item:hover .cat-circle{border-color:var(--spider-green);background:var(--spider-green-soft);box-shadow:0 0 0 2px rgba(31,143,76,.14),0 4px 15px rgba(31,143,76,.25)}
 
 .cat-circle{
   width:72px;height:72px;border-radius:50%;
   border:1.5px solid rgba(31,143,76,.62);overflow:hidden;
-  background:#fff;display:flex;
+  background:var(--spider-green-soft);display:flex;
   align-items:center;justify-content:center;transition:box-shadow .2s,border-color .2s,transform .2s;flex-shrink:0;
   box-shadow:0 2px 10px rgba(31,143,76,.18);
 }
@@ -1578,7 +1578,7 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   align-items: center !important;
   justify-content: center !important;
   flex: 0 0 22px !important;
-  color: inherit;
+  color: var(--spider-green) !important;
 }
 .sidebar-nav button span,
 .sidebar-sub button span {
