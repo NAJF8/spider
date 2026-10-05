@@ -6,7 +6,7 @@
   "background_color": "#ffffff",
   "theme_color": "#1f8f4c",
   "icons": [{
-    "src": "assets/spider-logo.png",
+    "src": "assets/spider-logo.png?v=20261005-brand1",
     "sizes": "512x512",
     "type": "image/png",
     "purpose": "any maskable"
