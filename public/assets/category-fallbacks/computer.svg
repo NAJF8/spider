@@ -4,13 +4,13 @@
   <g stroke-linecap="round" stroke-linejoin="round" fill="none">
 
     <!-- Monitor Outline -->
-    <rect x="30" y="40" width="140" height="90" rx="12" stroke="#ed1c24" stroke-width="12" />
+    <rect x="30" y="40" width="140" height="90" rx="12" stroke="#1f8f4c" stroke-width="12" />
     <!-- Screen content line -->
     <line x1="50" y1="100" x2="150" y2="100" stroke="#1d222b" stroke-width="8" />
     <!-- Stand -->
     <path d="M80 130 L70 170 M120 130 L130 170" stroke="#1d222b" stroke-width="12" />
     <!-- Base -->
-    <line x1="50" y1="170" x2="150" y2="170" stroke="#ed1c24" stroke-width="12" />
+    <line x1="50" y1="170" x2="150" y2="170" stroke="#1f8f4c" stroke-width="12" />
 
   </g>
 </svg>
