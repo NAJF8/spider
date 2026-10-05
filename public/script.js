@@ -650,7 +650,7 @@ function productCard(p, ctx) {
       </div>
       <div class="product-actions">
         ${isAvailable(p) && !p.builderOnly
-          ? `<button class="btn btn-primary" type="button" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-plus"></i> ${t('addToCart')}</button>`
+          ? `<button class="btn product-add-btn" type="button" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i> ${t('addToCart')}</button>`
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> ${t('notify')}</button>`
         }
         <button class="btn btn-outline" type="button" data-details="${esc(p.id)}">${t('details')}</button>
@@ -1572,9 +1572,7 @@ function openProductDetails(id) {
     $('productDetailsBody').innerHTML = `<div class="product-detail">
       <div class="product-gallery" data-images='${esc(JSON.stringify(productImages))}'>
         <div class="product-gallery-stage">
-        <button class="gallery-nav-btn gallery-nav-prev" type="button" data-gallery-prev aria-label="${language === 'en' ? 'Previous image' : 'الصورة السابقة'}" ${productImages.length < 2 ? 'hidden' : ''}><i class="fa-solid fa-chevron-right"></i></button>
         <img src="${esc(productImages[0])}" alt="${esc(productName(p))}" id="productMainImage">
-        <button class="gallery-nav-btn gallery-nav-next" type="button" data-gallery-next aria-label="${language === 'en' ? 'Next image' : 'الصورة التالية'}" ${productImages.length < 2 ? 'hidden' : ''}><i class="fa-solid fa-chevron-left"></i></button>
         ${productImages.length > 1 ? `<span class="gallery-indicator">1 / ${productImages.length}</span>` : ''}
         </div>
         ${productImages.length > 1 ? `
@@ -1592,7 +1590,7 @@ function openProductDetails(id) {
       <div class="spec-list">${specs.length ? specs.map((item) => { const spec = localizedSpecification(item); return `<div><strong>${esc(spec.key)}</strong><span>${esc(spec.value)}</span></div>`; }).join('') : `<div>${language === 'en' ? 'No additional published specifications' : 'لا توجد مواصفات إضافية منشورة'}</div>`}</div>
       <div class="detail-actions">
         ${isAvailable(p) && !p.builderOnly
-          ? `<button class="btn btn-primary" type="button" data-detail-add="${esc(p.id)}">${t('addToCart')}</button>`
+           ? `<button class="btn product-add-btn" type="button" data-detail-add="${esc(p.id)}"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>${t('addToCart')}</button>`
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}">${t('notify')}</button>`}
         <button class="btn btn-outline" type="button" data-favorite="${esc(p.id)}">${state.favorites.includes(p.id) ? (language === 'en' ? 'Remove from favorites' : 'إزالة من المفضلة') : (language === 'en' ? 'Add to favorites' : 'أضف للمفضلة')}</button>
       </div>
@@ -1601,8 +1599,6 @@ function openProductDetails(id) {
   $('productDetailsBody').querySelector('[data-detail-add]')?.addEventListener('click', () => { addToCart(id); modal('productDetailsModal', false); });
   $('productDetailsBody').querySelector('[data-alert]')?.addEventListener('click', () => openAvailability(id));
   $('productDetailsBody').querySelector('[data-favorite]')?.addEventListener('click', () => { toggleFavorite(id); openProductDetails(id); });
-  $('productDetailsBody').querySelector('[data-gallery-prev]')?.addEventListener('click', () => setProductGalleryImage(activeProductGalleryIndex - 1));
-  $('productDetailsBody').querySelector('[data-gallery-next]')?.addEventListener('click', () => setProductGalleryImage(activeProductGalleryIndex + 1));
   $('productDetailsBody').querySelectorAll('[data-gallery-index]').forEach((button) => button.addEventListener('click', () => setProductGalleryImage(Number(button.dataset.galleryIndex))));
   const gallery = $('productDetailsBody').querySelector('.product-gallery');
   let touchStartX = null;

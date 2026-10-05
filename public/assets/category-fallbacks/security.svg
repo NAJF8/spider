@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
   <!-- Background subtle circle, similar to some icons -->
-  <circle cx="100" cy="100" r="85" fill="#effaf4" opacity="0.9" />
+  <circle cx="100" cy="100" r="85" fill="none" opacity="0.9" />
   <g stroke-linecap="round" stroke-linejoin="round" fill="none">
 
     <!-- Camera Body -->
-    <path d="M110 70 L160 70 A10 10 0 0 1 170 80 L170 110 A10 10 0 0 1 160 120 L110 120 Z" stroke="#1d222b" stroke-width="12" />
+    <path d="M110 70 L160 70 A10 10 0 0 1 170 80 L170 110 A10 10 0 0 1 160 120 L110 120 Z" stroke="#22a39e" stroke-width="12" />
     <!-- Lens part -->
-    <path d="M40 50 C90 50 110 70 110 95 C110 120 90 140 40 140 Z" stroke="#1f8f4c" stroke-width="12" />
+    <path d="M40 50 C90 50 110 70 110 95 C110 120 90 140 40 140 Z" stroke="#22a39e" stroke-width="12" />
     <!-- Lens inner ring -->
-    <circle cx="65" cy="95" r="15" stroke="#1d222b" stroke-width="10" />
+    <circle cx="65" cy="95" r="15" stroke="#22a39e" stroke-width="10" />
     <!-- Stand -->
-    <path d="M140 120 L130 160 M150 120 L160 160" stroke="#1f8f4c" stroke-width="12" />
-    <line x1="110" y1="160" x2="180" y2="160" stroke="#1d222b" stroke-width="12" />
+    <path d="M140 120 L130 160 M150 120 L160 160" stroke="#22a39e" stroke-width="12" />
+    <line x1="110" y1="160" x2="180" y2="160" stroke="#22a39e" stroke-width="12" />
 
   </g>
 </svg>
