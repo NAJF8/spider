@@ -56,6 +56,7 @@ let builderDiscountsByProduct = {};
 let pendingPricingIdentities = {};
 let englishDescriptionManuallyEdited = false;
 let descriptionTranslationTimer = null;
+const specificationTranslationTimers = new WeakMap();
 let adminModalDepth = 0;
 let adminModalScrollY = 0;
 const productDescriptionParts = (value) => {
@@ -666,7 +667,10 @@ function renderPricingManagementTable() {
 }
 
 async function saveProductPricing(id) {
-    if (!currentAdminUser || currentAdminUser.uid !== SUPER_ADMIN_UID) return;
+    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.special_prices !== true)) {
+        alert('ليست لديك صلاحية تعديل الأسعار.');
+        return;
+    }
     const product = products.find((p) => p.id === id);
     const publicInput = document.querySelector(`[data-public-price="${CSS.escape(id)}"]`);
     const specialInput = document.querySelector(`[data-special-price="${CSS.escape(id)}"]`);
@@ -679,13 +683,30 @@ async function saveProductPricing(id) {
         return;
     }
     const now = Date.now();
-    await update(ref(db), {
-        [`products/${id}/price`]: publicPrice,
-        [`products/${id}/public_price`]: publicPrice,
-        [`private_prices/${id}`]: { special_price: specialPrice, wholesale_price: wholesalePrice, updatedAt: now, updatedBy: currentAdminUser.uid },
-        [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice, specialPrice, wholesalePrice, timestamp: now }
-    });
-    alert('تم حفظ مستويات السعر وتسجيل التعديل.');
+    try {
+        await update(ref(db), {
+            [`products/${id}/price`]: publicPrice,
+            [`products/${id}/public_price`]: publicPrice,
+            [`private_prices/${id}`]: { special_price: specialPrice, wholesale_price: wholesalePrice, updatedAt: now, updatedBy: currentAdminUser.uid },
+            [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice, specialPrice, wholesalePrice, timestamp: now }
+        });
+        const [productSnapshot, privateSnapshot] = await Promise.all([get(ref(db, `products/${id}`)), get(ref(db, `private_prices/${id}`))]);
+        if (!productSnapshot.exists()) throw new Error('PRODUCT_READBACK_MISSING');
+        const readProduct = productSnapshot.val() || {};
+        const readPrivate = privateSnapshot.exists() ? privateSnapshot.val() || {} : {};
+        const readPublic = Number(readProduct.public_price ?? readProduct.price);
+        const readSpecial = readPrivate.special_price == null ? null : Number(readPrivate.special_price);
+        const readWholesale = readPrivate.wholesale_price == null ? null : Number(readPrivate.wholesale_price);
+        if (readPublic !== publicPrice || readSpecial !== specialPrice || readWholesale !== wholesalePrice) throw new Error('PRICE_READBACK_MISMATCH');
+        const productIndex = products.findIndex((item) => item.id === id);
+        if (productIndex >= 0) products[productIndex] = { ...products[productIndex], ...readProduct };
+        privatePricesByProduct[id] = readPrivate;
+        renderPricingManagementTable();
+        alert('تم حفظ الأسعار والتحقق منها من Firebase.');
+    } catch (error) {
+        console.error('Pricing save failed', { code: error?.message || 'PRICING_SAVE_FAILED' });
+        alert(`تعذر حفظ الأسعار: ${error?.message || 'خطأ غير معروف'}`);
+    }
 }
 window.saveProductPricing = saveProductPricing;
 document.getElementById('pricingSearch')?.addEventListener('input', renderPricingManagementTable);
@@ -1270,8 +1291,9 @@ function renderProductSpecsEditor(source = []) {
     const editor = document.getElementById('prodSpecsEditor');
     if (!editor) return;
     const entries = adminSpecificationEntries(source);
-    editor.innerHTML = `<div class="spec-editor-head"><span>الاسم بالعربي</span><span>Property in English</span><span>القيمة بالعربي</span><span>Value in English</span><span></span></div>` +
-        entries.map((item) => `<div class="spec-editor-row"><input type="text" data-spec-field="key_ar" value="${escapeHtml(item.key_ar)}" maxlength="80"><input type="text" data-spec-field="key_en" value="${escapeHtml(item.key_en)}" maxlength="80"><input type="text" data-spec-field="value_ar" value="${escapeHtml(item.value_ar)}" maxlength="180"><input type="text" data-spec-field="value_en" value="${escapeHtml(item.value_en)}" maxlength="180"><button type="button" class="btn btn-outline" data-remove-spec aria-label="حذف المواصفة"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+    editor.innerHTML = `<div class="spec-editor-head"><span>الاسم بالعربي</span><span>Property in English</span><span>القيمة بالعربي</span><span>Value in English</span><span></span><span></span></div>` +
+        entries.map((item) => `<div class="spec-editor-row"><input type="text" data-spec-field="key_ar" value="${escapeHtml(item.key_ar)}" maxlength="80"><input type="text" data-spec-field="key_en" value="${escapeHtml(item.key_en)}" maxlength="180"><input type="text" data-spec-field="value_ar" value="${escapeHtml(item.value_ar)}" maxlength="180"><input type="text" data-spec-field="value_en" value="${escapeHtml(item.value_en)}" maxlength="180"><button type="button" class="btn btn-outline spec-retranslate-btn" data-retranslate-spec aria-label="إعادة ترجمة المواصفة">↻</button><button type="button" class="btn btn-outline" data-remove-spec aria-label="حذف المواصفة"><i class="fa-solid fa-xmark"></i></button><small class="spec-translation-status" data-spec-status aria-live="polite"></small></div>`).join('');
+    bindSpecificationTranslation(editor);
 }
 function readProductSpecsEditor() {
     return [...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].map((row) => Object.fromEntries([...row.querySelectorAll('[data-spec-field]')].map((input) => [input.dataset.specField, input.value.trim()]))).filter((item) => item.key_ar || item.key_en || item.value_ar || item.value_en).slice(0, 18);
@@ -1288,6 +1310,45 @@ document.getElementById('prodSpecsEditor')?.addEventListener('click', (event) =>
     rows.splice([...document.querySelectorAll('#prodSpecsEditor .spec-editor-row')].indexOf(remove.closest('.spec-editor-row')), 1);
     renderProductSpecsEditor(rows);
 });
+
+function bindSpecificationTranslation(editor) {
+    editor.querySelectorAll('.spec-editor-row').forEach((row) => {
+        row.querySelectorAll('[data-spec-field="key_en"],[data-spec-field="value_en"]').forEach((input) => input.addEventListener('input', () => { input.dataset.manual = 'true'; }));
+        row.querySelectorAll('[data-spec-field="key_ar"],[data-spec-field="value_ar"]').forEach((input) => input.addEventListener('input', () => scheduleSpecificationTranslation(row)));
+        row.querySelector('[data-retranslate-spec]')?.addEventListener('click', () => translateSpecificationRow(row, true));
+    });
+}
+
+function scheduleSpecificationTranslation(row) {
+    const existing = specificationTranslationTimers.get(row);
+    if (existing) clearTimeout(existing);
+    specificationTranslationTimers.set(row, setTimeout(() => translateSpecificationRow(row, false), 850));
+}
+
+async function translateSpecificationRow(row, force = false) {
+    const propertyInput = row.querySelector('[data-spec-field="key_ar"]');
+    const valueInput = row.querySelector('[data-spec-field="value_ar"]');
+    const propertyEnglish = row.querySelector('[data-spec-field="key_en"]');
+    const valueEnglish = row.querySelector('[data-spec-field="value_en"]');
+    const status = row.querySelector('[data-spec-status]');
+    const property = propertyInput?.value.trim() || '';
+    const value = valueInput?.value.trim() || '';
+    if (!property || !value || (!force && propertyEnglish?.dataset.manual === 'true' && valueEnglish?.dataset.manual === 'true')) return;
+    if (!auth.currentUser) { if (status) status.textContent = 'تسجيل دخول الأدمن مطلوب'; return; }
+    const button = row.querySelector('[data-retranslate-spec]');
+    if (status) status.textContent = 'جارٍ الترجمة...';
+    if (button) button.disabled = true;
+    try {
+        const token = await auth.currentUser.getIdToken();
+        const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/translate-description`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type: 'specification', property, value }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success || !result.property || !result.value) throw new Error(result.error || 'TRANSLATION_FAILED');
+        if (force || propertyEnglish?.dataset.manual !== 'true') { propertyEnglish.value = result.property; propertyEnglish.dataset.manual = 'false'; }
+        if (force || valueEnglish?.dataset.manual !== 'true') { valueEnglish.value = result.value; valueEnglish.dataset.manual = 'false'; }
+        if (status) status.textContent = 'تمت الترجمة';
+    } catch (error) { console.error('Specification translation failed', { code: error.message }); if (status) status.textContent = 'تعذرت الترجمة؛ يمكنك إدخال English يدويًا.'; }
+    finally { if (button) button.disabled = false; }
+}
 
 window.openProductModal = function(id = null) {
     closeCategoryModal();

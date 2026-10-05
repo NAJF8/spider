@@ -1,0 +1,14 @@
+{
+  "name": "سبايدر للإلكترونيات",
+  "short_name": "SPIDER",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f8f4c",
+  "icons": [{
+    "src": "assets/spider-logo.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any maskable"
+  }]
+}

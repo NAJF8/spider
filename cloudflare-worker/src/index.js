@@ -312,7 +312,10 @@ async function handlePhoneAuth(request, env, url) {
   if (url.pathname === '/api/auth/phone/register') {
     const authenticated = await verifyFirebaseIdToken(authToken(request), env);
     const existingProfile = authenticated ? await readServiceDatabase(env, `profiles/${encodeURIComponent(authenticated.uid)}.json`) : null;
-    const name = String(body.name || existingProfile?.name || authenticated?.displayName || '').trim().slice(0, 100);
+    const firstName = String(body.firstName || existingProfile?.firstName || '').trim().slice(0, 50);
+    const lastName = String(body.lastName || existingProfile?.lastName || '').trim().slice(0, 50);
+    const email = String(body.email || existingProfile?.email || authenticated?.email || '').trim().slice(0, 160);
+    const name = String(body.name || [firstName, lastName].filter(Boolean).join(' ') || existingProfile?.name || authenticated?.displayName || '').trim().slice(0, 100);
     if (!name) return errorResponse('NAME_REQUIRED', 400);
     const confirmation = String(body.confirmPassword ?? body.confirmPin ?? '');
     if ((isPasswordRequest ? confirmation : normalizeLegacyPin(confirmation)) !== credential) return errorResponse('PIN_CONFIRMATION_MISMATCH', 400);
@@ -320,7 +323,7 @@ async function handlePhoneAuth(request, env, url) {
     if (existingUid && (!authenticated || existingUid !== authenticated.uid)) return errorResponse('PHONE_ALREADY_REGISTERED', 409);
     const uid = authenticated?.uid || existingUid || `phone-${crypto.randomUUID()}`;
     const credentialHash = await hashPin(credential);
-    const profile = { uid, name, phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
+    const profile = { uid, name, ...(firstName ? { firstName } : {}), ...(lastName ? { lastName } : {}), ...(email ? { email } : {}), phone, pricing_tier: existingProfile?.pricing_tier || existingProfile?.accountType || 'public', created_at: existingProfile?.created_at || Date.now() };
     const customToken = await firebaseCustomToken(uid, env);
     await writeServiceDatabase(env, '', {
       [`phone_index/${phone}`]: uid,
@@ -526,13 +529,20 @@ async function handleRequest(request, env) {
         }
         if (!allowed) return errorResponse('FORBIDDEN', 403);
         const body = await request.json().catch(() => ({}));
+        const type = body?.type === 'specification' ? 'specification' : 'description';
         const text = String(body?.text || '').trim().slice(0, 2000);
-        if (!text) return errorResponse('TEXT_REQUIRED', 400);
+        const property = String(body?.property || '').trim().slice(0, 180);
+        const value = String(body?.value || '').trim().slice(0, 500);
+        if (type === 'description' && !text) return errorResponse('TEXT_REQUIRED', 400);
+        if (type === 'specification' && (!property || !value)) return errorResponse('SPECIFICATION_FIELDS_REQUIRED', 400);
         const kieKey = String(env.KIE_API_KEY || '').trim();
         if (!kieKey) return errorResponse('TRANSLATION_BACKEND_NOT_CONFIGURED', 503);
         const kieRes = await fetch('https://api.kie.ai/openai/v1/responses', {
           method: 'POST', headers: { Authorization: `Bearer ${kieKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: 'deepseek-v4-1-flash', stream: false, thinking: { type: 'disabled' }, input: [
+          body: JSON.stringify({ model: 'deepseek-v4-1-flash', stream: false, thinking: { type: 'disabled' }, input: type === 'specification' ? [
+            { role: 'system', content: [{ type: 'input_text', text: 'Translate the Arabic product specification property and value into concise natural English. Return valid JSON only with exactly two string keys: property and value. Preserve model numbers, units, dimensions, and technical notation.' }] },
+            { role: 'user', content: [{ type: 'input_text', text: JSON.stringify({ property, value }) }] }
+          ] : [
             { role: 'system', content: [{ type: 'input_text', text: 'Translate Arabic product descriptions into concise natural English. Return only the translation, with no quotes, explanation, or labels.' }] },
             { role: 'user', content: [{ type: 'input_text', text }] }
           ] })
@@ -541,6 +551,14 @@ async function handleRequest(request, env) {
         if (!kieRes.ok || providerRejected(kieData.body)) return errorResponse('TRANSLATION_FAILED', 502);
         const translation = extractProviderReply(kieData.body).slice(0, 2000);
         if (!translation) return errorResponse('TRANSLATION_EMPTY', 502);
+        if (type === 'specification') {
+          let translated;
+          try { translated = JSON.parse(translation.replace(/^```json\s*|\s*```$/gi, '').trim()); } catch { return errorResponse('TRANSLATION_INVALID_RESPONSE', 502); }
+          const translatedProperty = String(translated?.property || '').trim().slice(0, 180);
+          const translatedValue = String(translated?.value || '').trim().slice(0, 500);
+          if (!translatedProperty || !translatedValue) return errorResponse('TRANSLATION_EMPTY', 502);
+          return jsonResponse({ success: true, property: translatedProperty, value: translatedValue });
+        }
         return jsonResponse({ success: true, translation });
       } catch (error) {
         console.error(JSON.stringify({ code: 'TRANSLATION_ERROR', message: String(error?.message || 'unknown').slice(0, 120) }));
