@@ -1341,6 +1341,151 @@ html[data-theme="dark"] .cat-circle,html[data-theme="dark"] .product-actions .pr
 html[data-theme="dark"] .cat-circle-item:hover .cat-circle,html[data-theme="dark"] .cat-circle-item.active .cat-circle{background:#f7f7f7;border-color:var(--spider-primary-dark)}
 @media (max-width:600px){.site-header{box-shadow:0 1px 10px rgba(34,163,158,.14)}.footer-inner{padding-inline:18px}.hero-cta{min-height:44px;padding-inline:20px}.product-actions .product-add-btn,.detail-actions .product-add-btn{min-height:40px}}
 
+/* ===== Unified primary bars =====
+   Keep every shared top/bottom brand surface on the exact primary color.
+   Semantic danger states remain red elsewhere in the stylesheet. */
+:root{
+  --spider-primary:#22A39E;
+  --spider-primary-dark:#177873;
+  --spider-secondary:#F2C230;
+}
+.site-header{
+  background:#22A39E;
+  border-bottom:2px solid #F2C230;
+  box-shadow:0 2px 16px rgba(23,120,115,.22);
+  color:#fff;
+}
+.site-header .header-shell,
+.site-header .header-row,
+.site-header .header-menu-row,
+.site-header .search-wrap{background:#22A39E}
+.site-header .brand-copy strong,
+.site-header .brand-copy small,
+.site-header .account-header-control,
+.site-header .account-greeting,
+.site-header .icon-btn,
+.site-header .menu-btn,
+.site-header .search-wrap>i{color:#fff}
+.site-header .brand-copy small{opacity:.94}
+.site-header .account-header-control:hover,
+.site-header .account-header-control:focus-visible,
+.site-header .icon-btn:hover,
+.site-header .icon-btn:focus-visible,
+.site-header .menu-btn:hover,
+.site-header .menu-btn:focus-visible{background:rgba(242,194,48,.22);color:#fff}
+.site-header .search-wrap input{background:#fff;color:#15171c;border-color:#fff}
+.site-header .search-wrap input::placeholder{color:#5d666c}
+.site-header .search-wrap input:focus{border-color:#F2C230;background:#fff;box-shadow:0 0 0 3px rgba(242,194,48,.3)}
+.site-header .cart-badge,.site-header .fav-badge{background:#F2C230;color:#15171c}
+.site-footer{
+  background:#22A39E;
+  color:#fff;
+  border-top:2px solid #F2C230;
+  box-shadow:0 -5px 18px rgba(23,120,115,.2);
+}
+.site-footer .footer-brand .brand-copy strong,
+.site-footer .footer-brand .brand-copy small,
+.site-footer .footer-links a{color:#fff}
+.site-footer .footer-brand p{color:#F2C230}
+.site-footer .footer-links a{border-color:rgba(255,255,255,.72)}
+.site-footer .footer-links a:hover{border-color:#F2C230;color:#15171c;background:#F2C230}
+html[data-theme="dark"] .site-header,
+html[data-theme="dark"] .site-footer{background:#22A39E;color:#fff;border-bottom-color:#F2C230;border-top-color:#F2C230}
+html[data-theme="dark"] .site-header .brand-copy strong,
+html[data-theme="dark"] .site-header .brand-copy small,
+html[data-theme="dark"] .site-header .account-header-control,
+html[data-theme="dark"] .site-header .account-greeting,
+html[data-theme="dark"] .site-header .icon-btn,
+html[data-theme="dark"] .site-header .menu-btn,
+html[data-theme="dark"] .site-header .search-wrap>i,
+html[data-theme="dark"] .site-footer .footer-brand .brand-copy strong,
+html[data-theme="dark"] .site-footer .footer-brand .brand-copy small,
+html[data-theme="dark"] .site-footer .footer-links a{color:#fff}
+
+/* ===== Product status and brand presentation refinement ===== */
+.stock,
+.cpc-stock{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  max-width:100%;
+  min-height:24px;
+  padding:4px 10px;
+  border:1px solid transparent;
+  border-radius:999px;
+  font-size:10px;
+  line-height:1.2;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.stock.in,.cpc-stock.in{background:#E9F8EF;color:#207A4B;border-color:#C9EBD7}
+.stock.limited,.cpc-stock.limited{background:#FFF7D6;color:#8A6500;border-color:#F1D985}
+.stock.out,.cpc-stock.out{background:#FFF1F2;color:#C81019;border-color:#F3B9BE}
+.brand-item{
+  min-height:104px;
+  flex-direction:column;
+  gap:8px;
+  padding:12px 9px;
+  background:#fff;
+  border-color:#E6EBEF;
+  box-shadow:0 2px 8px rgba(24,32,45,.04);
+}
+.brand-item:hover,.brand-item.active{
+  background:#F4FBFA;
+  border-color:#22A39E;
+  color:#177873;
+  box-shadow:0 6px 16px rgba(34,163,158,.12);
+  transform:translateY(-1px);
+}
+.brand-logo,.brand-logo-fallback{
+  width:78px;
+  height:42px;
+  object-fit:contain;
+  display:grid;
+  place-items:center;
+  flex:0 0 42px;
+}
+.brand-logo-fallback{
+  border:1px solid #B7DFDC;
+  border-radius:12px;
+  background:#E8F7F6;
+  color:#177873;
+  font-size:15px;
+  letter-spacing:.08em;
+  font-weight:900;
+}
+.brand-name{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+  line-height:1.3;
+  text-align:center;
+}
+.site-header .brand-lockup img,.site-footer .brand-lockup img{
+  width:50px;
+  height:50px;
+  padding:4px;
+  box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.8);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.16);
+}
+html[data-theme="dark"] .brand-item{background:#24262C;border-color:#383B43}
+html[data-theme="dark"] .brand-item:hover,html[data-theme="dark"] .brand-item.active{background:rgba(34,163,158,.16);border-color:#22A39E;color:#8EE0DB}
+html[data-theme="dark"] .brand-logo-fallback{background:rgba(34,163,158,.18);border-color:#4BBDB7;color:#8EE0DB}
+@media (max-width:600px){
+  .brand-item{min-height:96px;padding:10px 5px}
+  .brand-logo,.brand-logo-fallback{width:68px;height:36px;flex-basis:36px}
+  .brand-logo-fallback{font-size:13px;border-radius:10px}
+  .brand-name{font-size:10px}
+}
+html[data-theme="dark"] .stock.out,html[data-theme="dark"] .cpc-stock.out{color:#C81019}
+
 @media (max-width:600px){
   :root{--site-footer-height:140px}
   .footer-inner{
@@ -1656,4 +1801,20 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   max-width: 100% !important;
   white-space: nowrap !important;
   box-shadow: none !important;
+}
+
+/* Product status tokens: available and limited share the calm cream/gold identity. */
+:root {
+  --stock-available-bg: #FFF7D6;
+  --stock-available-text: #8A6500;
+  --stock-available-border: #F1D985;
+  --stock-limited-bg: #FFF7D6;
+  --stock-limited-text: #8A6500;
+  --stock-limited-border: #F1D985;
+}
+.stock.in, .cpc-stock.in,
+.stock.limited, .cpc-stock.limited {
+  background: var(--stock-available-bg) !important;
+  color: var(--stock-available-text) !important;
+  border-color: var(--stock-available-border) !important;
 }

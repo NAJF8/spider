@@ -423,6 +423,7 @@ function updateAllDashboardViews() {
     renderPricingCustomers();
     renderCategoriesManagementTable();
     renderOrdersManagementTable();
+    renderBrandLogoOptions();
 }
 
 // ================= REALTIME FIREBASE LISTENERS =================
@@ -2651,7 +2652,8 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
     return new Promise(async (resolve, reject) => {
         try {
             if (!file) throw new Error('IMAGE_REQUIRED');
-            const permission = 'categories';
+            const uploadKind = String(kind || 'category').toLowerCase();
+            const permission = uploadKind === 'brand' ? 'brands' : 'categories';
             if (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true) {
                 throw new Error('FORBIDDEN');
             }
@@ -2659,8 +2661,8 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             if (!token) throw new Error('AUTH_REQUIRED');
             const formData = new FormData();
             const uniqueSuffix = (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)).replace(/-/g, '').slice(0, 12);
-            const operation = 'category';
-            const filename = `category-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
+            const operation = uploadKind === 'brand' ? 'brand' : 'category';
+            const filename = `${uploadKind}-${Date.now()}-${uniqueSuffix}-${safeImageName(file.name)}`;
             formData.append('image', file, file.name);
             formData.append('filename', filename);
             formData.append('contentType', file.type || '');
@@ -2959,7 +2961,31 @@ window.updateAllDashboardViews = function() {
 
 // ================= SETTINGS MANAGEMENT =================
 const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبايدر 👋\nشلون أگدر أساعدك اليوم؟', welcomeMessageEn: 'Welcome to SPIDER 👋\nHow can I help you today?', suggestion1Ar: 'أريد أبني تجميعة', suggestion1En: 'I want to build a PC', suggestion2Ar: 'أبحث عن منتج', suggestion2En: 'I am looking for a product', suggestion3Ar: 'أريد أطوّر حاسبتي', suggestion3En: 'I want to upgrade my PC', aiUnavailableAr: 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.', aiUnavailableEn: 'The assistant is currently unavailable. Please try again later.', noInfoAr: 'ما لكيت هذه المعلومة ضمن المنتجات المنشورة حالياً.', noInfoEn: 'I could not find that information in the published catalog.', botFontSize: 16, userFontSize: 16, suggestionFontSize: 15, inputFontSize: 16 };
-let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647827337942', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647805700503', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
+
+function normalizeBrandLogoKey(value) {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+function renderBrandLogoOptions() {
+    const select = document.getElementById('brandLogoBrand');
+    if (!select) return;
+    const brands = [...new Set(products.map((product) => String(product.brand || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const previous = select.value;
+    select.innerHTML = brands.length ? brands.map((brand) => `<option value="${escapeHtml(brand)}">${escapeHtml(brand)}</option>`).join('') : '<option value="">لا توجد علامات في المنتجات بعد</option>';
+    if (brands.includes(previous)) select.value = previous;
+    syncBrandLogoPreview();
+}
+function syncBrandLogoPreview() {
+    const select = document.getElementById('brandLogoBrand');
+    const urlInput = document.getElementById('brandLogoUrl');
+    const previewBox = document.getElementById('brandLogoPreviewContainer');
+    const preview = document.getElementById('brandLogoPreview');
+    if (!select || !urlInput || !previewBox || !preview) return;
+    const url = storeSettings.brandLogos?.[normalizeBrandLogoKey(select.value)] || '';
+    urlInput.value = url;
+    preview.src = url;
+    previewBox.hidden = !url;
+}
 
 function chatbotFormValues() {
     const get = (id) => document.getElementById(id)?.value || '';
@@ -3014,6 +3040,46 @@ onValue(ref(db, 'settings'), (snapshot) => {
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
     if (elDf) elDf.value = storeSettings.deliveryFee || 5000;
     renderChatbotPreview(storeSettings.chatbotSettings || DEFAULT_CHATBOT_SETTINGS);
+    renderBrandLogoOptions();
+});
+
+document.getElementById('brandLogoBrand')?.addEventListener('change', syncBrandLogoPreview);
+document.getElementById('brandLogoFile')?.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    const preview = document.getElementById('brandLogoPreview');
+    const previewBox = document.getElementById('brandLogoPreviewContainer');
+    if (!file || !preview || !previewBox) return;
+    if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
+    const objectUrl = URL.createObjectURL(file);
+    preview.dataset.objectUrl = objectUrl;
+    preview.src = objectUrl;
+    previewBox.hidden = false;
+    const status = document.getElementById('brandLogoUploadStatus');
+    if (status) status.textContent = `تم اختيار ${file.name}. اضغط رفع وحفظ الشعار.`;
+});
+document.getElementById('prepareBrandLogoBtn')?.addEventListener('click', () => document.getElementById('brandLogoFile')?.click());
+document.getElementById('confirmBrandLogoBtn')?.addEventListener('click', async () => {
+    if (isDemoMode) { alert('لا يمكن رفع الشعارات في وضع المعاينة.'); return; }
+    const select = document.getElementById('brandLogoBrand');
+    const file = document.getElementById('brandLogoFile')?.files?.[0];
+    const brand = String(select?.value || '').trim();
+    if (!brand || !file) { alert('اختر العلامة وملف الشعار أولاً.'); return; }
+    const button = document.getElementById('confirmBrandLogoBtn');
+    try {
+        button.disabled = true;
+        const data = await uploadOriginalImage(file, 'brandLogoUrl', 'confirmBrandLogoBtn', 'prepareBrandLogoBtn', 'brandLogoUploadProgress', 'brandLogoUploadStatus', 'brand');
+        const url = data.rawUrl || data.imageUrl || data.path;
+        const key = normalizeBrandLogoKey(brand);
+        await update(ref(db, `settings/brandLogos/${key}`), url);
+        storeSettings.brandLogos = { ...(storeSettings.brandLogos || {}), [key]: url };
+        syncBrandLogoPreview();
+        document.getElementById('brandLogoUploadStatus').textContent = 'تم رفع الشعار وحفظ رابطه للعلامة بنجاح.';
+    } catch (error) {
+        console.error('Brand logo upload failed:', error);
+        alert(imageUploadErrorMessage(error.message, error.upstreamStatus));
+    } finally {
+        button.disabled = false;
+    }
 });
 
 document.getElementById('chatbotSettingsForm')?.addEventListener('input', () => renderChatbotPreview(chatbotFormValues()));

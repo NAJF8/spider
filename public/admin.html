@@ -56,6 +56,7 @@
                 <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>إدارة الأسعار</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-builder-discounts"><i class="fa-solid fa-tags"></i> <span>خصومات ابنِ تجميعتك</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-brands"><i class="fa-solid fa-award"></i> <span>شعارات العلامات</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-review"><i class="fa-solid fa-list-check"></i> <span>مراجعة الكتالوگ</span> <span class="badge" id="reviewBadge">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-settings"><i class="fa-solid fa-gear"></i> <span>الإعدادات</span></a></li>
@@ -393,6 +394,37 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </section>
+
+            <!-- ================= VIEW: BRAND LOGOS ================= -->
+            <section id="view-brands" class="admin-view">
+                <div class="view-header">
+                    <div>
+                        <h2><i class="fa-solid fa-award"></i> شعارات العلامات التجارية</h2>
+                        <p>ارفع شعار العلامة إلى مستودع GitHub واحفظ رابطه للعرض في واجهة المتجر.</p>
+                    </div>
+                </div>
+                <div class="box brand-logo-admin-box">
+                    <div class="form-grid">
+                        <label>العلامة التجارية
+                            <select id="brandLogoBrand"></select>
+                        </label>
+                        <label>ملف الشعار
+                            <input id="brandLogoFile" type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp">
+                        </label>
+                    </div>
+                    <input id="brandLogoUrl" type="hidden">
+                    <div id="brandLogoPreviewContainer" class="brand-logo-admin-preview" hidden>
+                        <img id="brandLogoPreview" alt="معاينة شعار العلامة">
+                    </div>
+                    <progress id="brandLogoUploadProgress" max="100" value="0" hidden></progress>
+                    <div id="brandLogoUploadStatus" class="image-upload-status" aria-live="polite"></div>
+                    <div class="form-actions">
+                        <button id="prepareBrandLogoBtn" type="button" class="btn btn-secondary"><i class="fa-solid fa-eye"></i> معاينة الشعار</button>
+                        <button id="confirmBrandLogoBtn" type="button" class="btn btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> رفع وحفظ الشعار</button>
+                    </div>
+                    <p class="form-hint">يتم حفظ الشعار في <code>public/images/brands/</code> ثم ربطه بالعلامة داخل إعدادات المتجر.</p>
                 </div>
             </section>
 

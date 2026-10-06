@@ -191,6 +191,7 @@ function canUploadImage({ uid, adminUid, kind = 'product', operation = '', admin
   const active = adminData && adminData.status !== 'disabled' && adminData.active !== false && adminData.enabled !== false;
   const permissions = active && adminData.permissions && typeof adminData.permissions === 'object' ? adminData.permissions : {};
   if (kind === 'category') return permissions.categories === true;
+  if (kind === 'brand') return permissions.brands === true || permissions.categories === true;
   if (operation === 'edit') return permissions.products_edit === true;
   if (operation === 'add') return permissions.products_add === true;
   return permissions.products_add === true || permissions.products_edit === true;
@@ -606,7 +607,8 @@ async function handleRequest(request, env) {
         const formData = await request.formData();
         const file = formData.get('image');
         let filename = formData.get('filename') || '';
-        const kind = String(formData.get('kind') || 'product').toLowerCase() === 'category' ? 'category' : 'product';
+        const requestedKind = String(formData.get('kind') || 'product').toLowerCase();
+        const kind = requestedKind === 'category' || requestedKind === 'brand' ? requestedKind : 'product';
         const operation = String(formData.get('operation') || '').toLowerCase();
 
         // Super Admin remains unrestricted. Other users must have an active
@@ -636,13 +638,13 @@ async function handleRequest(request, env) {
         }
 
         const suppliedMime = String(file.type || formData.get('contentType') || '').toLowerCase();
-        const supportedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp', 'image/heic', 'image/heif']);
+        const supportedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp', 'image/heic', 'image/heif', 'image/svg+xml']);
         if (!supportedMimeTypes.has(suppliedMime)) return errorResponse('IMAGE_TYPE_UNSUPPORTED', 400);
 
         // Sanitize while preserving the original extension. The MIME and
         // magic bytes below are authoritative; the extension is only a name.
         const originalExtension = String(filename || file.name || '').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
-        const extensionByMime = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'image/heic': 'heic', 'image/heif': 'heif' };
+        const extensionByMime = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif', 'image/bmp': 'bmp', 'image/heic': 'heic', 'image/heif': 'heif', 'image/svg+xml': 'svg' };
         const extension = originalExtension || extensionByMime[suppliedMime];
         const basename = String(filename || file.name || 'image').replace(/\.[^.]*$/, '').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'image';
         filename = `${basename}.${extension}`;
@@ -673,6 +675,10 @@ async function handleRequest(request, env) {
         else if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) detectedMime = 'image/bmp';
         else if (isFtyp('avif') || isFtyp('avis')) detectedMime = 'image/avif';
         else if (isFtyp('heic') || isFtyp('heix') || isFtyp('hevc') || isFtyp('hevx') || isFtyp('mif1') || isFtyp('msf1')) detectedMime = 'image/heic';
+        else if (suppliedMime === 'image/svg+xml') {
+          const svgSample = new TextDecoder().decode(bytes.slice(0, 2048)).replace(/^\uFEFF/, '').trimStart();
+          if (/^(?:<\?xml[^>]*>\s*)?<svg(?:\s|>)/i.test(svgSample)) detectedMime = 'image/svg+xml';
+        }
 
         if (!detectedMime || (detectedMime !== suppliedMime && !(suppliedMime === 'image/heif' && detectedMime === 'image/heic'))) {
            return errorResponse('IMAGE_TYPE_UNSUPPORTED', 400);
@@ -687,7 +693,7 @@ async function handleRequest(request, env) {
         for (let offset = 0; offset < bytes.length; offset += 0x7ffe) {
           base64Content += btoa(String.fromCharCode(...bytes.slice(offset, offset + 0x7ffe)));
         }
-        const assetDirectory = kind === 'category' ? 'categories' : 'products';
+        const assetDirectory = kind === 'category' ? 'categories' : kind === 'brand' ? 'brands' : 'products';
         const path = `public/images/${assetDirectory}/${filename}`;
         const githubUrl = `https://api.github.com/repos/NAJF8/spider/contents/${path}`;
         const githubRequestDiagnostics = {

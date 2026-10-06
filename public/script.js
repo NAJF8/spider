@@ -32,10 +32,11 @@ const state = {
   cart: [],
   favorites: [],
   settings: {},
+  brandLogos: {},
   builderDiscounts: {},
   filters: { category: '', brand: '', search: '' },
   showCategories: false,
-  showBrands: false,
+  showBrands: true,
   compare: ['', ''],
   comparePickerSlot: 0,
   builder: {},
@@ -496,6 +497,7 @@ function filteredProducts() {
 // ===== Settings =====
 function applySettings(settings = {}) {
   state.settings = settings || {};
+  state.brandLogos = settings.brandLogos && typeof settings.brandLogos === 'object' ? settings.brandLogos : {};
   deliveryFee = Number(settings.deliveryFee || 0);
   lowStockThreshold = Number(settings.lowStockThreshold ?? 3);
 
@@ -505,6 +507,7 @@ function applySettings(settings = {}) {
   if ($('brandTagline')) $('brandTagline').textContent = englishDigits(tagline.join(' ') || t('electronics'));
 
   if (settings.logoUrl && safeUrl(settings.logoUrl) && $('brandLogo')) $('brandLogo').src = settings.logoUrl;
+  if ($('brandsGrid')) renderBrands();
   // The approved storefront hero copy is intentionally not overwritten by
   // optional admin settings. Product, category, image, and store data remain live.
   const chat = settings.chatbotSettings || settings;
@@ -731,6 +734,26 @@ function clearFilters() {
 }
 
 // ===== Brands =====
+const STATIC_BRAND_LOGOS = {
+  amd: 'images/brands/amd.svg',
+  intel: 'images/brands/intel.svg',
+  msi: 'images/brands/msi.svg',
+  asus: 'images/brands/asus.svg',
+  gigabyte: 'images/brands/gigabyte.svg',
+  'tp-link': 'images/brands/tp-link.svg',
+  corsair: 'images/brands/corsair.svg',
+  dahua: 'images/brands/dahua.svg',
+  lexar: 'images/brands/lexar.svg',
+  pny: 'images/brands/pny.svg'
+};
+function brandLogoKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+function brandLogoFor(brand) {
+  const configured = state.brandLogos?.[brandLogoKey(brand)];
+  if (configured && (safeUrl(configured) || String(configured).startsWith('images/'))) return configured;
+  return STATIC_BRAND_LOGOS[brandLogoKey(brand)] || '';
+}
 function renderBrands() {
   if (!$('brandsGrid')) return;
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -740,8 +763,10 @@ function renderBrands() {
   $('brandsGrid').innerHTML = brands.length
     ? brands.map((brand) => {
         const prod = state.products.find((p) => p.brand === brand);
-        const logo = prod?.brandLogo || prod?.logo;
-        return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="${esc(brand)}">` : `<span class="brand-mark">${esc(brand.slice(0, 3).toUpperCase())}</span>`}<span>${esc(brand)}</span></button>`;
+        const fallback = brand.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+        const logo = brandLogoFor(brand) || prod?.brandLogo || prod?.logo;
+        const fallbackMarkup = `<span class="brand-logo-fallback" aria-hidden="true"${logo ? ' hidden' : ''}>${esc(fallback || brand.slice(0, 3).toUpperCase())}</span>`;
+        return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="شعار ${esc(brand)}" loading="lazy" onerror="this.onerror=null;this.hidden=true;this.nextElementSibling.hidden=false">${fallbackMarkup}` : fallbackMarkup}<span class="brand-name">${esc(brand)}</span></button>`;
       }).join('')
     : `<div class="empty-state">${t('noBrands')}</div>`;
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((b) => b.addEventListener('click', () => {
