@@ -265,6 +265,7 @@ const englishDigits = (v) => String(v ?? '').replace(/[٠-٩۰-۹]/g, (digit) =>
   return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
 });
 const esc = (v) => englishDigits(v).replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+const builderOnlyLabelMarkup = () => `<span class="builder-only-label">${esc(t('builderOnlyLabel'))}</span>`;
 const normalizePricingTier = (profile) => {
   const tier = String(profile?.pricing_tier || profile?.accountType || 'public').toLowerCase();
   return tier === 'wholesale' || tier === 'special' ? tier : 'public';
@@ -648,7 +649,7 @@ function productCard(p, ctx) {
       ${p.model || p.subcategory ? `<div class="product-model">${esc(p.model || p.subcategory || '')}</div>` : ''}
       <div class="product-stock-wrap">${availabilityMarkup(p)}</div>
       <div class="price-row">
-        <strong class="product-price">${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</strong>
+        <strong class="product-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</strong>
         ${!p.builderOnly && p.originalPrice ? `<span class="old-price">${formatPrice(p.originalPrice)}</span>` : ''}
       </div>
       <div class="product-actions">
@@ -798,7 +799,7 @@ function renderSuggestions(query) {
   if (!val) { box.classList.add('hidden'); return; }
   const matches = state.products.filter((p) => productText(p).includes(val)).slice(0, 5);
   box.innerHTML = matches.length
-    ? matches.map((p) => `<button class="suggestion" type="button" data-suggestion="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')} · ${stockLabel(p)[0]}</small></div><b>${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</b></button>`).join('')
+    ? matches.map((p) => `<button class="suggestion" type="button" data-suggestion="${esc(p.id)}"><img src="${esc(imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')} · ${stockLabel(p)[0]}</small></div><b>${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</b></button>`).join('')
     : `<div class="suggestion"><div><strong>${t('noResults')}</strong><small>${t('tryAnother')}</small></div></div>`;
   box.classList.remove('hidden');
   box.querySelectorAll('[data-suggestion]').forEach((b) => b.addEventListener('click', () => {
@@ -869,7 +870,7 @@ function renderComparePickerGrid() {
       <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" onerror="this.src='images/default-product.svg?v=2'">
       <strong>${esc(productName(p))}</strong>
       <span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span>
-      <b>${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</b>
+      <b>${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</b>
       <small class="stock ${tone}">${esc(availability)}</small>
     </button>`;
   }).join('') : `<div class="empty-state">${t('noProducts')}</div>`;
@@ -895,7 +896,7 @@ function previewCompare(id, previewId) {
       <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}">
       <div class="cpc-name">${esc(productName(p))}</div>
       <div class="cpc-model">${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</div>
-      <div class="cpc-price">${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</div>
+      <div class="cpc-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</div>
       <div class="cpc-stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</div>
       <div class="cpc-actions">
         <button class="btn btn-outline" type="button" data-compare-change="${esc(previewId)}">${t('change')}</button>
@@ -1389,7 +1390,7 @@ function renderUpgradePickerGrid() {
   if (!grid || !field) return;
   const query = String($('upgradePickerSearch')?.value || '').trim().toLowerCase();
   const products = upgradeProductsFor(field).filter((p) => !query || productText(p).includes(query));
-  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
+  grid.innerHTML = products.length ? products.map((p) => `<button class="compare-picker-option" type="button" data-upgrade-pick="${esc(p.id)}"><img src="${esc(upgradeImageFor(p))}" alt="${esc(productName(p))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><strong>${esc(productName(p))}</strong><span>${esc(p.brand || t('unknown'))}${p.model ? ` · ${esc(p.model)}` : ''}</span><b>${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</b><small class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</small><span class="upgrade-picker-choice">${language === 'en' ? 'Choose' : 'اختيار'}</span></button>`).join('') : `<div class="empty-state">${language === 'en' ? 'No available published products are available in this category.' : 'لا توجد منتجات منشورة ومتاحة في هذه الفئة حالياً.'}</div>`;
   grid.querySelectorAll('[data-upgrade-pick]').forEach((button) => button.addEventListener('click', () => {
     state.upgrade[state.upgradePickerField] = button.dataset.upgradePick; state.upgradeIsNew[state.upgradePickerField] = false; saveUpgrade();
     renderUpgrade();
@@ -1612,7 +1613,7 @@ function openProductDetails(id) {
       <div>
       <h3>${esc(productName(p))}</h3>
       <div class="detail-meta">${esc(p.brand || '')} ${p.model ? `· ${esc(p.model)}` : ''}</div>
-      <div class="detail-price">${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</div>
+      <div class="detail-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</div>
       ${availabilityMarkup(p)}
       <p class="detail-meta">${esc(localizedAttribute(p.description) || t('noDescription'))}</p>
       <div class="spec-list">${specs.length ? specs.map((item) => { const spec = localizedSpecification(item); return `<div><strong>${esc(spec.key)}</strong><span>${esc(spec.value)}</span></div>`; }).join('') : `<div>${language === 'en' ? 'No additional published specifications' : 'لا توجد مواصفات إضافية منشورة'}</div>`}</div>
@@ -1710,7 +1711,7 @@ function renderAccount(accountMode = state.accountMode || 'account') {
   }
   bindPasswordToggles(box);
   const favs = state.products.filter((p) => state.favorites.includes(p.id));
-  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<article class="favorite-card"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div class="favorite-card-copy"><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')}${p.model ? ` · ${esc(p.model)}` : ''}</small><span class="favorite-card-price">${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(productPrice(p))}</span><span class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</span><div class="favorite-card-actions"><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button>${isAvailable(p) && !p.builderOnly ? `<button class="btn btn-primary" type="button" data-favorite-cart="${esc(p.id)}">${t('addToCart')}</button>` : ''}</div></div></article>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
+  $('favoritesList').innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<article class="favorite-card"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div class="favorite-card-copy"><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')}${p.model ? ` · ${esc(p.model)}` : ''}</small><span class="favorite-card-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</span><span class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</span><div class="favorite-card-actions"><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button>${isAvailable(p) && !p.builderOnly ? `<button class="btn btn-primary" type="button" data-favorite-cart="${esc(p.id)}">${t('addToCart')}</button>` : ''}</div></div></article>`).join('') : `<div class="empty-state">${t('noFavorites')}</div>`}`;
   $('favoritesList').querySelectorAll('[data-favorite-open]').forEach((btn) => btn.addEventListener('click', () => { modal('accountModal', false); openProductDetails(btn.dataset.favoriteOpen); }));
   $('favoritesList').querySelectorAll('[data-favorite-cart]').forEach((btn) => btn.addEventListener('click', () => addToCart(btn.dataset.favoriteCart)));
 }
@@ -1807,7 +1808,7 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${p.builderOnly === true ? t('builderOnlyLabel') : formatPrice(validPrice(p.price) ?? productPrice(p))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button>${p.builderOnly === true ? '' : '<button type="button" data-chat-cart>أضف للسلة</button>'}</div></div>`;
+    card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(validPrice(p.price) ?? productPrice(p))}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button>${p.builderOnly === true ? '' : '<button type="button" data-chat-cart>أضف للسلة</button>'}</div></div>`;
     card.querySelector('[data-chat-open]').addEventListener('click', (e) => { e.stopPropagation(); openProductDetails(p.id); });
     card.querySelector('[data-chat-cart]').addEventListener('click', (e) => { e.stopPropagation(); if (p.available) { addToCart(p.id); showToast(t('added')); } });
     card.addEventListener('click', () => openProductDetails(p.id));

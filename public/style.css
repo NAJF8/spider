@@ -1538,6 +1538,44 @@ html[dir="ltr"] .cart-drawer.open{transform:translateX(0)}
 html[dir="ltr"] .floating-cart{left:auto;right:max(16px,env(safe-area-inset-right))}
 html[dir="ltr"] .chatbot-fab{right:auto;left:max(16px,env(safe-area-inset-left))}
 
+/* ===== Compact reference-led header ===== */
+.site-header .header-row{direction:ltr;align-items:center;gap:clamp(12px,2vw,28px);padding:16px 0 12px}
+.site-header .brand-side{order:2;flex:0 1 auto;gap:12px;direction:ltr;min-width:0}
+.site-header .header-actions{order:1;display:flex;align-items:center;gap:clamp(4px,.8vw,12px);direction:ltr;min-width:0;flex:0 1 auto}
+.site-header .brand-lockup{gap:10px;min-width:0}
+.site-header .brand-lockup img{width:76px;height:58px;border-radius:14px;background:#fff;padding:5px;object-fit:contain}
+.site-header .brand-copy strong{font-size:clamp(21px,2.4vw,32px)}
+.site-header .brand-copy small{font-size:11px}
+.site-header .header-actions .icon-btn,.site-header .account-header-control{width:42px;min-width:42px;height:42px;min-height:42px}
+.site-header .account-header-control{flex-direction:row;gap:8px;width:auto;padding-inline:5px 10px}
+.site-header .account-greeting:not([hidden]){display:inline;max-width:112px;font-size:12px;direction:ltr;color:#fff}
+.site-header .header-menu-row{display:none}
+.site-header .search-wrap{padding:4px 0 18px}
+.site-header .search-wrap input{height:48px;border-radius:14px;font-size:14px;padding-inline-start:44px}
+.site-header .search-wrap>i{font-size:18px;left:18px}
+.builder-only-label{color:#c81019;font-weight:900;white-space:normal}
+.site-header .builder-only-label{color:#c81019}
+html[data-theme="dark"] .builder-only-label{color:#ff737b}
+html[dir="ltr"] .site-header .search-wrap>i{left:auto;right:18px}
+
+@media (max-width:600px){
+  .site-header .header-row{position:relative;gap:6px;padding:10px 0 8px}
+  .site-header .brand-side{position:absolute;right:13px;left:auto;top:10px;display:flex;width:86px;gap:5px;z-index:2;transform:translateX(-86px)}
+  .site-header .brand-lockup{display:flex;width:52px;gap:0;direction:ltr}
+  .site-header .brand-copy{display:none}
+  .site-header .brand-lockup img{width:52px;height:46px;border-radius:11px;padding:4px}
+  .site-header .brand-copy strong{font-size:18px}
+  .site-header .brand-copy small{font-size:8px}
+  .site-header .header-actions{gap:0}
+  .site-header .header-actions .icon-btn,.site-header .account-header-control{width:29px;min-width:29px;height:34px;min-height:34px;padding-inline:1px;font-size:12px}
+  .site-header .account-header-control{gap:3px}
+  .site-header .account-greeting:not([hidden]){max-width:58px;font-size:8px}
+  .site-header .search-wrap{padding:3px 0 12px}
+  .site-header .search-wrap input{height:42px;border-radius:11px;font-size:12px;padding-inline-start:38px}
+  .site-header .search-wrap>i{left:13px;font-size:15px}
+  html[dir="ltr"] .site-header .search-wrap>i{left:auto;right:13px}
+}
+
 /* ===== Readability and no-clipping pass ===== */
 /* Text is allowed to wrap everywhere; image containers keep their intentional crop. */
 .section-heading h2,

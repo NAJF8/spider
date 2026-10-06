@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<link rel="stylesheet" href="style.css?v=20261006-unified-bars1">
+<link rel="stylesheet" href="style.css?v=20261006-header-pricing1">
 </head>
 <body>
 
@@ -22,7 +22,7 @@
     <div class="header-shell">
       <div class="header-row">
 
-        <!-- Right side (RTL): name and logo on the first row; menu below. -->
+        <!-- Right side (RTL): logo and menu stay together. -->
         <div class="brand-side">
           <a class="brand-lockup" href="#top" aria-label="سبايدر للإلكترونيات">
             <span class="brand-copy">
@@ -31,32 +31,29 @@
             </span>
             <img id="brandLogo" src="assets/spider-logo-teal.png?v=20261006-brand-migration2" alt="لوكو سبايدر للإلكترونيات">
           </a>
+          <button class="icon-btn menu-btn" id="mobileMenuBtn" type="button" aria-label="فتح قائمة الأقسام">
+            <i class="fa-solid fa-bars"></i>
+          </button>
         </div>
 
-        <!-- Left side: Account, Favorites, Cart -->
+        <!-- Left side: Cart, Favorites, Account, appearance, language. -->
         <div class="header-actions" aria-label="اختصارات المتجر">
-          <button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة" title="English">EN</button>
-          <button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع" title="الوضع الليلي"><i class="fa-solid fa-moon"></i></button>
-          <button class="account-header-control" id="accountBtn" type="button" aria-label="حسابي">
-            <i class="fa-regular fa-user"></i>
-            <span id="accountGreeting" class="account-greeting" hidden></span>
+          <button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span class="cart-badge" id="cartBadge">0</span>
           </button>
           <button class="icon-btn" id="favBtn" type="button" aria-label="المفضلة">
             <i class="fa-regular fa-heart"></i>
             <span class="fav-badge hidden" id="favBadge">0</span>
           </button>
-          <button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span class="cart-badge" id="cartBadge">0</span>
+          <button class="account-header-control" id="accountBtn" type="button" aria-label="حسابي">
+            <i class="fa-regular fa-user"></i>
+            <span id="accountGreeting" class="account-greeting" hidden></span>
           </button>
+          <button class="icon-btn header-setting-btn" id="themeToggle" type="button" aria-label="تبديل الوضع" title="الوضع الليلي"><i class="fa-solid fa-moon"></i></button>
+          <button class="icon-btn header-setting-btn" id="languageToggle" type="button" aria-label="تبديل اللغة" title="English">EN</button>
         </div>
 
-      </div>
-
-      <div class="header-menu-row">
-        <button class="icon-btn menu-btn" id="mobileMenuBtn" type="button" aria-label="فتح قائمة الأقسام">
-          <i class="fa-solid fa-bars"></i>
-        </button>
       </div>
 
       <!-- Search Bar -->
