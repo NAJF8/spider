@@ -1559,21 +1559,33 @@ html[data-theme="dark"] .builder-only-label{color:#ff737b}
 html[dir="ltr"] .site-header .search-wrap>i{left:auto;right:18px}
 
 @media (max-width:600px){
-  .site-header .header-row{position:relative;gap:6px;padding:10px 0 8px}
-  .site-header .brand-side{position:absolute;right:13px;left:auto;top:10px;display:flex;width:86px;gap:5px;z-index:2;transform:translateX(-86px)}
-  .site-header .brand-lockup{display:flex;width:52px;gap:0;direction:ltr}
+  .site-header .header-row{position:static;display:flex;justify-content:space-between;gap:8px;padding:10px 0 8px;direction:ltr}
+  .site-header .brand-side{position:static;order:2;display:flex;align-items:center;width:auto;gap:6px;z-index:auto;transform:none;flex:0 0 auto}
+  .site-header .brand-lockup{display:flex;width:46px;gap:0;direction:ltr}
   .site-header .brand-copy{display:none}
   .site-header .brand-lockup img{width:42px;height:38px;border-radius:10px;padding:3px;object-fit:contain}
   .site-header .brand-copy strong{font-size:18px}
   .site-header .brand-copy small{font-size:8px}
-  .site-header .header-actions{gap:0}
-  .site-header .header-actions .icon-btn,.site-header .account-header-control{width:29px;min-width:29px;height:34px;min-height:34px;padding-inline:1px;font-size:12px}
-  .site-header .account-header-control{gap:3px}
-  .site-header .account-greeting:not([hidden]){max-width:58px;font-size:8px}
+  .site-header .header-actions{order:1;display:flex;align-items:center;justify-content:flex-start;gap:5px;min-width:0;flex:1 1 auto;direction:ltr}
+  .site-header .header-actions .icon-btn,.site-header .account-header-control{width:40px;min-width:40px;height:40px;min-height:40px;padding-inline:2px;font-size:20px;flex:0 0 auto}
+  .site-header .account-header-control{width:auto;max-width:104px;gap:4px;flex:0 1 auto;flex-direction:row;padding-inline:2px 5px}
+  .site-header .account-greeting:not([hidden]){display:inline-block;min-width:0;max-width:64px;font-size:10px;line-height:1.2;direction:rtl;text-align:right}
+  .site-header .cart-badge,.site-header .fav-badge{top:1px;right:0;min-width:15px;height:15px;font-size:8px;line-height:15px}
   .site-header .search-wrap{padding:3px 0 12px}
   .site-header .search-wrap input{height:42px;border-radius:11px;font-size:12px;padding-inline-start:38px}
   .site-header .search-wrap>i{left:13px;font-size:15px}
   html[dir="ltr"] .site-header .search-wrap>i{left:auto;right:13px}
+}
+
+@media (max-width:375px){
+  .site-header .header-row{gap:4px}
+  .site-header .brand-side{gap:4px}
+  .site-header .brand-lockup{width:42px}
+  .site-header .brand-lockup img{width:42px;height:40px}
+  .site-header .header-actions{gap:2px}
+  .site-header .header-actions .icon-btn,.site-header .account-header-control{width:36px;min-width:36px;height:38px;min-height:38px;font-size:19px}
+  .site-header .account-header-control{max-width:84px;padding-inline:1px 3px}
+  .site-header .account-greeting:not([hidden]){max-width:45px;font-size:9px}
 }
 
 /* ===== Readability and no-clipping pass ===== */
