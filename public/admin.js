@@ -2966,6 +2966,10 @@ let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', stor
 function normalizeBrandLogoKey(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
+function isValidUploadedImageUrl(value) {
+    const url = String(value || '').trim();
+    return Boolean(url) && !url.startsWith('blob:') && !url.startsWith('data:') && (/^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('images/'));
+}
 function renderBrandLogoOptions() {
     const select = document.getElementById('brandLogoBrand');
     if (!select) return;
@@ -3065,18 +3069,38 @@ document.getElementById('confirmBrandLogoBtn')?.addEventListener('click', async 
     const brand = String(select?.value || '').trim();
     if (!brand || !file) { alert('اختر العلامة وملف الشعار أولاً.'); return; }
     const button = document.getElementById('confirmBrandLogoBtn');
+    let uploadCompleted = false;
     try {
         button.disabled = true;
         const data = await uploadOriginalImage(file, 'brandLogoUrl', 'confirmBrandLogoBtn', 'prepareBrandLogoBtn', 'brandLogoUploadProgress', 'brandLogoUploadStatus', 'brand');
-        const url = data.rawUrl || data.imageUrl || data.path;
+        uploadCompleted = true;
+        const url = String(data.rawUrl || data.imageUrl || data.path || '').trim();
         const key = normalizeBrandLogoKey(brand);
-        await update(ref(db, `settings/brandLogos/${key}`), url);
-        storeSettings.brandLogos = { ...(storeSettings.brandLogos || {}), [key]: url };
+        if (!key) throw new Error('BRAND_KEY_INVALID');
+        if (!isValidUploadedImageUrl(url)) throw new Error('IMAGE_UPLOAD_URL_INVALID');
+
+        // RTDB update() requires an object of child values. The previous code
+        // passed the URL directly to settings/brandLogos/{key}, which caused
+        // Firebase to reject the write after the GitHub upload had succeeded.
+        await update(ref(db, 'settings/brandLogos'), { [key]: url });
+        const readBackSnapshot = await get(ref(db, `settings/brandLogos/${key}`));
+        const savedUrl = readBackSnapshot.exists() ? String(readBackSnapshot.val() || '').trim() : '';
+        if (savedUrl !== url) throw new Error('BRAND_LOGO_READBACK_MISMATCH');
+
+        storeSettings.brandLogos = { ...(storeSettings.brandLogos || {}), [key]: savedUrl };
         syncBrandLogoPreview();
         document.getElementById('brandLogoUploadStatus').textContent = 'تم رفع الشعار وحفظ رابطه للعلامة بنجاح.';
     } catch (error) {
-        console.error('Brand logo upload failed:', error);
-        alert(imageUploadErrorMessage(error.message, error.upstreamStatus));
+        const status = document.getElementById('brandLogoUploadStatus');
+        if (uploadCompleted) {
+            console.error('Brand logo Firebase save/read-back failed:', { brandKey: normalizeBrandLogoKey(brand), error });
+            if (status) status.textContent = 'تم رفع الصورة إلى GitHub لكن فشل حفظ رابط الشعار في Firebase.';
+            alert('تم رفع الصورة إلى GitHub لكن فشل حفظ رابط الشعار في Firebase: ' + (error.message || 'خطأ غير معروف'));
+        } else {
+            console.error('Brand logo upload failed:', error);
+            if (status) status.textContent = 'فشل رفع الشعار.';
+            alert(imageUploadErrorMessage(error.message, error.upstreamStatus));
+        }
     } finally {
         button.disabled = false;
     }
