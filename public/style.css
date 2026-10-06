@@ -1563,7 +1563,7 @@ html[dir="ltr"] .site-header .search-wrap>i{left:auto;right:18px}
   .site-header .brand-side{position:absolute;right:13px;left:auto;top:10px;display:flex;width:86px;gap:5px;z-index:2;transform:translateX(-86px)}
   .site-header .brand-lockup{display:flex;width:52px;gap:0;direction:ltr}
   .site-header .brand-copy{display:none}
-  .site-header .brand-lockup img{width:52px;height:46px;border-radius:11px;padding:4px}
+  .site-header .brand-lockup img{width:42px;height:38px;border-radius:10px;padding:3px;object-fit:contain}
   .site-header .brand-copy strong{font-size:18px}
   .site-header .brand-copy small{font-size:8px}
   .site-header .header-actions{gap:0}
