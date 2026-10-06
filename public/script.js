@@ -754,6 +754,10 @@ function brandLogoFor(brand) {
   if (configured && (safeUrl(configured) || String(configured).startsWith('images/'))) return configured;
   return STATIC_BRAND_LOGOS[brandLogoKey(brand)] || '';
 }
+function brandLogoMarkup(logo, fallback) {
+  if (!logo) return `<span class="brand-logo-fallback" aria-hidden="true">${esc(fallback)}</span>`;
+  return `<img class="brand-logo" src="${esc(logo)}" alt="شعار العلامة" loading="lazy" data-fallback="${esc(fallback)}" onerror="this.onerror=null;const f=document.createElement('span');f.className='brand-logo-fallback';f.setAttribute('aria-hidden','true');f.textContent=this.dataset.fallback||'';this.replaceWith(f)">`;
+}
 function renderBrands() {
   if (!$('brandsGrid')) return;
   const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -765,8 +769,7 @@ function renderBrands() {
         const prod = state.products.find((p) => p.brand === brand);
         const fallback = brand.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
         const logo = brandLogoFor(brand) || prod?.brandLogo || prod?.logo;
-        const fallbackMarkup = `<span class="brand-logo-fallback" aria-hidden="true"${logo ? ' hidden' : ''}>${esc(fallback || brand.slice(0, 3).toUpperCase())}</span>`;
-        return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${logo ? `<img class="brand-logo" src="${esc(logo)}" alt="شعار ${esc(brand)}" loading="lazy" onerror="this.onerror=null;this.hidden=true;this.nextElementSibling.hidden=false">${fallbackMarkup}` : fallbackMarkup}<span class="brand-name">${esc(brand)}</span></button>`;
+        return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${brandLogoMarkup(logo, fallback || brand.slice(0, 3).toUpperCase())}<span class="brand-name">${esc(brand)}</span></button>`;
       }).join('')
     : `<div class="empty-state">${t('noBrands')}</div>`;
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((b) => b.addEventListener('click', () => {
