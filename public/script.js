@@ -1629,13 +1629,20 @@ function openProductDetails(id) {
   $('productDetailsBody').querySelector('[data-favorite]')?.addEventListener('click', () => { toggleFavorite(id); openProductDetails(id); });
   $('productDetailsBody').querySelectorAll('[data-gallery-index]').forEach((button) => button.addEventListener('click', () => setProductGalleryImage(Number(button.dataset.galleryIndex))));
   const gallery = $('productDetailsBody').querySelector('.product-gallery');
-  let touchStartX = null;
-  gallery?.addEventListener('touchstart', (event) => { touchStartX = event.changedTouches[0]?.clientX ?? null; }, { passive: true });
+  let touchStart = null;
+  gallery?.addEventListener('touchstart', (event) => {
+    const touch = event.changedTouches[0];
+    touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }, { passive: true });
   gallery?.addEventListener('touchend', (event) => {
-    if (touchStartX === null || productImages.length < 2) return;
-    const delta = event.changedTouches[0]?.clientX - touchStartX;
-    if (Math.abs(delta) > 40) setProductGalleryImage(activeProductGalleryIndex + (delta > 0 ? -1 : 1));
-    touchStartX = null;
+    const touch = event.changedTouches[0];
+    if (!touchStart || !touch || productImages.length < 2) { touchStart = null; return; }
+    const deltaX = touch.clientX - touchStart.x;
+    const deltaY = touch.clientY - touchStart.y;
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      setProductGalleryImage(activeProductGalleryIndex + (deltaX > 0 ? -1 : 1));
+    }
+    touchStart = null;
   }, { passive: true });
   modal('productDetailsModal', true);
 }
