@@ -1906,3 +1906,48 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   color:#6B5200 !important;
   border-color:#D4A900 !important;
 }
+
+
+/* ===== AI image fallback fix: use original bot with yellow crop/frame ===== */
+.chatbot-fab{
+  background:#F2C230 !important;
+  border:2px solid #fff !important;
+  overflow:hidden !important;
+  padding:0 !important;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.22),
+    0 0 18px rgba(255,255,255,.55),
+    0 0 22px rgba(242,194,48,.48) !important;
+}
+.chatbot-fab::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  box-shadow:inset 0 0 0 5px #F2C230;
+  pointer-events:none;
+  z-index:2;
+}
+.chatbot-fab img{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  border-radius:50% !important;
+  display:block !important;
+  transform:scale(1.18);
+  transform-origin:center;
+}
+.floating-cart{
+  background:#F2C230 !important;
+  color:#fff !important;
+  border:2px solid #fff !important;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.22),
+    0 0 18px rgba(255,255,255,.55),
+    0 0 22px rgba(242,194,48,.42) !important;
+}
+.stock.in,.cpc-stock.in,.stock.limited,.cpc-stock.limited{
+  background:#F2C230 !important;
+  color:#6B5200 !important;
+  border-color:#D4A900 !important;
+}
