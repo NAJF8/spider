@@ -92,6 +92,7 @@ function setAdminModalOpen(element, open) {
 
 // ================= AUTHENTICATION =================
 window.currentAdminPermissions = {};
+window.currentAdminData = null;
 window.isSuperAdmin = false;
 
 function isAdminActive(admin) {
@@ -174,6 +175,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         if (isAuthorized) {
+            window.currentAdminData = currentAdminData;
             isDemoMode = false;
             const banner = document.getElementById('adminDemoBanner');
             if (banner) banner.style.display = 'none';
@@ -201,6 +203,7 @@ onAuthStateChanged(auth, async (user) => {
         }
     } else {
         currentAdminUser = null;
+        window.currentAdminData = null;
         window.isSuperAdmin = false;
         window.currentAdminPermissions = {};
         if (!isDemoMode) {
@@ -2654,7 +2657,7 @@ function uploadOriginalImage(file, targetInputId, buttonId, prepButtonId, progre
             if (!file) throw new Error('IMAGE_REQUIRED');
             const uploadKind = String(kind || 'category').toLowerCase();
             const permission = uploadKind === 'brand' ? 'brands' : 'categories';
-            if (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true) {
+            if (uploadKind === 'brand' ? !canManageBrandManagement() : (!window.isSuperAdmin && window.currentAdminPermissions?.[permission] !== true)) {
                 throw new Error('FORBIDDEN');
             }
             const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -2966,6 +2969,9 @@ let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', stor
 function normalizeBrandLogoKey(value) {
     return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
+function canManageBrandManagement() {
+    return Boolean(currentAdminUser && (window.isSuperAdmin || isAdminActive(window.currentAdminData || { status: 'active' })));
+}
 function isValidUploadedImageUrl(value) {
     const url = String(value || '').trim();
     return Boolean(url) && !url.startsWith('blob:') && !url.startsWith('data:') && (/^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('images/'));
@@ -2978,7 +2984,82 @@ function renderBrandLogoOptions() {
     select.innerHTML = brands.length ? brands.map((brand) => `<option value="${escapeHtml(brand)}">${escapeHtml(brand)}</option>`).join('') : '<option value="">لا توجد علامات في المنتجات بعد</option>';
     if (brands.includes(previous)) select.value = previous;
     syncBrandLogoPreview();
+    renderBrandManagement();
 }
+
+function brandManagementRecords() {
+    const byKey = new Map();
+    products.forEach((product) => {
+        const name = String(product.brand || '').trim();
+        if (!name) return;
+        const key = normalizeBrandLogoKey(name);
+        if (!key) return;
+        const current = byKey.get(key) || { name, count: 0 };
+        current.count += 1;
+        byKey.set(key, current);
+    });
+    Object.keys(storeSettings.brandLogos || {}).forEach((key) => {
+        if (!byKey.has(key)) byKey.set(key, { name: key, count: 0 });
+    });
+    return [...byKey.entries()].map(([key, value]) => ({ ...value, key, logo: storeSettings.brandLogos?.[key] || '' })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderBrandManagement() {
+    const list = document.getElementById('brandManagementList');
+    if (!list) return;
+    const records = brandManagementRecords();
+    list.innerHTML = records.length ? records.map((record) => {
+        const fallback = escapeHtml(record.name.slice(0, 3).toUpperCase());
+        const logo = record.logo ? `<img src="${escapeHtml(record.logo)}" alt="شعار ${escapeHtml(record.name)}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {className:'brand-management-fallback',textContent:'${fallback}'}))">` : `<span class="brand-management-fallback" aria-hidden="true">${fallback}</span>`;
+        return `<article class="brand-management-card" data-brand-key="${escapeHtml(record.key)}" data-brand-name="${escapeHtml(record.name)}"><div class="brand-management-head">${logo}<div class="brand-management-copy"><strong>${escapeHtml(record.name)}</strong><small>${record.count} منتج مرتبط</small></div></div><div class="brand-management-edit"><input type="text" value="${escapeHtml(record.name)}" aria-label="اسم العلامة ${escapeHtml(record.name)}"><button type="button" class="btn btn-secondary" data-brand-action="rename">حفظ الاسم</button></div><div class="brand-management-actions"><button type="button" class="btn btn-outline" data-brand-action="replace">رفع/استبدال الشعار</button><button type="button" class="btn btn-outline" data-brand-action="delete-logo">حذف الشعار</button><button type="button" class="btn btn-outline btn-danger" data-brand-action="delete-brand">حذف العلامة</button></div></article>`;
+    }).join('') : '<div class="brand-management-empty">لا توجد علامات تجارية بعد.</div>';
+}
+
+async function requestBrandManagement(payload) {
+    if (!canManageBrandManagement()) throw new Error('FORBIDDEN');
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    if (!token) throw new Error('AUTH_REQUIRED');
+    const response = await fetch(`${SPIDER_BACKEND_ENDPOINT}/api/admin/brands/manage`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) { const error = new Error(data.error || 'BRAND_MANAGEMENT_FAILED'); error.count = data.count; throw error; }
+    storeSettings.brandLogos = data.brandLogos || {};
+    products = Object.entries(data.products || {}).map(([id, product]) => ({ id, ...product }));
+    updateAllDashboardViews();
+    return data;
+}
+
+document.getElementById('brandManagementList')?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-brand-action]');
+    const card = event.target.closest('[data-brand-key]');
+    if (!button || !card) return;
+    const brand = card.dataset.brandName || '';
+    const action = button.dataset.brandAction;
+    try {
+        if (action === 'replace') { document.getElementById('brandLogoBrand').value = brand; syncBrandLogoPreview(); document.getElementById('brandLogoFile')?.click(); return; }
+        if (action === 'rename') {
+            const newName = card.querySelector('input')?.value.trim() || '';
+            const count = brandManagementRecords().find((item) => item.key === card.dataset.brandKey)?.count || 0;
+            if (!newName || newName === brand) return;
+            if (!confirm(`سيتم تحديث اسم العلامة في ${count} منتج. هل تريد المتابعة؟`)) return;
+            await requestBrandManagement({ operation: 'rename', brand, newName });
+            alert('تم تعديل اسم العلامة وتأكيد الربط بالمنتجات.');
+        } else if (action === 'delete-logo') {
+            if (!confirm(`هل تريد حذف شعار «${brand}»؟ ستبقى العلامة والمنتجات دون تغيير.`)) return;
+            await requestBrandManagement({ operation: 'deleteLogo', brand });
+            alert('تم حذف الشعار وسيظهر الاختصار النصي تلقائياً.');
+        } else if (action === 'delete-brand') {
+            const count = brandManagementRecords().find((item) => item.key === card.dataset.brandKey)?.count || 0;
+            if (count) { alert(`لا يمكن حذف العلامة لأنها مرتبطة بـ ${count} منتجات. انقل المنتجات أو غيّر علامتها أولاً.`); return; }
+            if (!confirm(`هل تريد حذف بيانات العلامة «${brand}»؟`)) return;
+            await requestBrandManagement({ operation: 'deleteBrand', brand });
+            alert('تم حذف العلامة غير المستخدمة.');
+        }
+    } catch (error) {
+        if (error.message === 'BRAND_NAME_EXISTS' || error.message === 'BRAND_KEY_EXISTS') alert('اسم العلامة مستخدم مسبقاً.');
+        else if (error.message === 'BRAND_IN_USE') alert(`لا يمكن حذف العلامة لأنها مرتبطة بـ ${error.count || 'عدة'} منتجات.`);
+        else alert('فشلت عملية إدارة العلامة: ' + error.message);
+    }
+});
 function syncBrandLogoPreview() {
     const select = document.getElementById('brandLogoBrand');
     const urlInput = document.getElementById('brandLogoUrl');
@@ -3082,12 +3163,9 @@ document.getElementById('confirmBrandLogoBtn')?.addEventListener('click', async 
         // RTDB update() requires an object of child values. The previous code
         // passed the URL directly to settings/brandLogos/{key}, which caused
         // Firebase to reject the write after the GitHub upload had succeeded.
-        await update(ref(db, 'settings/brandLogos'), { [key]: url });
-        const readBackSnapshot = await get(ref(db, `settings/brandLogos/${key}`));
-        const savedUrl = readBackSnapshot.exists() ? String(readBackSnapshot.val() || '').trim() : '';
+        const result = await requestBrandManagement({ operation: 'saveLogo', brand, url });
+        const savedUrl = String(result.brandLogos?.[key] || '').trim();
         if (savedUrl !== url) throw new Error('BRAND_LOGO_READBACK_MISMATCH');
-
-        storeSettings.brandLogos = { ...(storeSettings.brandLogos || {}), [key]: savedUrl };
         syncBrandLogoPreview();
         document.getElementById('brandLogoUploadStatus').textContent = 'تم رفع الشعار وحفظ رابطه للعلامة بنجاح.';
     } catch (error) {

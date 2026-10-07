@@ -189,12 +189,71 @@ function authToken(request) {
 function canUploadImage({ uid, adminUid, kind = 'product', operation = '', adminData = null }) {
   if (uid === adminUid) return true;
   const active = adminData && adminData.status !== 'disabled' && adminData.active !== false && adminData.enabled !== false;
+  if (kind === 'brand') return active === true;
   const permissions = active && adminData.permissions && typeof adminData.permissions === 'object' ? adminData.permissions : {};
   if (kind === 'category') return permissions.categories === true;
-  if (kind === 'brand') return permissions.brands === true || permissions.categories === true;
   if (operation === 'edit') return permissions.products_edit === true;
   if (operation === 'add') return permissions.products_add === true;
   return permissions.products_add === true || permissions.products_edit === true;
+}
+
+function normalizeBrandLogoKey(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+async function requireBrandAdmin(request, env) {
+  const user = await verifyFirebaseIdToken(authToken(request), env);
+  if (!user) return { error: errorResponse('AUTH_INVALID', 401) };
+  if (user.uid === env.ADMIN_UID) return { user, admin: { role: 'Super Admin' } };
+  const admin = await readServiceDatabase(env, `admins/${encodeURIComponent(user.uid)}.json`);
+  const active = admin && admin.status !== 'disabled' && admin.active !== false && admin.enabled !== false;
+  return active ? { user, admin } : { error: errorResponse('FORBIDDEN', 403) };
+}
+
+async function handleBrandManagement(request, env) {
+  const access = await requireBrandAdmin(request, env);
+  if (access.error) return access.error;
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return errorResponse('INVALID_REQUEST', 400);
+  const operation = String(body.operation || '');
+  const brand = String(body.brand || '').trim();
+  const key = normalizeBrandLogoKey(brand);
+  if (!brand || !key || brand.length > 120) return errorResponse('INVALID_BRAND', 400);
+  const products = await readServiceDatabase(env, 'products.json') || {};
+  const settings = await readServiceDatabase(env, 'settings.json') || {};
+  const logos = settings?.brandLogos && typeof settings.brandLogos === 'object' ? settings.brandLogos : {};
+  const linked = Object.entries(products).filter(([, product]) => String(product?.brand || '').trim() === brand);
+  const updates = {};
+
+  if (operation === 'saveLogo') {
+    const url = String(body.url || '').trim();
+    if (!/^https?:\/\//i.test(url) || url.length > 2000) return errorResponse('IMAGE_UPLOAD_URL_INVALID', 400);
+    updates[`settings/brandLogos/${key}`] = url;
+  } else if (operation === 'rename') {
+    const newName = String(body.newName || '').trim();
+    const newKey = normalizeBrandLogoKey(newName);
+    if (!newName || !newKey || newName.length > 120) return errorResponse('INVALID_BRAND_NAME', 400);
+    if (newName === brand) return jsonResponse({ success: true, count: linked.length, unchanged: true });
+    const conflict = Object.values(products).some((product) => String(product?.brand || '').trim() === newName);
+    if (conflict) return errorResponse('BRAND_NAME_EXISTS', 409);
+    if (newKey !== key && Object.prototype.hasOwnProperty.call(logos, newKey)) return errorResponse('BRAND_KEY_EXISTS', 409);
+    if (!linked.length && !Object.prototype.hasOwnProperty.call(logos, key)) return errorResponse('BRAND_NOT_FOUND', 404);
+    linked.forEach(([id]) => { updates[`products/${id}/brand`] = newName; });
+    if (Object.prototype.hasOwnProperty.call(logos, key)) {
+      updates[`settings/brandLogos/${newKey}`] = logos[key];
+      updates[`settings/brandLogos/${key}`] = null;
+    }
+  } else if (operation === 'deleteLogo' || operation === 'deleteBrand') {
+    if (operation === 'deleteBrand' && linked.length) return jsonResponse({ success: false, error: 'BRAND_IN_USE', count: linked.length }, 409);
+    updates[`settings/brandLogos/${key}`] = null;
+  } else return errorResponse('INVALID_OPERATION', 400);
+
+  await writeServiceDatabase(env, '.json', updates, 'PATCH');
+  const auditId = crypto.randomUUID();
+  await writeServiceDatabase(env, `auditLogs/${auditId}.json`, { action: `brand_${operation}`, brand, newName: body.newName || null, count: linked.length, actorUid: access.user.uid, timestamp: Date.now() });
+  const readBackSettings = await readServiceDatabase(env, 'settings/brandLogos.json') || {};
+  const readBackProducts = await readServiceDatabase(env, 'products.json') || {};
+  return jsonResponse({ success: true, count: linked.length, brandLogos: readBackSettings, products: readBackProducts });
 }
 
 async function verifyFirebaseIdToken(token, env) {
@@ -441,6 +500,15 @@ async function handleRequest(request, env) {
         const prices = accountType === 'public' ? {} : Object.fromEntries(Object.entries(allPrices).map(([id, value]) => [id, accountType === 'wholesale' ? { wholesale_price: value?.wholesale_price } : { special_price: value?.special_price }]));
         return jsonResponse({ success: true, accountType, pricing_tier: accountType, prices });
       } catch { return errorResponse('PRICE_LOOKUP_FAILED', 500); }
+    }
+
+    if (url.pathname === '/api/admin/brands/manage' && request.method === 'POST') {
+      try {
+        return await handleBrandManagement(request, env);
+      } catch (error) {
+        console.error(JSON.stringify({ code: 'BRAND_MANAGEMENT_FAILED', message: error?.message || 'unknown' }));
+        return errorResponse(error?.message === 'AUTH_SERVICE_ACCOUNT_ERROR' ? 'AUTH_SERVICE_ACCOUNT_ERROR' : 'BRAND_MANAGEMENT_FAILED', 500);
+      }
     }
 
     if (url.pathname === '/api/store/chat' && request.method === 'POST') {
