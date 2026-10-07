@@ -1983,3 +1983,28 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   border-color:rgba(216,154,26,.10) !important;
   box-shadow:none !important;
 }
+
+/* ===== Account native select visibility fix ===== */
+#accountModal .account-address-form select{
+  color-scheme:light !important;
+  appearance:auto !important;
+  -webkit-appearance:menulist !important;
+  background:#fff !important;
+  color:#15171c !important;
+  -webkit-text-fill-color:#15171c !important;
+}
+#accountModal .account-address-form select option{
+  background:#fff !important;
+  color:#15171c !important;
+}
+#accountModal .account-address-form select:focus{
+  color:#15171c !important;
+  -webkit-text-fill-color:#15171c !important;
+}
+html[data-theme="dark"] #accountModal .account-address-form select,
+html[data-theme="dark"] #accountModal .account-address-form select option{
+  color-scheme:light !important;
+  background:#fff !important;
+  color:#15171c !important;
+  -webkit-text-fill-color:#15171c !important;
+}
