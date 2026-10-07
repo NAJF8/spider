@@ -1592,7 +1592,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         category: categoryId,
         categoryId,
         subcategory: document.getElementById('prodSubcategory').value.trim(),
-        brand: document.getElementById('prodBrand').value.trim(),
+        brand: canonicalProductBrand(document.getElementById('prodBrand').value, id),
         model: document.getElementById('prodModel').value.trim(),
         price: retailPrice,
         public_price: retailPrice,
@@ -2967,7 +2967,30 @@ const DEFAULT_CHATBOT_SETTINGS = { welcomeMessageAr: 'هلا بيك في سبا�
 let storeSettings = { storeNameAr: 'سبايدر للإلكترونيات', storeNameEn: 'Spider Electronics', whatsappNumber: '+9647805700503', deliveryFee: 5000, chatbotEnabled: true, chatbotSettings: { ...DEFAULT_CHATBOT_SETTINGS } };
 
 function normalizeBrandLogoKey(value) {
-    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return String(value || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+const CANONICAL_BRAND_NAMES = Object.freeze({ asus: 'ASUS', 'tp-link': 'TP-Link', kingston: 'Kingston', gigabyte: 'Gigabyte', msi: 'MSI', intel: 'Intel' });
+function canonicalBrandName(value) {
+    const raw = String(value || '').normalize('NFKC').trim();
+    return CANONICAL_BRAND_NAMES[normalizeBrandLogoKey(raw)] || raw;
+}
+function canonicalBrandRecords(items) {
+    const grouped = new Map();
+    (items || []).forEach((product) => {
+        const raw = String(product?.brand || '').normalize('NFKC').trim();
+        const key = normalizeBrandLogoKey(raw);
+        if (!key) return;
+        const record = grouped.get(key) || { key, first: raw, count: 0, values: new Map() };
+        record.count += 1;
+        record.values.set(raw, (record.values.get(raw) || 0) + 1);
+        grouped.set(key, record);
+    });
+    return [...grouped.values()].map((record) => ({ key: record.key, name: CANONICAL_BRAND_NAMES[record.key] || [...record.values.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || record.first, count: record.count })).sort((a, b) => a.name.localeCompare(b.name));
+}
+function canonicalProductBrand(value, excludedId = '') {
+    const normalized = normalizeBrandLogoKey(value);
+    const existing = products.find((product) => product.id !== excludedId && normalizeBrandLogoKey(product.brand) === normalized)?.brand;
+    return canonicalBrandName(existing || value);
 }
 function canManageBrandManagement() {
     return Boolean(currentAdminUser && (window.isSuperAdmin || isAdminActive(window.currentAdminData || { status: 'active' })));
@@ -2979,27 +3002,18 @@ function isValidUploadedImageUrl(value) {
 function renderBrandLogoOptions() {
     const select = document.getElementById('brandLogoBrand');
     if (!select) return;
-    const brands = [...new Set(products.map((product) => String(product.brand || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const brands = canonicalBrandRecords(products);
     const previous = select.value;
-    select.innerHTML = brands.length ? brands.map((brand) => `<option value="${escapeHtml(brand)}">${escapeHtml(brand)}</option>`).join('') : '<option value="">لا توجد علامات في المنتجات بعد</option>';
-    if (brands.includes(previous)) select.value = previous;
+    select.innerHTML = brands.length ? brands.map((brand) => `<option value="${escapeHtml(brand.name)}">${escapeHtml(brand.name)}</option>`).join('') : '<option value="">لا توجد علامات في المنتجات بعد</option>';
+    if (brands.some((brand) => normalizeBrandLogoKey(brand.name) === normalizeBrandLogoKey(previous))) select.value = canonicalBrandName(previous);
     syncBrandLogoPreview();
     renderBrandManagement();
 }
 
 function brandManagementRecords() {
-    const byKey = new Map();
-    products.forEach((product) => {
-        const name = String(product.brand || '').trim();
-        if (!name) return;
-        const key = normalizeBrandLogoKey(name);
-        if (!key) return;
-        const current = byKey.get(key) || { name, count: 0 };
-        current.count += 1;
-        byKey.set(key, current);
-    });
+    const byKey = new Map(canonicalBrandRecords(products).map((record) => [record.key, record]));
     Object.keys(storeSettings.brandLogos || {}).forEach((key) => {
-        if (!byKey.has(key)) byKey.set(key, { name: key, count: 0 });
+        if (!byKey.has(key)) byKey.set(key, { key, name: key, count: 0 });
     });
     return [...byKey.entries()].map(([key, value]) => ({ ...value, key, logo: storeSettings.brandLogos?.[key] || '' })).sort((a, b) => a.name.localeCompare(b.name));
 }

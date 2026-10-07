@@ -222,7 +222,7 @@ async function handleBrandManagement(request, env) {
   const products = await readServiceDatabase(env, 'products.json') || {};
   const settings = await readServiceDatabase(env, 'settings.json') || {};
   const logos = settings?.brandLogos && typeof settings.brandLogos === 'object' ? settings.brandLogos : {};
-  const linked = Object.entries(products).filter(([, product]) => String(product?.brand || '').trim() === brand);
+  const linked = Object.entries(products).filter(([, product]) => normalizeBrandLogoKey(product?.brand) === key);
   const updates = {};
 
   if (operation === 'saveLogo') {
@@ -233,13 +233,12 @@ async function handleBrandManagement(request, env) {
     const newName = String(body.newName || '').trim();
     const newKey = normalizeBrandLogoKey(newName);
     if (!newName || !newKey || newName.length > 120) return errorResponse('INVALID_BRAND_NAME', 400);
-    if (newName === brand) return jsonResponse({ success: true, count: linked.length, unchanged: true });
-    const conflict = Object.values(products).some((product) => String(product?.brand || '').trim() === newName);
+    const conflict = newKey !== key && Object.values(products).some((product) => normalizeBrandLogoKey(product?.brand) === newKey);
     if (conflict) return errorResponse('BRAND_NAME_EXISTS', 409);
     if (newKey !== key && Object.prototype.hasOwnProperty.call(logos, newKey)) return errorResponse('BRAND_KEY_EXISTS', 409);
     if (!linked.length && !Object.prototype.hasOwnProperty.call(logos, key)) return errorResponse('BRAND_NOT_FOUND', 404);
     linked.forEach(([id]) => { updates[`products/${id}/brand`] = newName; });
-    if (Object.prototype.hasOwnProperty.call(logos, key)) {
+    if (newKey !== key && Object.prototype.hasOwnProperty.call(logos, key)) {
       updates[`settings/brandLogos/${newKey}`] = logos[key];
       updates[`settings/brandLogos/${key}`] = null;
     }

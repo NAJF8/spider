@@ -486,11 +486,51 @@ function productCategoryMatch(product, categoryId) {
     categoryParentId(state.categories.find((c) => c.id === pc)) === String(categoryId);
 }
 
+const CANONICAL_BRAND_NAMES = Object.freeze({
+  asus: 'ASUS',
+  'tp-link': 'TP-Link',
+  kingston: 'Kingston',
+  gigabyte: 'Gigabyte',
+  msi: 'MSI',
+  intel: 'Intel'
+});
+
+function normalizeBrandKey(value) {
+  return String(value || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function canonicalBrandName(value) {
+  const raw = String(value || '').normalize('NFKC').trim();
+  return CANONICAL_BRAND_NAMES[normalizeBrandKey(raw)] || raw;
+}
+
+function canonicalBrandRecords(products) {
+  const grouped = new Map();
+  (products || []).forEach((product) => {
+    const raw = String(product?.brand || '').normalize('NFKC').trim();
+    const key = normalizeBrandKey(raw);
+    if (!key) return;
+    const record = grouped.get(key) || { key, first: raw, count: 0, values: new Map() };
+    record.count += 1;
+    record.values.set(raw, (record.values.get(raw) || 0) + 1);
+    grouped.set(key, record);
+  });
+  return [...grouped.values()].map((record) => ({
+    key: record.key,
+    name: CANONICAL_BRAND_NAMES[record.key] || [...record.values.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || record.first,
+    count: record.count
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function brandMatches(value, selected) {
+  return !selected || normalizeBrandKey(value) === normalizeBrandKey(selected);
+}
+
 function filteredProducts() {
   const { category, brand, search } = state.filters;
   return state.products.filter((p) =>
     productCategoryMatch(p, category) &&
-    (!brand || String(p.brand || '').toLowerCase() === brand.toLowerCase()) &&
+    brandMatches(p.brand, brand) &&
     (!search || productText(p).includes(search.toLowerCase()))
   );
 }
@@ -748,7 +788,7 @@ const STATIC_BRAND_LOGOS = {
   pny: 'images/brands/pny.svg'
 };
 function brandLogoKey(value) {
-  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return normalizeBrandKey(value);
 }
 function brandLogoFor(brand) {
   const configured = state.brandLogos?.[brandLogoKey(brand)];
@@ -761,16 +801,17 @@ function brandLogoMarkup(logo, fallback) {
 }
 function renderBrands() {
   if (!$('brandsGrid')) return;
-  const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const brands = canonicalBrandRecords(state.products);
   $('brandsGrid').classList.toggle('is-collapsed', !state.showBrands);
   $('toggleBrandsBtn').setAttribute('aria-expanded', String(state.showBrands));
   $('toggleBrandsBtn').innerHTML = `${state.showBrands ? t('hideBrands') : t('showBrands')} <i class="fa-solid ${state.showBrands ? 'fa-chevron-up' : 'fa-chevron-down'}"></i>`;
   $('brandsGrid').innerHTML = brands.length
-    ? brands.map((brand) => {
-        const prod = state.products.find((p) => p.brand === brand);
+    ? brands.map((record) => {
+        const brand = record.name;
+        const prod = state.products.find((p) => brandMatches(p.brand, record.key));
         const fallback = brand.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
         const logo = brandLogoFor(brand) || prod?.brandLogo || prod?.logo;
-        return `<button type="button" class="brand-item ${state.filters.brand === brand ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${brandLogoMarkup(logo, fallback || brand.slice(0, 3).toUpperCase())}<span class="brand-name">${esc(brand)}</span></button>`;
+        return `<button type="button" class="brand-item ${brandMatches(state.filters.brand, record.key) ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${brandLogoMarkup(logo, fallback || brand.slice(0, 3).toUpperCase())}<span class="brand-name">${esc(brand)}</span></button>`;
       }).join('')
     : `<div class="empty-state">${t('noBrands')}</div>`;
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((b) => b.addEventListener('click', () => {
@@ -813,9 +854,9 @@ function populateCompareFilters() {
   if (!$('compareCategorySelect')) return;
   $('compareCategorySelect').innerHTML = `<option value="">${t('allCategories')}</option>` +
     orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
-  const brands = [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort();
+  const brands = canonicalBrandRecords(state.products);
   $('compareBrandSelect').innerHTML = `<option value="">${t('allBrands')}</option>` +
-    brands.map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    brands.map((b) => `<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('');
   if ($('comparePickerCategory')) $('comparePickerCategory').innerHTML = $('compareCategorySelect').innerHTML;
   if ($('comparePickerBrand')) $('comparePickerBrand').innerHTML = $('compareBrandSelect').innerHTML;
   populateCompareProducts();
@@ -824,7 +865,7 @@ function populateCompareFilters() {
 function comparePool() {
   return state.products.filter((p) =>
     productCategoryMatch(p, $('compareCategorySelect').value) &&
-    (!$('compareBrandSelect').value || p.brand === $('compareBrandSelect').value)
+    brandMatches(p.brand, $('compareBrandSelect').value)
   );
 }
 
@@ -846,7 +887,7 @@ function comparePickerPool() {
   const category = $('comparePickerCategory')?.value || $('compareCategorySelect')?.value || '';
   const brand = $('comparePickerBrand')?.value || $('compareBrandSelect')?.value || '';
   return state.products.filter((p) => productCategoryMatch(p, category) &&
-    (!brand || p.brand === brand) && (!search || productText(p).includes(search)));
+    brandMatches(p.brand, brand) && (!search || productText(p).includes(search)));
 }
 
 function openComparePicker(slot) {
@@ -1059,7 +1100,7 @@ function renderBuilderCatalogFilters() {
   const currentCategory = state.builderCatalog.category;
   const currentBrand = state.builderCatalog.brand;
   category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
-  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.filter((p) => builderPartForProduct(p)).map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + canonicalBrandRecords(state.products.filter((p) => builderPartForProduct(p))).map((b) => `<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('');
   category.value = currentCategory;
   brand.value = currentBrand;
 }
@@ -1403,7 +1444,7 @@ function renderUpgradeCatalogFilters() {
   const brand = $('upgradeCatalogBrand');
   if (!category || !brand) return;
   category.innerHTML = `<option value="">${esc(t('allCategories'))}</option>` + orderedCategories().map((c) => `<option value="${esc(c.id)}">${esc(categoryLabel(c))}</option>`).join('');
-  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + [...new Set(state.products.map((p) => p.brand).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map((b) => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  brand.innerHTML = `<option value="">${esc(t('allBrands'))}</option>` + canonicalBrandRecords(state.products).map((b) => `<option value="${esc(b.name)}">${esc(b.name)}</option>`).join('');
   category.value = state.upgradeCatalog.category;
   brand.value = state.upgradeCatalog.brand;
 }
