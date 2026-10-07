@@ -12,24 +12,52 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPIDER_AAA19 }}
-          token_format: access_token
-
-      - name: Limit Firebase Hosting retained releases
+      - name: Configure Firebase Hosting release retention
         shell: bash
         env:
-          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPIDER_AAA19 }}
         run: |
           set -euo pipefail
-          curl --fail-with-body             -X PATCH             -H "Authorization: Bearer ${ACCESS_TOKEN}"             -H "Content-Type: application/json"             "https://firebasehosting.googleapis.com/v1beta1/sites/spider-aaa19/channels/live?updateMask=retainedReleaseCount"             -d '{"retainedReleaseCount":1}'
+          python3 -m pip install --quiet --disable-pip-version-check google-auth requests
+          python3 - <<'PY'
+          import json, os, sys, requests
+          from google.oauth2 import service_account
+          from google.auth.transport.requests import Request
+
+          raw = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+          if not raw:
+              raise SystemExit("Missing FIREBASE_SERVICE_ACCOUNT_SPIDER_AAA19")
+
+          info = json.loads(raw)
+          creds = service_account.Credentials.from_service_account_info(
+              info,
+              scopes=["https://www.googleapis.com/auth/cloud-platform"],
+          )
+          creds.refresh(Request())
+
+          headers = {
+              "Authorization": f"Bearer {creds.token}",
+              "Content-Type": "application/json",
+          }
+          url = "https://firebasehosting.googleapis.com/v1beta1/sites/spider-aaa19/channels/live"
+          resp = requests.patch(
+              url,
+              params={"updateMask": "retainedReleaseCount"},
+              headers=headers,
+              json={"name": "sites/spider-aaa19/channels/live", "retainedReleaseCount": 1},
+              timeout=60,
+          )
+          print("retention status:", resp.status_code)
+          if not resp.ok:
+              print(resp.text)
+              resp.raise_for_status()
+
+          data = resp.json()
+          print("retainedReleaseCount:", data.get("retainedReleaseCount"))
+          PY
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
