@@ -1958,8 +1958,8 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
 .cpc-stock.in,
 .stock.limited,
 .cpc-stock.limited{
-  background:#FFF7D6 !important;
-  color:#D87900 !important;
-  border-color:rgba(216,121,0,.10) !important;
+  background:#FFF7E8 !important;
+  color:#D89A1A !important;
+  border-color:rgba(216,154,26,.10) !important;
   box-shadow:none !important;
 }
