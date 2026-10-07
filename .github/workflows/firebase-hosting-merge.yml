@@ -6,11 +6,31 @@ on:
   push:
     branches:
       - main
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPIDER_AAA19 }}
+          token_format: access_token
+
+      - name: Limit Firebase Hosting retained releases
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body             -X PATCH             -H "Authorization: Bearer ${ACCESS_TOKEN}"             -H "Content-Type: application/json"             "https://firebasehosting.googleapis.com/v1beta1/sites/spider-aaa19/channels/live?updateMask=retainedReleaseCount"             -d '{"retainedReleaseCount":1}'
+
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
