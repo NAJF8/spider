@@ -1871,21 +1871,38 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   border-color: var(--stock-available-border) !important;
 }
 
-/* ===== Yellow secondary accents: floating AI, cart, available stock ===== */
+/* ===== Yellow secondary accents: floating AI, cart, available + limited stock ===== */
 .floating-cart,
 .chatbot-fab{
   background:var(--spider-secondary) !important;
-  color:#15171c !important;
+  color:#fff !important;
+  border:2px solid rgba(255,255,255,.95) !important;
 }
 .floating-cart{
-  box-shadow:0 8px 22px rgba(242,194,48,.30);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.18),
+    0 0 16px rgba(255,255,255,.42),
+    0 8px 22px rgba(242,194,48,.34) !important;
 }
 .chatbot-fab{
-  box-shadow:0 8px 22px rgba(242,194,48,.24);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.18),
+    0 0 16px rgba(255,255,255,.42),
+    0 8px 22px rgba(242,194,48,.30) !important;
+  padding:2px !important;
+}
+.chatbot-fab img{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
 }
 .stock.in,
-.cpc-stock.in{
-  background:var(--spider-secondary) !important;
-  color:#15171c !important;
-  border-color:var(--spider-yellow-dark) !important;
+.cpc-stock.in,
+.stock.limited,
+.cpc-stock.limited{
+  background:#F2C230 !important;
+  color:#6B5200 !important;
+  border-color:#D4A900 !important;
 }
