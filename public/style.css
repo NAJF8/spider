@@ -1870,3 +1870,22 @@ html[data-theme="dark"] .hero-copy>p:not(.hero-kicker){color:#F5F5F5}
   color: var(--stock-available-text) !important;
   border-color: var(--stock-available-border) !important;
 }
+
+/* ===== Yellow secondary accents: floating AI, cart, available stock ===== */
+.floating-cart,
+.chatbot-fab{
+  background:var(--spider-secondary) !important;
+  color:#15171c !important;
+}
+.floating-cart{
+  box-shadow:0 8px 22px rgba(242,194,48,.30);
+}
+.chatbot-fab{
+  box-shadow:0 8px 22px rgba(242,194,48,.24);
+}
+.stock.in,
+.cpc-stock.in{
+  background:var(--spider-secondary) !important;
+  color:#15171c !important;
+  border-color:var(--spider-yellow-dark) !important;
+}
