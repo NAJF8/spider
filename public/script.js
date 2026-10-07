@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getDatabase, ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 import { generateOrderReceiptPdf } from './pdf-receipt.js?v=20261003-3';
@@ -73,13 +73,10 @@ async function loadAccountProfile(user) {
   state.accountProfile = normalizeAccountProfile(user, profileSnapshot.exists() ? profileSnapshot.val() : {});
   state.accountOrders = [];
   try {
-    const ordersSnapshot = await get(ref(db, 'orders'));
-    const orders = [];
-    if (ordersSnapshot.exists()) ordersSnapshot.forEach((child) => {
-      const order = child.val() || {};
-      if (order.uid === user.uid || order.userId === user.uid || order.customerUid === user.uid || order.customer?.uid === user.uid) orders.push({ id: child.key, ...order });
-    });
-    state.accountOrders = orders.sort((a, b) => Number(b.createdAt || b.timestamp || 0) - Number(a.createdAt || a.timestamp || 0)).slice(0, 20);
+    const response = await fetch(`${BACKEND_URL}/api/store/orders`, { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.code || 'ORDERS_LOOKUP_FAILED');
+    state.accountOrders = Array.isArray(data.orders) ? data.orders : [];
   } catch (error) { console.error('Account orders load skipped', { code: error?.code || 'ORDERS_READ_UNAVAILABLE' }); }
 }
 
@@ -1715,6 +1712,7 @@ function toggleFavorite(id) {
   updateFavoriteBadge();
   renderProducts();
   renderAccount();
+  renderFavorites();
   showToast(language === 'en'
     ? (state.favorites.includes(id) ? 'Added to favorites' : 'Removed from favorites')
     : (state.favorites.includes(id) ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة'));
@@ -1725,7 +1723,7 @@ function loadFavorites() {
   catch { state.favorites = []; }
 }
 
-function renderAccount(accountMode = state.accountMode || 'account') {
+function legacyRenderAccount(accountMode = state.accountMode || 'account') {
   if (!$('accountState') || !$('favoritesList')) return;
   updateAccountGreeting();
   state.accountMode = accountMode;
@@ -1757,13 +1755,93 @@ function renderAccount(accountMode = state.accountMode || 'account') {
   $('favoritesList').querySelectorAll('[data-favorite-cart]').forEach((btn) => btn.addEventListener('click', () => addToCart(btn.dataset.favoriteCart)));
 }
 
-function accountProfileMarkup() {
+function legacyAccountProfileMarkup() {
   const profile = state.accountProfile || normalizeAccountProfile(authUser, {});
   const value = (field, fallback = 'غير متوفر') => esc(String(profile[field] || fallback));
   const orders = state.accountOrders || [];
   const accountName = profile.firstName || profile.name || authUser?.email || 'الحساب';
   const summary = esc(profile.email || profile.phone || '');
   return `<div class="account-summary"><span class="account-avatar"><i class="fa-solid fa-user"></i></span><div><strong>${esc(accountName)}</strong><small dir="ltr">${summary}</small></div><button class="btn btn-outline account-logout" id="logoutBtn" type="button">${t('logout')}</button></div><nav class="account-nav" aria-label="${language === 'en' ? 'Account sections' : 'أقسام الحساب'}"><button class="active" type="button" data-account-section="details">${language === 'en' ? 'Details' : 'تفاصيل الحساب'}</button><button type="button" data-account-section="orders">${language === 'en' ? 'Orders' : 'الطلبات'}</button><button type="button" data-account-section="delete">${language === 'en' ? 'Delete account' : 'حذف الحساب'}</button></nav><section class="account-panel" data-account-panel="details"><h3>${language === 'en' ? 'Account details' : 'تفاصيل الحساب'}</h3><dl class="account-profile-grid"><div><dt>${language === 'en' ? 'First name' : 'الاسم الأول'}</dt><dd>${value('firstName')}</dd></div><div><dt>${language === 'en' ? 'Last name' : 'الاسم الأخير'}</dt><dd>${value('lastName')}</dd></div><div><dt>${language === 'en' ? 'Email' : 'البريد الإلكتروني'}</dt><dd dir="ltr">${value('email')}</dd></div><div><dt>${language === 'en' ? 'Phone' : 'رقم الهاتف'}</dt><dd dir="ltr">${value('phone')}</dd></div><div><dt>${language === 'en' ? 'Governorate' : 'المحافظة'}</dt><dd>${value('governorate', profile.province || 'غير متوفر')}</dd></div><div><dt>${language === 'en' ? 'City' : 'المدينة'}</dt><dd>${value('city')}</dd></div></dl><details class="account-collapsible"><summary>${language === 'en' ? 'Phone number' : 'رقم الهاتف'}<span>إضافة أو تعديل</span></summary><form class="phone-auth-form" id="phoneLinkForm"><input id="phoneLinkInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><div class="password-input-wrap"><input id="phoneLinkPin" required type="password" dir="ltr" autocomplete="new-password" placeholder="كلمة المرور"><button type="button" class="password-toggle" data-password-toggle="phoneLinkPin" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="phoneLinkConfirm" required type="password" dir="ltr" autocomplete="new-password" placeholder="تأكيد كلمة المرور"><button type="button" class="password-toggle" data-password-toggle="phoneLinkConfirm" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><button class="btn btn-outline" type="submit">${language === 'en' ? 'Add phone login' : 'إضافة تسجيل الهاتف'}</button></form></details><details class="account-collapsible"><summary>${language === 'en' ? 'Security' : 'الأمان'}<span>${language === 'en' ? 'Change password' : 'تغيير كلمة المرور'}</span></summary><form class="phone-auth-form" id="changePinForm"><div class="password-input-wrap"><input id="currentPinInput" required type="password" dir="ltr" autocomplete="current-password" placeholder="كلمة المرور الحالية"><button type="button" class="password-toggle" data-password-toggle="currentPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinInput" required type="password" dir="ltr" autocomplete="new-password" placeholder="كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinConfirmInput" required type="password" dir="ltr" autocomplete="new-password" placeholder="تأكيد كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinConfirmInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><button class="btn btn-outline" type="submit">${language === 'en' ? 'Change password' : 'تغيير كلمة المرور'}</button></form></details></section><section class="account-panel" data-account-panel="orders" hidden><h3>${language === 'en' ? 'Orders' : 'الطلبات'} (${orders.length})</h3>${orders.length ? `<ul class="account-orders">${orders.map((order) => `<li><span>${esc(order.id)}</span><strong>${esc(String(order.status || 'غير محدد'))}</strong></li>`).join('')}</ul>` : `<p class="account-muted">${language === 'en' ? 'No orders found for this account.' : 'لا توجد طلبات مرتبطة بهذا الحساب.'}</p>`}</section><section class="account-panel account-delete-panel" data-account-panel="delete" hidden><h3>${language === 'en' ? 'Delete account' : 'حذف الحساب'}</h3><p>${language === 'en' ? 'Account deletion requires verified support handling to protect orders and receipts.' : 'حذف الحساب يحتاج إلى معالجة موثقة من الدعم لحماية الطلبات والإيصالات.'}</p><button type="button" class="btn btn-outline" data-account-delete-info>${language === 'en' ? 'Request account deletion' : 'طلب حذف الحساب'}</button></section>`;
+}
+
+const ACCOUNT_PROVINCES = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'كركوك', 'الأنبار', 'بابل', 'واسط', 'ميسان', 'ذي قار', 'المثنى', 'القادسية', 'صلاح الدين', 'ديالى', 'دهوك', 'السليمانية'];
+
+function accountProfileMarkup() {
+  const profile = state.accountProfile || normalizeAccountProfile(authUser, {});
+  const value = (field, fallback = 'غير محدد') => esc(String(profile[field] || fallback));
+  const province = profile.province || profile.governorate || '';
+  const city = profile.city || '';
+  const orders = state.accountOrders || [];
+  const accountName = profile.firstName || profile.name || authUser?.email || 'الحساب';
+  const summary = esc(profile.email || profile.phone || '');
+  const provinceOptions = ACCOUNT_PROVINCES.map((item) => `<option value="${esc(item)}" ${item === province ? 'selected' : ''}>${esc(item)}</option>`).join('');
+  const cityOptions = Object.keys(IRAQ_ADDRESS_DATA[province] || {}).map((item) => `<option value="${esc(item)}" ${item === city ? 'selected' : ''}>${esc(item)}</option>`).join('');
+  return `<div class="account-summary"><span class="account-avatar"><i class="fa-solid fa-user"></i></span><div><strong>${esc(accountName)}</strong><small dir="ltr">${summary}</small></div><button class="btn btn-outline account-logout" id="logoutBtn" type="button">${t('logout')}</button></div><nav class="account-nav" aria-label="أقسام الحساب"><button class="active" type="button" data-account-section="details">تفاصيل الحساب</button><button type="button" data-account-section="orders">الطلبات</button></nav><section class="account-panel" data-account-panel="details"><h3>تفاصيل الحساب</h3><dl class="account-profile-grid"><div><dt>الاسم الأول</dt><dd>${value('firstName')}</dd></div><div><dt>الاسم الأخير</dt><dd>${value('lastName')}</dd></div><div><dt>البريد الإلكتروني</dt><dd dir="ltr">${value('email')}</dd></div><div><dt>رقم الهاتف</dt><dd dir="ltr">${value('phone')}</dd></div></dl><form class="account-address-form" id="accountAddressForm"><div><label for="accountProvince">المحافظة</label><select id="accountProvince" name="accountProvince" required><option value="">اختر المحافظة...</option>${provinceOptions}</select></div><div><label for="accountCity">المدينة / القضاء</label><select id="accountCity" name="accountCity"><option value="">${province ? 'اختر المدينة / القضاء...' : 'اختر المحافظة أولاً'}</option>${cityOptions}</select></div><button class="btn btn-primary" type="submit">إضافة أو تعديل</button></form><details class="account-collapsible"><summary>الأمان <span>تغيير كلمة المرور</span></summary><form class="phone-auth-form" id="changePinForm"><div class="password-input-wrap"><input id="currentPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الحالية"><button type="button" class="password-toggle" data-password-toggle="currentPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinConfirmInput" required type="password" dir="ltr" placeholder="تأكيد كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinConfirmInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><button class="btn btn-outline" type="submit">تغيير كلمة المرور</button></form></details><div class="account-danger-zone"><h3>حذف الحساب</h3><p>حذف الحساب يحتاج إلى معالجة موثقة من الدعم لحماية الطلبات والإيصالات.</p><button type="button" class="btn btn-outline" data-account-delete-info>طلب حذف الحساب</button></div></section><section class="account-panel" data-account-panel="orders" hidden><h3>الطلبات (${orders.length})</h3>${orders.length ? `<ul class="account-orders">${orders.map((order) => `<li><div><strong>#${esc(order.orderNumber || order.id)}</strong><small>${esc(accountOrderStatus(order))} · ${esc(order.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل')}</small></div><span>${formatPrice(order.grandTotal)}</span><button class="btn btn-outline" type="button" data-order-open="${esc(order.id)}">عرض التفاصيل</button></li>`).join('')}</ul>` : `<div class="empty-state">ما عندك طلبات حالياً<br><button class="btn btn-outline" type="button" data-orders-browse>تصفح المنتجات</button></div>`}</section>`;
+}
+
+async function saveAccountAddress(event) {
+  event.preventDefault();
+  if (!authUser) return;
+  const form = event.currentTarget;
+  const province = form.querySelector('[name="accountProvince"]')?.value || '';
+  const city = form.querySelector('[name="accountCity"]')?.value || '';
+  if (!province) return;
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    await update(ref(db, `profiles/${authUser.uid}`), { province, governorate: province, city, updatedAt: Date.now() });
+    const readBack = await get(ref(db, `profiles/${authUser.uid}`));
+    if (!readBack.exists() || readBack.val()?.province !== province || readBack.val()?.governorate !== province || String(readBack.val()?.city || '') !== city) throw new Error('PROFILE_READ_BACK_MISMATCH');
+    state.accountProfile = normalizeAccountProfile(authUser, readBack.val());
+    renderAccount('account');
+    showToast(language === 'en' ? 'Address saved.' : 'تم حفظ المحافظة والمدينة.');
+  } catch (error) {
+    console.error('ACCOUNT_ADDRESS_SAVE_FAILED', { code: error?.code || error?.message || 'PROFILE_WRITE_FAILED' });
+    showToast(language === 'en' ? 'Could not save the address.' : 'تعذر حفظ المحافظة.');
+  } finally { submit.disabled = false; }
+}
+
+function accountOrderStatus(order) {
+  const status = String(order?.status || '').trim();
+  const labels = { pending: 'قيد المراجعة', confirmed: 'تم التأكيد', preparing: 'قيد التجهيز', ready: 'جاهز', out_for_delivery: 'خرج للتوصيل', completed: 'مكتمل', cancelled: 'ملغي', جديد: 'قيد المراجعة', مكتمل: 'مكتمل', ملغي: 'ملغي' };
+  return labels[status] || status || 'غير محدد';
+}
+
+function renderOrderDetails(order) {
+  const items = Array.isArray(order?.items) ? order.items : Object.values(order?.items || {});
+  const money = (value) => formatPrice(Number(value) || 0);
+  const date = order?.timestamp || order?.createdAt;
+  $('orderDetailsTitle').textContent = `${language === 'en' ? 'Order' : 'الطلب'} #${order?.orderNumber || order?.id || ''}`;
+  $('orderDetailsContent').innerHTML = `<div class="order-detail-summary"><div><span>رقم الطلب</span><strong>${esc(order?.orderNumber || order?.id || '—')}</strong></div><div><span>التاريخ</span><strong>${esc(date ? new Date(Number(date)).toLocaleString('ar-IQ') : '—')}</strong></div><div><span>الحالة</span><strong>${esc(accountOrderStatus(order))}</strong></div><div><span>طريقة الاستلام</span><strong>${order?.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}</strong></div></div><ul class="order-detail-items">${items.length ? items.map((item) => `<li><div><strong>${esc(item.name || item.product_name || item.productName || 'منتج')}</strong><small>الكمية: ${esc(item.qty || item.quantity || 1)} · سعر الشراء: ${money(item.unit_price ?? item.price)}</small></div><strong>${money(item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.qty || item.quantity || 1)))}</strong></li>`).join('') : '<li>لا توجد تفاصيل منتجات محفوظة.</li>'}</ul><dl class="order-detail-totals"><div><dt>الخصم</dt><dd>${money(order?.builderDiscount + order?.builderGlobalDiscount)}</dd></div><div><dt>التوصيل</dt><dd>${money(order?.deliveryFee)}</dd></div><div><dt>الإجمالي</dt><dd>${money(order?.grandTotal)}</dd></div></dl>${order?.deliveryMethod !== 'pickup' ? `<div class="order-detail-address"><strong>عنوان التوصيل</strong><p>${esc([order?.governorate, order?.district || order?.city, order?.subdistrict, order?.neighborhood, order?.addressDetails || order?.address].filter(Boolean).join('، ') || 'غير محفوظ')}</p></div>` : ''}`;
+  modal('orderDetailsModal', true);
+}
+
+function renderFavorites() {
+  const root = $('favoritesList');
+  if (!root) return;
+  const favs = state.products.filter((p) => state.favorites.includes(p.id));
+  root.innerHTML = `<h3>${t('favorites')} (${favs.length})</h3>${favs.length ? favs.map((p) => `<article class="favorite-card"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div class="favorite-card-copy"><strong>${esc(productName(p))}</strong><small>${esc(p.brand || '')}${p.model ? ` · ${esc(p.model)}` : ''}</small><span class="favorite-card-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</span><span class="stock ${stockLabel(p)[1]}">${esc(stockLabel(p)[0])}</span><div class="favorite-card-actions"><button class="btn btn-outline" type="button" data-favorite-open="${esc(p.id)}">${t('open')}</button>${isAvailable(p) && !p.builderOnly ? `<button class="btn btn-primary" type="button" data-favorite-cart="${esc(p.id)}">${t('addToCart')}</button>` : ''}</div></div></article>`).join('') : `<div class="empty-state">${language === 'en' ? 'You have no favorite products yet.' : 'ما عندك منتجات بالمفضلة حالياً'}<br><button class="btn btn-outline" type="button" data-favorites-browse>${language === 'en' ? 'Browse products' : 'تصفح المنتجات'}</button></div>`}`;
+  root.querySelectorAll('[data-favorite-open]').forEach((btn) => btn.addEventListener('click', () => { modal('favoritesModal', false); openProductDetails(btn.dataset.favoriteOpen); }));
+  root.querySelectorAll('[data-favorite-cart]').forEach((btn) => btn.addEventListener('click', () => addToCart(btn.dataset.favoriteCart)));
+  root.querySelector('[data-favorites-browse]')?.addEventListener('click', () => modal('favoritesModal', false));
+}
+
+function renderAccount(accountMode = 'account') {
+  if (!$('accountState')) return;
+  updateAccountGreeting();
+  const box = $('accountState');
+  if (!authUser) { state.accountMode = 'account'; box.hidden = false; box.innerHTML = `<p>${t('loginHint')}</p><button class="btn btn-google" id="googleSignInBtn" type="button"><i class="fa-brands fa-google"></i> ${t('google')}</button><button class="btn btn-outline" id="phoneRegisterBtn" type="button">${t('phoneOtp')}</button>`; $('googleSignInBtn').addEventListener('click', async () => { try { await signInWithPopup(auth, provider); } catch (e) { showToast(`${language === 'en' ? 'Google sign-in failed' : 'تعذر تسجيل Google'}: ${e.code || 'AUTH_ERROR'}`); } }); $('phoneRegisterBtn').addEventListener('click', renderPhoneRegistration); return; }
+  box.hidden = false;
+  box.innerHTML = accountProfileMarkup();
+  box.insertAdjacentHTML('beforeend', `<details class="account-collapsible"><summary>رقم الهاتف <span>إضافة أو تعديل</span></summary><form class="phone-auth-form" id="phoneLinkForm"><input id="phoneLinkInput" required type="tel" dir="ltr" inputmode="tel" placeholder="07XXXXXXXXX"><input id="phoneLinkPin" required type="password" dir="ltr" placeholder="كلمة المرور"><input id="phoneLinkConfirm" required type="password" dir="ltr" placeholder="تأكيد كلمة المرور"><button class="btn btn-outline" type="submit">إضافة تسجيل الهاتف</button></form></details>`);
+  $('logoutBtn')?.addEventListener('click', () => signOut(auth));
+  $('phoneLinkForm')?.addEventListener('submit', (event) => submitPhoneAuth(event, 'register', true));
+  $('changePinForm')?.addEventListener('submit', submitChangePin);
+  $('accountAddressForm')?.addEventListener('submit', saveAccountAddress);
+  $('accountProvince')?.addEventListener('change', (event) => { const cities = Object.keys(IRAQ_ADDRESS_DATA[event.target.value] || {}); const city = $('accountCity'); if (city) { city.innerHTML = `<option value="">اختر المدينة / القضاء...</option>${cities.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('')}`; } });
+  box.querySelectorAll('[data-account-section]').forEach((button) => button.addEventListener('click', () => { box.querySelectorAll('[data-account-section]').forEach((item) => item.classList.toggle('active', item === button)); box.querySelectorAll('[data-account-panel]').forEach((panel) => { panel.hidden = panel.dataset.accountPanel !== button.dataset.accountSection; }); }));
+  box.querySelectorAll('[data-order-open]').forEach((button) => button.addEventListener('click', () => renderOrderDetails(state.accountOrders.find((order) => order.id === button.dataset.orderOpen))));
+  bindPasswordToggles(box);
 }
 
 function renderPhoneRegistration() {
@@ -1893,7 +1971,7 @@ async function respondChat(text) {
     if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
     const response = await fetch(`${BACKEND_URL}/api/store/chat`, { method: 'POST', headers, body: JSON.stringify(body) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'CHAT_UNAVAILABLE');
+    if (!response.ok) throw new Error(data.error || data.code || 'CHAT_UNAVAILABLE');
     chatState = data.state || chatState; saveChatState();
     const budget = chatBudgetFromText(text);
     const hasNumericIncrease = /(?:زيدلي|أزيد|ازيد)\s*\d/i.test(englishDigits(text));
@@ -1902,7 +1980,9 @@ async function respondChat(text) {
   } catch (error) {
     const chat = state.settings.chatbotSettings || state.settings;
     const unavailable = language === 'en' ? (chat.aiUnavailableEn || 'The assistant is currently unavailable. Please try again later.') : (chat.aiUnavailableAr || 'المساعد غير متاح حالياً، جرّب مرة ثانية بعد شوي.');
-    appendChat(language === 'en' ? 'Something went wrong. Please try again.' : 'صار خلل بسيط، جرّب مرة ثانية.');
+    appendChat(error?.message === 'CHATBOT_DISABLED'
+      ? (language === 'en' ? 'The assistant is disabled by the store settings.' : 'المساعد متوقف من إعدادات المتجر حالياً.')
+      : (language === 'en' ? 'Something went wrong. Please try again.' : 'صار خلل بسيط، جرّب مرة ثانية.'));
   } finally {
     $('chatTyping')?.remove();
     setChatBusy(false);
@@ -1912,6 +1992,7 @@ async function respondChat(text) {
 
 function handleChat() {
   const input = $('chatInput');
+  if ($('sendChatBtn')?.disabled) return;
   const text = input.value.trim();
   if (!text) return;
   appendChat(text, true);
@@ -1951,7 +2032,7 @@ function checkoutPayload(form) {
   const builderPartByProductId = Object.fromEntries(builderParts.flatMap((part) => builderSelectionIds(part.id).map((productId) => [String(productId), part.id])));
   const items = state.cart.map((i) => ({ id: String(i.id), qty: Number(i.qty), source: i.builderSource ? 'builder' : 'store', ...(i.builderSource && builderPartByProductId[String(i.id)] ? { builderPart: builderPartByProductId[String(i.id)] } : {}) })).filter((i) => i.id && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 100);
   if (!items.length || items.length !== state.cart.length) throw new Error('CART_INVALID');
-  return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), deliveryMethod, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
+  return { requestId: requestId(), items, pricingTier: normalizePricingTier(state.accountProfile), deliveryMethod, customer: { name: String(data.get('customerName') || '').trim(), phone: String(data.get('customerPhone') || '').trim(), email: String(state.accountProfile?.email || authUser?.email || '').trim(), governorate: String(data.get('governorate') || '').trim(), district: String(data.get('district') || '').trim(), subdistrict: String(data.get('subdistrict') || '').trim(), neighborhood: String(data.get('neighborhood') || '').trim(), addressDetails: String(data.get('addressDetails') || '').trim(), notes: String(data.get('notes') || '').trim() } };
 }
 
 function updateCheckoutFulfilment(subtotal = null) {
@@ -2187,6 +2268,8 @@ function bindEvents() {
   });
   $('closeQuoteBtn').addEventListener('click', () => modal('quoteModal', false));
   $('closeAccountBtn').addEventListener('click', () => modal('accountModal', false));
+  $('closeFavoritesBtn')?.addEventListener('click', () => modal('favoritesModal', false));
+  $('closeOrderDetailsBtn')?.addEventListener('click', () => modal('orderDetailsModal', false));
   $('closeAvailabilityBtn').addEventListener('click', () => modal('availabilityModal', false));
 
   $('availabilityForm').addEventListener('submit', (e) => {
@@ -2203,7 +2286,7 @@ function bindEvents() {
   $('sidebarOverlay').addEventListener('click', closeSidebar);
 
   $('accountBtn').addEventListener('click', () => { renderAccount('account'); modal('accountModal', true); });
-  $('favBtn').addEventListener('click', () => { renderAccount('favorites'); modal('accountModal', true); });
+  $('favBtn').addEventListener('click', () => { renderFavorites(); modal('favoritesModal', true); });
 
   $('chatbotFab').addEventListener('click', openChat);
   $('closeChatBtn').addEventListener('click', closeChat);

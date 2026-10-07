@@ -537,6 +537,9 @@ async function handleRequest(request, env) {
         }
         const secret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!secret) return errorResponse('CHAT_DATABASE_NOT_CONFIGURED', 503);
+        const settingsRes = await fetch(firebaseUrl(env, 'settings.json', secret));
+        const settings = settingsRes.ok ? ((await settingsRes.json()) || {}) : {};
+        if (settings.chatbotEnabled === false || settings.chatbotSettings?.enabled === false) return errorResponse('CHATBOT_DISABLED', 503);
         const productsRes = await fetch(firebaseUrl(env, 'products.json', secret));
         if (!productsRes.ok) return errorResponse('CHAT_DATABASE_ERROR', 500);
         const productsObj = await productsRes.json() || {};
@@ -580,6 +583,36 @@ async function handleRequest(request, env) {
         return jsonResponse({ success: true, reply, products: candidates, state: nextState });
       } catch { return errorResponse('CHAT_ERROR', 500); }
       finally { chatInFlight.delete(clientKey); }
+    }
+
+    if (url.pathname === '/api/store/orders' && request.method === 'GET') {
+      try {
+        const token = authToken(request);
+        if (!token) return errorResponse('AUTH_REQUIRED', 401);
+        const user = await verifyFirebaseIdToken(token, env);
+        if (!user?.uid) return errorResponse('AUTH_INVALID', 401);
+        if (!String(env.FIREBASE_DATABASE_SECRET || '').trim()) return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
+        const [orders, profile] = await Promise.all([
+          readServiceDatabase(env, 'orders.json'),
+          readServiceDatabase(env, `profiles/${encodeURIComponent(user.uid)}.json`)
+        ]);
+        const phone = normalizeIraqPhone(profile?.phone || user.phoneNumber || '');
+        const email = String(profile?.email || user.email || '').trim().toLowerCase();
+        const matches = Object.entries(orders && typeof orders === 'object' ? orders : {})
+          .filter(([, order]) => {
+            const orderUid = String(order?.uid || order?.userId || order?.customerUid || order?.customer?.uid || '').trim();
+            if (orderUid) return orderUid === user.uid;
+            const orderPhone = normalizeIraqPhone(order?.customerPhone || order?.phone || order?.customer?.phone || '');
+            const orderEmail = String(order?.customerEmail || order?.email || order?.customer?.email || '').trim().toLowerCase();
+            return Boolean((phone && orderPhone === phone) || (email && orderEmail === email));
+          })
+          .map(([id, order]) => ({ id, ...(order || {}) }))
+          .sort((a, b) => Number(b.createdAt || b.timestamp || 0) - Number(a.createdAt || a.timestamp || 0));
+        return jsonResponse({ success: true, orders: matches.slice(0, 50) });
+      } catch (error) {
+        console.error(JSON.stringify({ code: 'ORDERS_LOOKUP_FAILED', message: error?.message || 'unknown' }));
+        return errorResponse('ORDERS_LOOKUP_FAILED', 500);
+      }
     }
 
     if (url.pathname === '/api/admin/translate-description' && request.method === 'POST') {
@@ -1062,10 +1095,13 @@ async function handleRequest(request, env) {
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
 
+        const authenticatedUser = token ? await verifyFirebaseIdToken(token, env) : null;
         const orderPayload = {
           orderNumber,
+          ...(authenticatedUser?.uid ? { uid: authenticatedUser.uid, userId: authenticatedUser.uid, customerUid: authenticatedUser.uid } : {}),
           customerName: String(customer.name),
           customerPhone: String(customer.phone),
+          ...(customer.email || authenticatedUser?.email ? { customerEmail: String(customer.email || authenticatedUser.email) } : {}),
           deliveryMethod,
           governorate: String(customer.governorate || customer.gov || ''),
           city: String(customer.district || customer.city || ''),

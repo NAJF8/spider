@@ -409,8 +409,24 @@
           <button class="btn btn-outline" id="phoneRegisterBtn" type="button">تسجيل الدخول برقم الهاتف</button>
           <small>لا نستخدم SMS أو OTP أو reCAPTCHA.</small>
         </div>
-        <div class="favorites-list" id="favoritesList"></div>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="favoritesModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h2>المفضلة</h2>
+        <button class="icon-btn" id="closeFavoritesBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body"><div class="favorites-list" id="favoritesList"></div></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="orderDetailsModal">
+    <div class="modal-content">
+      <div class="modal-head"><h2 id="orderDetailsTitle">تفاصيل الطلب</h2><button class="icon-btn" id="closeOrderDetailsBtn" type="button" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="modal-body" id="orderDetailsContent"></div>
     </div>
   </div>
 

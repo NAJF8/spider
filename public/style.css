@@ -1170,6 +1170,26 @@ html[data-theme="dark"] .builder-part-product>img{background:#24262C}
 #accountModal .account-delete-panel{padding:16px;border:1px solid rgba(242,194,48,.55);border-radius:14px;background:var(--spider-yellow-soft)}
 #accountModal .account-delete-panel p{font-size:12px;color:var(--muted);margin:0;line-height:1.7}
 #accountModal .account-delete-panel .btn-outline{border-color:var(--spider-yellow);color:var(--spider-green-dark);background:transparent}
+#accountModal .account-address-form{display:grid;gap:10px;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+#accountModal .account-address-form>div{display:grid;gap:5px}
+#accountModal .account-address-form label{font-size:12px;font-weight:800}
+#accountModal .account-address-form select{min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;color:var(--ink)}
+#accountModal .account-orders li{align-items:center;flex-wrap:wrap}
+#accountModal .account-orders li>div{display:grid;gap:3px;min-width:130px;flex:1}
+#accountModal .account-orders li small{color:var(--muted)}
+#accountModal .account-orders li>span{font-weight:900;color:var(--spider-green)}
+#favoritesModal .modal-content,#orderDetailsModal .modal-content{width:min(620px,calc(100vw - 24px));max-height:min(90dvh,820px);display:flex;flex-direction:column;overflow:hidden;border-radius:24px}
+#favoritesModal .modal-body,#orderDetailsModal .modal-body{overflow-y:auto;min-height:0;padding:20px}
+.order-detail-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.order-detail-summary>div{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.order-detail-summary span,.order-detail-items small{font-size:11px;color:var(--muted)}
+.order-detail-items{display:grid;gap:8px;list-style:none;padding:0;margin:0}
+.order-detail-items li{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:10px}
+.order-detail-items li>div{display:grid;gap:3px;min-width:0}.order-detail-items strong{overflow-wrap:anywhere}
+.order-detail-totals{display:grid;gap:6px;margin:14px 0;padding-top:12px;border-top:1px solid var(--line)}
+.order-detail-totals div{display:flex;justify-content:space-between;gap:12px}.order-detail-totals dd{margin:0;font-weight:900}
+.order-detail-address{padding:12px;border-radius:11px;background:var(--soft)}.order-detail-address p{margin:5px 0 0;line-height:1.8}
+@media (max-width:600px){#favoritesModal .modal-content,#orderDetailsModal .modal-content{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:20px}.order-detail-summary{grid-template-columns:1fr}.order-detail-items li{align-items:flex-start;flex-direction:column}.order-detail-items li>strong{align-self:flex-end}}
 html[data-theme="dark"] #accountModal .account-body{background:#24262c}
 html[data-theme="dark"] #accountModal .account-tab.active{color:#8ee0bb}
 html[data-theme="dark"] #accountModal .account-nav button.active{background:rgba(242,194,48,.14);color:#f5d86a}
