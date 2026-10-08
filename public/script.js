@@ -33,7 +33,6 @@ const state = {
   favorites: [],
   settings: {},
   brandLogos: {},
-  builderDiscounts: {},
   filters: { category: '', brand: '', search: '' },
   showCategories: false,
   showBrands: true,
@@ -282,20 +281,9 @@ const getEffectivePrice = (product, profile = null) => {
 };
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
-const builderDiscountRecord = (product) => {
-  const value = state.builderDiscounts?.[product?.id];
-  return value && typeof value === 'object'
-    ? { enabled: value.enabled === true, type: value.type === 'percentage' ? 'percentage' : 'fixed', value: Number(value.value) }
-    : { enabled: false, type: 'percentage', value: 0 };
-};
 const builderPriceDetails = (product) => {
   const basePrice = productPrice(product);
-  const record = builderDiscountRecord(product);
-  const value = Number(record.value);
-  const discount = record.enabled && Number.isFinite(value) && value > 0
-    ? Math.min(basePrice, record.type === 'percentage' ? Math.round(basePrice * Math.min(100, value) / 100) : Math.round(value))
-    : 0;
-  return { basePrice, discount, finalPrice: Math.max(0, basePrice - discount), record };
+  return { basePrice, discount: 0, finalPrice: basePrice };
 };
 const builderProductPrice = (product) => builderPriceDetails(product).finalPrice;
 const builderPriceMarkup = (product, variant = 'catalog') => {
@@ -1318,16 +1306,15 @@ function compatibilityStatus(selected) {
 function calculateBuilderTotals(selected) {
   const details = selected.map(builderPriceDetails);
   const subtotal = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.basePrice, 0)));
-  const productDiscount = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.discount, 0)));
-  const afterProductDiscount = Math.max(0, subtotal - productDiscount);
+  const builderSubtotal = subtotal;
   const invoice = state.settings?.buildGlobalDiscount || {};
   const tiers = Object.entries(invoice.invoiceTiers && typeof invoice.invoiceTiers === 'object' ? invoice.invoiceTiers : {})
     .map(([id, tier]) => ({ id, ...tier, min: Number(tier.min), max: tier.max === null || tier.max === '' || tier.max === undefined ? null : Number(tier.max), discount: Number(tier.discount) }))
     .filter((tier) => tier.enabled === true && Number.isFinite(tier.min) && Number.isFinite(tier.discount) && tier.min >= 0 && tier.discount >= 0 && (tier.max === null || Number.isFinite(tier.max)))
     .sort((a, b) => b.min - a.min || Number(a.order || 0) - Number(b.order || 0));
-  const matchedTier = invoice.invoiceDiscountEnabled === true ? tiers.find((tier) => afterProductDiscount >= tier.min && (tier.max === null || afterProductDiscount <= tier.max)) || null : null;
-  const invoiceDiscount = matchedTier ? Math.min(afterProductDiscount, Math.round(matchedTier.discount)) : 0;
-  return { subtotal, productDiscount, builderSubtotal: afterProductDiscount, invoiceDiscount, invoiceDiscountTier: matchedTier?.id || null, globalDiscount: invoiceDiscount, discount: productDiscount + invoiceDiscount, finalTotal: Math.max(0, afterProductDiscount - invoiceDiscount) };
+  const matchedTier = invoice.invoiceDiscountEnabled === true ? tiers.find((tier) => builderSubtotal >= tier.min && (tier.max === null || builderSubtotal <= tier.max)) || null : null;
+  const invoiceDiscount = matchedTier ? Math.min(builderSubtotal, Math.round(matchedTier.discount)) : 0;
+  return { subtotal, builderSubtotal, invoiceDiscount, invoiceDiscountTier: matchedTier?.id || null, discount: invoiceDiscount, finalTotal: Math.max(0, builderSubtotal - invoiceDiscount) };
 }
 
 function updateBuilder() {
@@ -1339,10 +1326,8 @@ function updateBuilder() {
   $('builderTotal').textContent = visible ? formatPrice(total) : '—';
   if ($('builderPriceCards')) $('builderPriceCards').hidden = !visible;
   if ($('builderSubtotal')) $('builderSubtotal').textContent = formatPrice(totals.subtotal);
-  if ($('builderDiscount')) $('builderDiscount').textContent = formatPrice(totals.productDiscount);
-  if ($('builderDiscountRow')) $('builderDiscountRow').hidden = !visible || totals.productDiscount <= 0;
-  if ($('builderGlobalDiscount')) $('builderGlobalDiscount').textContent = formatPrice(totals.invoiceDiscount);
-  if ($('builderGlobalDiscountRow')) $('builderGlobalDiscountRow').hidden = !visible || totals.invoiceDiscount <= 0;
+  if ($('builderInvoiceDiscount')) $('builderInvoiceDiscount').textContent = formatPrice(totals.invoiceDiscount);
+  if ($('builderInvoiceDiscountRow')) $('builderInvoiceDiscountRow').hidden = !visible || totals.invoiceDiscount <= 0;
   if ($('builderFinalTotal')) $('builderFinalTotal').textContent = formatPrice(totals.finalTotal);
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
@@ -1358,8 +1343,8 @@ function quoteLines(products) {
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
   const totals = calculateBuilderTotals(products);
-  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>المجموع قبل الخصم</span><span>${formatPrice(totals.subtotal)}</span></div>${totals.productDiscount > 0 ? `<div class="quote-total"><span>خصومات المنتجات</span><span>-${formatPrice(totals.productDiscount)}</span></div>` : ''}${totals.invoiceDiscount > 0 ? `<div class="quote-total"><span>خصم فاتورة التجميعة</span><span>-${formatPrice(totals.invoiceDiscount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
-  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(builderProductPrice(p))}`).join('\n') + `\nالمجموع قبل الخصم: ${formatPrice(totals.subtotal)}${totals.productDiscount > 0 ? `\nخصومات المنتجات: -${formatPrice(totals.productDiscount)}` : ''}${totals.invoiceDiscount > 0 ? `\nخصم فاتورة التجميعة: -${formatPrice(totals.invoiceDiscount)}` : ''}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
+  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>المجموع قبل الخصم</span><span>${formatPrice(totals.subtotal)}</span></div>${totals.invoiceDiscount > 0 ? `<div class="quote-total"><span>خصم فاتورة التجميعة</span><span>-${formatPrice(totals.invoiceDiscount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${formatPrice(totals.finalTotal)}</span></div>`;
+  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${formatPrice(builderProductPrice(p))}`).join('\n') + `\nالمجموع قبل الخصم: ${formatPrice(totals.subtotal)}${totals.invoiceDiscount > 0 ? `\nخصم فاتورة التجميعة: -${formatPrice(totals.invoiceDiscount)}` : ''}\n${t('total')}: ${formatPrice(totals.finalTotal)}`;
   modal('quoteModal', true);
 }
 
@@ -1818,7 +1803,7 @@ function renderOrderDetails(order) {
   const money = (value) => formatPrice(Number(value) || 0);
   const date = order?.timestamp || order?.createdAt;
   $('orderDetailsTitle').textContent = `${language === 'en' ? 'Order' : 'الطلب'} #${order?.orderNumber || order?.id || ''}`;
-  const totalDiscount = Number(order?.builderDiscount || 0) + Number(order?.builderInvoiceDiscount ?? order?.builderGlobalDiscount ?? 0);
+  const totalDiscount = Number(order?.builderInvoiceDiscount || 0);
   $('orderDetailsContent').innerHTML = `<div class="order-detail-summary"><div><span>رقم الطلب</span><strong>${esc(order?.orderNumber || order?.id || '—')}</strong></div><div><span>التاريخ</span><strong>${esc(date ? new Date(Number(date)).toLocaleString('ar-IQ') : '—')}</strong></div><div><span>الحالة</span><strong>${esc(accountOrderStatus(order))}</strong></div><div><span>طريقة الاستلام</span><strong>${order?.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}</strong></div></div><ul class="order-detail-items">${items.length ? items.map((item) => `<li><div><strong>${esc(item.name || item.product_name || item.productName || 'منتج')}</strong><small>الكمية: ${esc(item.qty || item.quantity || 1)} · سعر الشراء: ${money(item.unit_price ?? item.price)}</small></div><strong>${money(item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.qty || item.quantity || 1)))}</strong></li>`).join('') : '<li>لا توجد تفاصيل منتجات محفوظة.</li>'}</ul><dl class="order-detail-totals"><div><dt>الخصم</dt><dd>${money(totalDiscount)}</dd></div><div><dt>التوصيل</dt><dd>${money(order?.deliveryFee)}</dd></div><div><dt>الإجمالي</dt><dd>${money(order?.grandTotal)}</dd></div></dl>${order?.deliveryMethod !== 'pickup' ? `<div class="order-detail-address"><strong>عنوان التوصيل</strong><p>${esc([order?.governorate, order?.district || order?.city, order?.subdistrict, order?.neighborhood, order?.addressDetails || order?.address].filter(Boolean).join('، ') || 'غير محفوظ')}</p></div>` : ''}`;
   modal('orderDetailsModal', true);
 }
@@ -2424,11 +2409,6 @@ onValue(ref(db, 'products'), (snapshot) => {
 onValue(ref(db, 'settings'), (snapshot) => {
   applySettings(snapshot.exists() ? snapshot.val() : {});
   renderCart();
-});
-
-onValue(ref(db, 'builder_discounts'), (snapshot) => {
-  state.builderDiscounts = snapshot.exists() ? snapshot.val() || {} : {};
-  renderBuilder();
 });
 
 onAuthStateChanged(auth, async (user) => {

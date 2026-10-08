@@ -272,13 +272,9 @@
             <section id="view-builder-discounts" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-tags"></i> خصومات منتجات ابنِ تجميعتك</h2>
-                        <p>خصم مستقل لكل منتج داخل Builder فقط. لا يغيّر السعر العام أو الخاص أو سعر الجملة خارج Builder.</p>
+                        <h2><i class="fa-solid fa-tags"></i> خصومات فاتورة ابنِ تجميعتك</h2>
+                        <p>إدارة خصم مستقل على إجمالي قيمة التجميعة كاملة حسب الشريحة المحددة.</p>
                     </div>
-                </div>
-                <div class="box builder-discount-info">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span>يُحسب السعر داخل Builder بالترتيب: سعر المستوى الحالي ثم خصم المنتج. المنتج غير المفعّل يبقى بسعره الطبيعي.</span>
                 </div>
                 <div class="box builder-invoice-discount-box">
                     <div class="builder-invoice-discount-heading">
@@ -298,19 +294,6 @@
                         <div class="builder-invoice-tier-actions"><button type="submit" class="btn btn-primary">حفظ الشريحة</button><button type="button" class="btn btn-outline" id="cancelBuilderInvoiceTierBtn">إلغاء</button></div>
                     </form>
                     <div class="table-responsive"><table class="data-table builder-invoice-tiers-table"><thead><tr><th>من مبلغ</th><th>إلى مبلغ</th><th>قيمة الخصم</th><th>تفعيل</th><th>إجراء</th></tr></thead><tbody id="builderInvoiceTiersBody"><tr><td colspan="5" class="text-center">لا توجد شرائح محفوظة.</td></tr></tbody></table></div>
-                </div>
-                <div class="filter-bar box builder-discount-filters">
-                    <div class="search-input-group"><i class="fa-solid fa-search"></i><input id="builderDiscountSearch" placeholder="ابحث باسم المنتج أو SKU أو الموديل..."></div>
-                    <select id="builderDiscountCategoryFilter" class="filter-select"><option value="">كل أقسام Builder</option></select>
-                    <select id="builderDiscountStatusFilter" class="filter-select"><option value="">كل الحالات</option><option value="enabled">مفعّل</option><option value="disabled">معطّل</option></select>
-                </div>
-                <div class="box table-box">
-                    <div class="table-responsive">
-                        <table class="data-table builder-discounts-table">
-                            <thead><tr><th>الصورة</th><th>المنتج / SKU</th><th>القسم</th><th>السعر الحالي</th><th>نوع الخصم</th><th>القيمة</th><th>السعر داخل Builder</th><th>تفعيل</th><th>إجراء</th></tr></thead>
-                            <tbody id="builderDiscountsTableBody"><tr><td colspan="9" class="text-center">جاري التحميل...</td></tr></tbody>
-                        </table>
-                    </div>
                 </div>
             </section>
 

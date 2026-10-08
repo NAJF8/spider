@@ -1020,12 +1020,8 @@ async function handleRequest(request, env) {
             accountType = normalizePricingTier(profile);
           }
         }
-        const [privatePricesRes, builderDiscountsRes] = await Promise.all([
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/builder_discounts.json${databaseQuery}`)
-        ]);
+        const privatePricesRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`);
         const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
-        const builderDiscounts = builderDiscountsRes.ok ? ((await builderDiscountsRes.json()) || {}) : {};
         const builderInvoiceSettings = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
         if (deliveryMethod === 'delivery' && (!Number.isFinite(deliveryFee) || deliveryFee < 0)) {
@@ -1034,7 +1030,6 @@ async function handleRequest(request, env) {
         const appliedDeliveryFee = deliveryMethod === 'pickup' ? 0 : deliveryFee;
 
         let subtotal = 0;
-        let builderDiscount = 0;
         let builderOriginalSubtotal = 0;
         const verifiedItems = [];
 
@@ -1054,37 +1049,29 @@ async function handleRequest(request, env) {
           const privatePrice = privatePrices[item.id] || {};
           const livePrice = resolveProductPrice(liveProd, privatePrice, accountType);
           if (livePrice <= 0) return rejectCheckout(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
-          const discountRecord = builderDiscounts[item.id] || {};
-          const rawDiscount = Number(discountRecord.value);
-          const itemDiscount = item.source === 'builder' && discountRecord.enabled === true && Number.isFinite(rawDiscount) && rawDiscount > 0
-            ? Math.min(livePrice, discountRecord.type === 'percentage' ? Math.round(livePrice * Math.min(100, rawDiscount) / 100) : Math.round(rawDiscount))
-            : 0;
           subtotal += (livePrice * item.qty);
           if (item.source === 'builder') builderOriginalSubtotal += (livePrice * item.qty);
-          builderDiscount += (itemDiscount * item.qty);
-          const finalUnitPrice = livePrice - itemDiscount;
           verifiedItems.push({
             id: item.id,
             product_id: item.id,
             name: liveProd.name,
             product_name: liveProd.name,
-            price: finalUnitPrice,
-            unit_price: finalUnitPrice,
+            price: livePrice,
+            unit_price: livePrice,
             base_unit_price: livePrice,
-            builder_discount: itemDiscount,
             source: item.source,
             builderPart: item.builderPart,
             pricing_tier_applied: accountType,
             public_price_snapshot: positivePrice(liveProd?.public_price ?? liveProd?.retail_price ?? liveProd?.price),
             special_price_snapshot: positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice),
             wholesale_price_snapshot: positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice),
-            line_total: finalUnitPrice * item.qty,
+            line_total: livePrice * item.qty,
             qty: item.qty,
             quantity: item.qty
           });
         }
 
-        const builderSubtotal = Math.max(0, builderOriginalSubtotal - builderDiscount);
+        const builderSubtotal = builderOriginalSubtotal;
         const invoiceTiers = Object.entries(builderInvoiceSettings.invoiceTiers && typeof builderInvoiceSettings.invoiceTiers === 'object' ? builderInvoiceSettings.invoiceTiers : {})
           .map(([id, tier]) => ({ id, ...tier, min: Number(tier.min), max: tier.max === null || tier.max === '' || tier.max === undefined ? null : Number(tier.max), discount: Number(tier.discount) }))
           .filter((tier) => tier.enabled === true && Number.isFinite(tier.min) && Number.isFinite(tier.discount) && tier.min >= 0 && tier.discount >= 0 && (tier.max === null || Number.isFinite(tier.max)))
@@ -1093,7 +1080,7 @@ async function handleRequest(request, env) {
           ? invoiceTiers.find((tier) => builderSubtotal >= tier.min && (tier.max === null || builderSubtotal <= tier.max)) || null
           : null;
         const builderInvoiceDiscount = builderInvoiceDiscountTier ? Math.min(builderSubtotal, Math.round(builderInvoiceDiscountTier.discount)) : 0;
-        const finalSubtotal = Math.max(0, subtotal - builderDiscount - builderInvoiceDiscount);
+        const finalSubtotal = Math.max(0, subtotal - builderInvoiceDiscount);
         const grandTotal = finalSubtotal + appliedDeliveryFee;
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
@@ -1117,10 +1104,8 @@ async function handleRequest(request, env) {
           subtotal,
           builderOriginalSubtotal,
           builderSubtotal,
-          builderDiscount,
           builderInvoiceDiscount,
           builderInvoiceDiscountTier: builderInvoiceDiscountTier?.id || null,
-          builderGlobalDiscount: builderInvoiceDiscount,
           finalSubtotal,
           deliveryFee: appliedDeliveryFee,
           grandTotal,
@@ -1151,10 +1136,8 @@ async function handleRequest(request, env) {
           finalSubtotal,
           builderOriginalSubtotal,
           builderSubtotal,
-          builderDiscount,
           builderInvoiceDiscount,
           builderInvoiceDiscountTier: builderInvoiceDiscountTier?.id || null,
-          builderGlobalDiscount: builderInvoiceDiscount,
           deliveryFee: appliedDeliveryFee,
           grandTotal,
           items: verifiedItems
