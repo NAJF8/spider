@@ -419,6 +419,7 @@ function updateAllDashboardViews() {
     renderCategoryDistribution();
     renderProductsManagementTable();
     renderPricingManagementTable();
+    renderBuilderSectionsSettings();
     renderPricingCustomers();
     renderCategoriesManagementTable();
     renderOrdersManagementTable();
@@ -3027,14 +3028,45 @@ function renderBuilderSectionsSettings() {
         return `<details class="builder-section-setting" open><summary><strong>${escapeHtml(label)}</strong><span class="builder-section-count" data-builder-section-count="${id}">${selected.size} مختار</span></summary><div class="builder-section-products">${matches.length ? matches.map((product) => `<label class="checkbox-label"><input type="checkbox" data-builder-section="${id}" data-builder-product-id="${escapeHtml(product.id)}" ${selected.has(String(product.id)) ? 'checked' : ''}><span>${escapeHtml(product.name || product.nameAr || product.id)}${product.sku ? ` <small>${escapeHtml(product.sku)}</small>` : ''}</span></label>`).join('') : '<small class="form-hint">لا توجد منتجات مطابقة في هذا القسم.</small>'}</div></details>`;
     }).join('');
     root.querySelectorAll('[data-builder-section]').forEach((input) => input.addEventListener('change', () => {
-        pendingBuilderSections = Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...root.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`)].map((item) => String(item.dataset.builderProductId)) } ]));
         const section = input.dataset.builderSection;
+        const current = pendingBuilderSections || configured;
+        const selected = new Set(Array.isArray(current[section]?.allowedProductIds) ? current[section].allowedProductIds.map(String) : []);
+        if (input.checked) selected.add(String(input.dataset.builderProductId));
+        else selected.delete(String(input.dataset.builderProductId));
+        pendingBuilderSections = { ...current, [section]: { ...(current[section] || {}), allowedProductIds: [...selected] } };
         const count = root.querySelectorAll(`[data-builder-section="${CSS.escape(section)}"]:checked`).length;
         const output = root.querySelector(`[data-builder-section-count="${CSS.escape(section)}"]`);
         if (output) output.textContent = `${count} مختار`;
     }));
 }
 document.getElementById('builderSectionsProductSearch')?.addEventListener('input', renderBuilderSectionsSettings);
+function collectBuilderSections() {
+    const root = document.getElementById('builderSectionsSettings');
+    return pendingBuilderSections || Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...(root?.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`) || [])].map((input) => String(input.dataset.builderProductId)) } ]));
+}
+document.getElementById('saveBuilderSectionsBtn')?.addEventListener('click', async () => {
+    if (isDemoMode) { alert('لا يمكن حفظ أقسام Builder في وضع المعاينة.'); return; }
+    const button = document.getElementById('saveBuilderSectionsBtn');
+    const builderSections = collectBuilderSections();
+    try {
+        button.disabled = true;
+        await update(ref(db, 'settings'), { builderSections });
+        const readBack = await get(ref(db, 'settings/builderSections'));
+        const saved = readBack.exists() ? readBack.val() : {};
+        for (const [id, section] of Object.entries(builderSections)) {
+            const expected = [...new Set(section.allowedProductIds.map(String))].sort().join(',');
+            const actual = [...new Set((saved?.[id]?.allowedProductIds || []).map(String))].sort().join(',');
+            if (expected !== actual) throw new Error(`BUILDER_SECTION_READBACK_MISMATCH:${id}`);
+        }
+        storeSettings = { ...storeSettings, builderSections: saved };
+        pendingBuilderSections = null;
+        localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
+        renderBuilderSectionsSettings();
+        alert('تم حفظ أقسام ومنتجات Builder والتحقق من Firebase.');
+    } catch (error) {
+        alert(`فشل حفظ أقسام Builder: ${error.message || 'خطأ غير معروف'}`);
+    } finally { button.disabled = false; }
+});
 
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
@@ -3147,8 +3179,6 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
 
     const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
-    const builderSections = pendingBuilderSections || Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...document.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`)].map((input) => String(input.dataset.builderProductId)) } ]));
-
     try {
         await update(ref(db, 'settings'), {
             storeNameAr: document.getElementById('settingStoreNameAr').value.trim(),
@@ -3165,16 +3195,8 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             heroImage: document.getElementById('settingHeroImage').value.trim(),
             lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
-            deliveryFee: df,
-            builderSections
+            deliveryFee: df
         });
-        const readBack = await get(ref(db, 'settings'));
-        const saved = readBack.exists() ? readBack.val() : {};
-        for (const [id, section] of Object.entries(builderSections)) {
-            const expected = [...new Set(section.allowedProductIds.map(String))].sort().join(',');
-            const actual = [...new Set((saved.builderSections?.[id]?.allowedProductIds || []).map(String))].sort().join(',');
-            if (expected !== actual) throw new Error(`BUILDER_SECTION_READBACK_MISMATCH:${id}`);
-        }
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {
         alert('فشل حفظ الإعدادات: ' + err.message);
