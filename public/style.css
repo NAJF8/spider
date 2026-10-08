@@ -1073,7 +1073,7 @@ html[data-theme="dark"] .field-error{color:#F51F2A}
 .builder-price-card{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:12px;background:var(--soft);font-size:12px}
 .builder-price-card[hidden]{display:none}
 .builder-price-card strong{direction:ltr;color:var(--ink);font-size:15px}
-.builder-discount-card{background:#ecfdf3;color:#15803d}.builder-discount-card strong{color:#15803d}
+.builder-invoice-discount-card{background:#ecfdf3;color:#15803d}.builder-invoice-discount-card strong{color:#15803d}
 .builder-final-price{border:1px solid rgba(242,194,48,.65);background:var(--spider-yellow-soft)}.builder-final-price strong{color:var(--spider-primary);font-size:18px}
 .builder-compatibility-warning{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#fff0f0;color:#b42318;font-size:12px;font-weight:800;line-height:1.5}
 html[data-theme="dark"] .builder-part-card{background:#24262C;border-color:#383B43;box-shadow:0 8px 24px rgba(0,0,0,.25)}

@@ -248,15 +248,11 @@ function drawCustomerBlock(doc, order, language, items) {
 
 function drawTotals(doc, order, language, y, background) {
   const subtotal = Number(order.subtotal ?? order.subtotalBeforeDiscount ?? 0);
-  const productDiscount = Number(order.builderDiscount ?? 0);
-  const invoiceDiscount = Number(order.builderInvoiceDiscount ?? order.builderGlobalDiscount ?? 0);
-  const discount = Number(order.discount ?? (productDiscount + invoiceDiscount));
+  const invoiceDiscount = Number(order.builderInvoiceDiscount ?? 0);
   const delivery = Number(order.deliveryFee ?? 0);
   const finalTotal = Number(order.finalTotal ?? order.grandTotal ?? order.total ?? (subtotal - discount + delivery));
   const rows = [[receiptText(language, 'المجموع قبل الخصم', 'Subtotal before discount'), formatIQD(subtotal, language)]];
-  if (productDiscount > 0) rows.push([receiptText(language, 'خصومات المنتجات', 'Product discounts'), formatIQD(productDiscount, language)]);
   if (invoiceDiscount > 0) rows.push([receiptText(language, 'خصم التجميعة', 'Build invoice discount'), formatIQD(invoiceDiscount, language)]);
-  if (!productDiscount && !invoiceDiscount && discount > 0) rows.push([receiptText(language, 'الخصم', 'Discount'), formatIQD(discount, language)]);
   if (delivery > 0) rows.push([receiptText(language, 'التوصيل', 'Delivery'), formatIQD(delivery, language)]);
   rows.push([receiptText(language, 'السعر النهائي', 'Final total'), formatIQD(finalTotal, language)]);
   const height = rows.length * 9 + 8;
