@@ -280,6 +280,25 @@
                     <i class="fa-solid fa-circle-info"></i>
                     <span>يُحسب السعر داخل Builder بالترتيب: سعر المستوى الحالي ثم خصم المنتج. المنتج غير المفعّل يبقى بسعره الطبيعي.</span>
                 </div>
+                <div class="box builder-invoice-discount-box">
+                    <div class="builder-invoice-discount-heading">
+                        <div>
+                            <h3>خصومات فاتورة ابنِ تجميعتك</h3>
+                            <p>يتم تطبيق الخصم على إجمالي قيمة التجميعة كاملة حسب الشريحة المحددة.</p>
+                        </div>
+                        <label class="checkbox-label"><input type="checkbox" id="builderInvoiceDiscountEnabled"><span>تفعيل خصومات فاتورة التجميعة</span></label>
+                    </div>
+                    <div class="builder-invoice-discount-toolbar"><button type="button" class="btn btn-primary" id="addBuilderInvoiceTierBtn"><i class="fa-solid fa-plus"></i> إضافة شريحة خصم</button></div>
+                    <form id="builderInvoiceTierForm" class="builder-invoice-tier-form" hidden>
+                        <input type="hidden" id="builderInvoiceTierId">
+                        <div class="form-group"><label for="builderInvoiceTierMin">الحد الأدنى</label><input type="number" id="builderInvoiceTierMin" min="0" step="1" required></div>
+                        <div class="form-group"><label for="builderInvoiceTierMax">الحد الأعلى <small>(اتركه فارغاً للمفتوح)</small></label><input type="number" id="builderInvoiceTierMax" min="0" step="1"></div>
+                        <div class="form-group"><label for="builderInvoiceTierDiscount">قيمة الخصم</label><input type="number" id="builderInvoiceTierDiscount" min="0" step="1" required></div>
+                        <label class="checkbox-label"><input type="checkbox" id="builderInvoiceTierEnabled" checked><span>تفعيل</span></label>
+                        <div class="builder-invoice-tier-actions"><button type="submit" class="btn btn-primary">حفظ الشريحة</button><button type="button" class="btn btn-outline" id="cancelBuilderInvoiceTierBtn">إلغاء</button></div>
+                    </form>
+                    <div class="table-responsive"><table class="data-table builder-invoice-tiers-table"><thead><tr><th>من مبلغ</th><th>إلى مبلغ</th><th>قيمة الخصم</th><th>تفعيل</th><th>إجراء</th></tr></thead><tbody id="builderInvoiceTiersBody"><tr><td colspan="5" class="text-center">لا توجد شرائح محفوظة.</td></tr></tbody></table></div>
+                </div>
                 <div class="filter-bar box builder-discount-filters">
                     <div class="search-input-group"><i class="fa-solid fa-search"></i><input id="builderDiscountSearch" placeholder="ابحث باسم المنتج أو SKU أو الموديل..."></div>
                     <select id="builderDiscountCategoryFilter" class="filter-select"><option value="">كل أقسام Builder</option></select>
@@ -545,11 +564,6 @@
                                 <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
                             </div>
                             <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
-                            <div class="form-group checkbox-group"><label class="checkbox-label"><input type="checkbox" id="settingBuildGlobalDiscountEnabled"><span>تفعيل خصومات «ابني تجميعتك»</span></label><small class="form-hint">تُطبّق داخل Builder فقط، ولا تغيّر سعر المنتج العام.</small></div>
-                            <div class="form-group"><label>وضع الخصم</label><select id="settingBuildGlobalDiscountType"><option value="percentage">نسبة مئوية</option><option value="fixed">مبلغ ثابت (د.ع)</option><option value="step">Step / Tier</option></select></div>
-                            <div class="form-group"><label>القيمة (ثابت أو نسبة)</label><input type="number" id="settingBuildGlobalDiscountValue" min="0" step="1" placeholder="مثال: 5 أو 25000"></div>
-                            <div class="form-group"><label>قيمة العتبة لكل خطوة (د.ع)</label><input type="number" id="settingBuildGlobalDiscountThreshold" min="1" step="1" value="500000"></div>
-                            <div class="form-group"><label>الخصم لكل خطوة (د.ع)</label><input type="number" id="settingBuildGlobalDiscountPerStep" min="0" step="1" value="25000"></div>
                             <div class="form-group builder-sections-settings"><label>منتجات أقسام «ابني تجميعتك» المسموحة</label><small class="form-hint">إذا لم تختر أي منتج لقسم، تبقى فلترة القسم القديمة فعالة.</small><input type="search" id="builderSectionsProductSearch" placeholder="ابحث باسم المنتج أو SKU..." dir="rtl"><div id="builderSectionsSettings" class="builder-sections-settings-list"></div></div>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>

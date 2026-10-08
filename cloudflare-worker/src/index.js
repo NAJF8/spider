@@ -1026,7 +1026,7 @@ async function handleRequest(request, env) {
         ]);
         const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
         const builderDiscounts = builderDiscountsRes.ok ? ((await builderDiscountsRes.json()) || {}) : {};
-        const globalDiscountSetting = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
+        const builderInvoiceSettings = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
         if (deliveryMethod === 'delivery' && (!Number.isFinite(deliveryFee) || deliveryFee < 0)) {
           return errorResponse('DELIVERY_FEE_NOT_CONFIGURED', 503);
@@ -1035,7 +1035,7 @@ async function handleRequest(request, env) {
 
         let subtotal = 0;
         let builderDiscount = 0;
-        let builderSubtotal = 0;
+        let builderOriginalSubtotal = 0;
         const verifiedItems = [];
 
         validationStage = 'product-validation';
@@ -1060,7 +1060,7 @@ async function handleRequest(request, env) {
             ? Math.min(livePrice, discountRecord.type === 'percentage' ? Math.round(livePrice * Math.min(100, rawDiscount) / 100) : Math.round(rawDiscount))
             : 0;
           subtotal += (livePrice * item.qty);
-          if (item.source === 'builder') builderSubtotal += (livePrice * item.qty);
+          if (item.source === 'builder') builderOriginalSubtotal += (livePrice * item.qty);
           builderDiscount += (itemDiscount * item.qty);
           const finalUnitPrice = livePrice - itemDiscount;
           verifiedItems.push({
@@ -1084,13 +1084,16 @@ async function handleRequest(request, env) {
           });
         }
 
-        const builderAfterProductDiscount = Math.max(0, builderSubtotal - builderDiscount);
-        const rawGlobalDiscount = Number(globalDiscountSetting.value);
-        const globalDiscountValue = globalDiscountSetting.enabled === true && Number.isFinite(rawGlobalDiscount) && rawGlobalDiscount > 0 ? rawGlobalDiscount : 0;
-        const builderGlobalDiscount = globalDiscountSetting.type === 'fixed'
-          ? Math.min(builderAfterProductDiscount, Math.round(globalDiscountValue))
-          : Math.min(builderAfterProductDiscount, Math.round(builderAfterProductDiscount * Math.min(100, globalDiscountValue) / 100));
-        const finalSubtotal = Math.max(0, subtotal - builderDiscount - builderGlobalDiscount);
+        const builderSubtotal = Math.max(0, builderOriginalSubtotal - builderDiscount);
+        const invoiceTiers = Object.entries(builderInvoiceSettings.invoiceTiers && typeof builderInvoiceSettings.invoiceTiers === 'object' ? builderInvoiceSettings.invoiceTiers : {})
+          .map(([id, tier]) => ({ id, ...tier, min: Number(tier.min), max: tier.max === null || tier.max === '' || tier.max === undefined ? null : Number(tier.max), discount: Number(tier.discount) }))
+          .filter((tier) => tier.enabled === true && Number.isFinite(tier.min) && Number.isFinite(tier.discount) && tier.min >= 0 && tier.discount >= 0 && (tier.max === null || Number.isFinite(tier.max)))
+          .sort((a, b) => b.min - a.min || Number(a.order || 0) - Number(b.order || 0));
+        const builderInvoiceDiscountTier = builderInvoiceSettings.invoiceDiscountEnabled === true
+          ? invoiceTiers.find((tier) => builderSubtotal >= tier.min && (tier.max === null || builderSubtotal <= tier.max)) || null
+          : null;
+        const builderInvoiceDiscount = builderInvoiceDiscountTier ? Math.min(builderSubtotal, Math.round(builderInvoiceDiscountTier.discount)) : 0;
+        const finalSubtotal = Math.max(0, subtotal - builderDiscount - builderInvoiceDiscount);
         const grandTotal = finalSubtotal + appliedDeliveryFee;
         const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
         const newOrderId = crypto.randomUUID();
@@ -1112,8 +1115,12 @@ async function handleRequest(request, env) {
           addressDetails: String(customer.addressDetails || customer.address || ''),
           notes: String(customer.notes || ''),
           subtotal,
+          builderOriginalSubtotal,
+          builderSubtotal,
           builderDiscount,
-          builderGlobalDiscount,
+          builderInvoiceDiscount,
+          builderInvoiceDiscountTier: builderInvoiceDiscountTier?.id || null,
+          builderGlobalDiscount: builderInvoiceDiscount,
           finalSubtotal,
           deliveryFee: appliedDeliveryFee,
           grandTotal,
@@ -1142,8 +1149,12 @@ async function handleRequest(request, env) {
           deliveryMethod,
           subtotal,
           finalSubtotal,
+          builderOriginalSubtotal,
+          builderSubtotal,
           builderDiscount,
-          builderGlobalDiscount,
+          builderInvoiceDiscount,
+          builderInvoiceDiscountTier: builderInvoiceDiscountTier?.id || null,
+          builderGlobalDiscount: builderInvoiceDiscount,
           deliveryFee: appliedDeliveryFee,
           grandTotal,
           items: verifiedItems
