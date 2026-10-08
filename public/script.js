@@ -691,7 +691,7 @@ function productCard(p, ctx) {
       </div>
       <div class="product-actions">
         ${isAvailable(p) && !p.builderOnly
-          ? `<button class="btn product-add-btn" type="button" data-add="${esc(p.id)}"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i> ${t('addToCart')}</button>`
+          ? `<button class="btn product-add-btn" type="button" data-add="${esc(p.id)}"><span class="cart-icon" aria-hidden="true"></span> ${t('addToCart')}</button>`
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> ${t('notify')}</button>`
         }
         <button class="btn btn-outline" type="button" data-details="${esc(p.id)}">${t('details')}</button>
@@ -1072,7 +1072,9 @@ const builderPartLabel = (part) => {
 };
 
 function productsForPart(part) {
-  return state.products.filter((p) => isAvailable(p) && categoryIdFor(p) === part.categoryId);
+  const configured = state.settings?.builderSections?.[part?.id]?.allowedProductIds;
+  const allowed = Array.isArray(configured) ? configured.map(String).filter(Boolean) : [];
+  return state.products.filter((p) => isAvailable(p) && categoryIdFor(p) === part.categoryId && (!allowed.length || allowed.includes(String(p.id))));
 }
 
 function builderPartForProduct(product) {
@@ -1197,7 +1199,7 @@ function renderBuilder() {
     return `<article class="builder-part-card is-filled" data-builder-part-card="${esc(part.id)}">
       <div class="builder-part-card-head"><div class="builder-part-heading"><span class="builder-part-icon"><i class="fa-solid ${part.icon}"></i></span><div><strong>${esc(label)}</strong><small>${language === 'en' ? 'Selected part' : 'القطعة المختارة'}</small></div></div><b class="builder-part-number">${String(index + 1).padStart(2, '0')}</b></div>
       <div class="builder-part-product"><img src="${esc(imageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="builder-part-product-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.model || product.brand || '')}</span>${topSpecs(product).length ? `<small>${esc(topSpecs(product).join(' · '))}</small>` : ''}</div>${builderPriceMarkup(product, 'part')}<button class="builder-remove" type="button" data-builder-remove="${esc(part.id)}" aria-label="${t('clear')}"><i class="fa-solid fa-xmark"></i></button></div>${warning}
-      <div class="builder-part-actions"><button class="btn btn-primary builder-add-cart" type="button" data-builder-cart="${esc(part.id)}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
+      <div class="builder-part-actions"><button class="btn btn-primary builder-add-cart" type="button" data-builder-cart="${esc(part.id)}"><span class="cart-icon" aria-hidden="true"></span> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button><button class="btn btn-outline" type="button" data-builder-change="${esc(part.id)}"><i class="fa-solid fa-rotate"></i> ${t('change')}</button><button class="btn btn-outline" type="button" data-builder-remove="${esc(part.id)}"><i class="fa-solid fa-trash"></i> ${t('clear')}</button></div>
     </article>`;
   }).join('');
 
@@ -1316,11 +1318,16 @@ function calculateBuilderTotals(selected) {
   const subtotal = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.basePrice, 0)));
   const productDiscount = Math.max(0, Math.round(details.reduce((sum, item) => sum + item.discount, 0)));
   const afterProductDiscount = Math.max(0, subtotal - productDiscount);
-  const global = state.settings?.buildGlobalDiscount;
-  const globalValue = global?.enabled === true ? Math.max(0, Number(global.value) || 0) : 0;
-  const globalDiscount = global?.type === 'fixed'
-    ? Math.min(afterProductDiscount, Math.round(globalValue))
-    : Math.min(afterProductDiscount, Math.round(afterProductDiscount * Math.min(100, globalValue) / 100));
+  const global = state.settings?.buildGlobalDiscount || state.settings?.builderDiscount || {};
+  const mode = global.mode || global.type || 'percentage';
+  const globalValue = global.enabled === true ? Math.max(0, Number(global.value ?? (mode === 'fixed' ? global.fixedAmount : global.percentage)) || 0) : 0;
+  const threshold = Math.max(1, Number(global.thresholdAmount) || 500000);
+  const perStep = Math.max(0, Number(global.discountPerThreshold ?? global.discountPerStep) || 25000);
+  const globalDiscount = mode === 'fixed'
+    ? Math.min(afterProductDiscount, Math.round(Number(global.fixedAmount ?? globalValue) || globalValue))
+    : mode === 'step'
+      ? Math.min(afterProductDiscount, Math.floor(afterProductDiscount / threshold) * perStep)
+      : Math.min(afterProductDiscount, Math.round(afterProductDiscount * Math.min(100, Number(global.percentage ?? globalValue) || 0) / 100));
   return { subtotal, productDiscount, globalDiscount, discount: productDiscount + globalDiscount, finalTotal: Math.max(0, afterProductDiscount - globalDiscount) };
 }
 
@@ -1457,7 +1464,7 @@ function renderUpgradeSelectionPreviews() {
       return;
     }
     const specs = topSpecs(product);
-    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions">${state.upgradeIsNew[field.id] ? `<button class="btn btn-primary" type="button" data-upgrade-cart="${field.id}"><i class="fa-solid fa-cart-shopping"></i> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button>` : ''}<button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
+    preview.innerHTML = `<div class="upgrade-preview-card"><img src="${esc(upgradeImageFor(product))}" alt="${esc(productName(product))}" onerror="this.onerror=null;this.src='images/default-product.svg?v=2'"><div class="upgrade-preview-copy"><strong>${esc(productName(product))}</strong><span>${esc(product.brand || product.model || '')}</span>${specs.length ? `<small>${specs.map((spec) => esc(spec)).join(' · ')}</small>` : ''}</div><b>${formatPrice(productPrice(product))}</b><div class="upgrade-preview-actions">${state.upgradeIsNew[field.id] ? `<button class="btn btn-primary" type="button" data-upgrade-cart="${field.id}"><span class="cart-icon" aria-hidden="true"></span> ${language === 'en' ? 'Add to Cart' : 'إضافة للسلة'}</button>` : ''}<button class="btn btn-outline" type="button" data-upgrade-change="${field.id}">${t('change')}</button><button class="btn btn-outline" type="button" data-upgrade-clear="${field.id}">${t('clear')}</button></div></div>`;
     preview.querySelector('[data-upgrade-cart]')?.addEventListener('click', () => { addToCart(product.id); });
       preview.querySelector('[data-upgrade-change]')?.addEventListener('click', () => openUpgradePicker(field.id));
     preview.querySelector('[data-upgrade-clear]')?.addEventListener('click', () => { delete state.upgrade[field.id]; delete state.upgradeIsNew[field.id]; saveUpgrade(); renderUpgrade(); });
@@ -1657,7 +1664,7 @@ function openProductDetails(id) {
       <div class="spec-list">${specs.length ? specs.map((item) => { const spec = localizedSpecification(item); return `<div><strong>${esc(spec.key)}</strong><span>${esc(spec.value)}</span></div>`; }).join('') : `<div>${language === 'en' ? 'No additional published specifications' : 'لا توجد مواصفات إضافية منشورة'}</div>`}</div>
       <div class="detail-actions">
         ${isAvailable(p) && !p.builderOnly
-           ? `<button class="btn product-add-btn" type="button" data-detail-add="${esc(p.id)}"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>${t('addToCart')}</button>`
+           ? `<button class="btn product-add-btn" type="button" data-detail-add="${esc(p.id)}"><span class="cart-icon" aria-hidden="true"></span>${t('addToCart')}</button>`
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}">${t('notify')}</button>`}
         <button class="btn btn-outline" type="button" data-favorite="${esc(p.id)}">${state.favorites.includes(p.id) ? (language === 'en' ? 'Remove from favorites' : 'إزالة من المفضلة') : (language === 'en' ? 'Add to favorites' : 'أضف للمفضلة')}</button>
       </div>

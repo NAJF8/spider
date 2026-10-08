@@ -1190,7 +1190,7 @@ function setProductImageState(items, activeId = null) {
     productImageItems = items.filter(Boolean).slice(0, 5);
     if (productImageItems.length && !productImageItems.some((item) => item.isPrimary)) productImageItems[0].isPrimary = true;
     const primary = productImagePrimary();
-    productImageItems.forEach((item, index) => { item.isPrimary = primary ? item.id === primary.id : index === 0; });
+    productImageItems.forEach((item, index) => { item.isPrimary = index === 0; });
     activeProductImageId = productImageItems.some((item) => item.id === activeId)
         ? activeId
         : (primary?.id || productImageItems[0]?.id || null);
@@ -1208,7 +1208,7 @@ function createLocalProductImageItem(file) {
 }
 
 function productImageItemsFromProduct(product) {
-    const urls = [product?.image, ...(Array.isArray(product?.images) ? product.images : [])].filter(Boolean);
+    const urls = [...(Array.isArray(product?.images) ? product.images : []), product?.image].filter(Boolean);
     return [...new Set(urls)].slice(0, 5).map((url, index) => createRemoteProductImageItem(url, index === 0));
 }
 
@@ -2414,14 +2414,8 @@ document.getElementById('confirmUploadBtn')?.addEventListener('click', async () 
         const canonicalImageUrl = data.rawUrl || data.imageUrl || data.path;
         if (prodImageInput) prodImageInput.value = canonicalImageUrl;
         if (prodImageInput && document.getElementById('imagePreviewContainer')) {
-            if (!window.currentProductGalleryImages) window.currentProductGalleryImages = [];
-            if (window.currentProductGalleryImages.length < 5) {
-                window.currentProductGalleryImages.push(canonicalImageUrl);
-                // Make it primary if it's the first
-                if (window.currentProductGalleryImages.length === 1) {
-                    prodImageInput.value = canonicalImageUrl;
-                }
-                if (typeof renderAdminGallery === 'function') renderAdminGallery();
+            if (productImageItems.length < 5) {
+                setProductImageState([...productImageItems, createRemoteProductImageItem(canonicalImageUrl, productImageItems.length === 0)]);
             } else {
                 alert('لا يمكن إضافة أكثر من 5 صور للمنتج.');
             }
@@ -3100,11 +3094,38 @@ function renderChatbotPreview(settings) {
     const input = document.getElementById('chatPreviewInput'); if (input) input.style.fontSize = `${s.inputFontSize}px`;
 }
 
+const ADMIN_BUILDER_SECTIONS = [
+    ['cpu', 'المعالج CPU', 'cat-cpus'], ['motherboard', 'اللوحة الأم', 'cat-motherboards'], ['ram', 'الذاكرة RAM', 'cat-ram'],
+    ['storage', 'التخزين', 'cat-storage'], ['gpu', 'كرت الشاشة GPU', 'cat-gpus'], ['psu', 'مزود الطاقة PSU', 'cat-psu'],
+    ['cooling', 'التبريد', 'cat-cooling'], ['case', 'الصندوق Case', 'cat-cases'], ['monitors', 'الشاشات', 'cat-monitors'], ['accessories', 'ملحقات الكمبيوتر', 'cat-accessories']
+];
+let pendingBuilderSections = null;
+function renderBuilderSectionsSettings() {
+    const root = document.getElementById('builderSectionsSettings');
+    if (!root) return;
+    const query = String(document.getElementById('builderSectionsProductSearch')?.value || '').trim().toLowerCase();
+    const configured = pendingBuilderSections || storeSettings.builderSections || {};
+    root.innerHTML = ADMIN_BUILDER_SECTIONS.map(([id, label, categoryId]) => {
+        const selected = new Set(Array.isArray(configured[id]?.allowedProductIds) ? configured[id].allowedProductIds.map(String) : []);
+        const matches = products.filter((product) => (product.categoryId || product.category) === categoryId && (!query || `${product.name || ''} ${product.nameAr || ''} ${product.sku || ''} ${product.model || ''}`.toLowerCase().includes(query)));
+        return `<details class="builder-section-setting" open><summary><strong>${escapeHtml(label)}</strong><span class="builder-section-count" data-builder-section-count="${id}">${selected.size} مختار</span></summary><div class="builder-section-products">${matches.length ? matches.map((product) => `<label class="checkbox-label"><input type="checkbox" data-builder-section="${id}" data-builder-product-id="${escapeHtml(product.id)}" ${selected.has(String(product.id)) ? 'checked' : ''}><span>${escapeHtml(product.name || product.nameAr || product.id)}${product.sku ? ` <small>${escapeHtml(product.sku)}</small>` : ''}</span></label>`).join('') : '<small class="form-hint">لا توجد منتجات مطابقة في هذا القسم.</small>'}</div></details>`;
+    }).join('');
+    root.querySelectorAll('[data-builder-section]').forEach((input) => input.addEventListener('change', () => {
+        pendingBuilderSections = Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...root.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`)].map((item) => String(item.dataset.builderProductId)) } ]));
+        const section = input.dataset.builderSection;
+        const count = root.querySelectorAll(`[data-builder-section="${CSS.escape(section)}"]:checked`).length;
+        const output = root.querySelector(`[data-builder-section-count="${CSS.escape(section)}"]`);
+        if (output) output.textContent = `${count} مختار`;
+    }));
+}
+document.getElementById('builderSectionsProductSearch')?.addEventListener('input', renderBuilderSectionsSettings);
+
 onValue(ref(db, 'settings'), (snapshot) => {
     if (snapshot.exists()) {
         storeSettings = { ...storeSettings, ...snapshot.val() };
     }
 
+    pendingBuilderSections = null;
     // Store in localStorage for storefront
     localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
 
@@ -3132,8 +3153,13 @@ onValue(ref(db, 'settings'), (snapshot) => {
     const buildDiscountType = document.getElementById('settingBuildGlobalDiscountType');
     const buildDiscountValue = document.getElementById('settingBuildGlobalDiscountValue');
     if (buildDiscountEnabled) buildDiscountEnabled.checked = buildDiscount.enabled === true;
-    if (buildDiscountType) buildDiscountType.value = buildDiscount.type === 'fixed' ? 'fixed' : 'percentage';
-    if (buildDiscountValue) buildDiscountValue.value = Number.isFinite(Number(buildDiscount.value)) ? Number(buildDiscount.value) : '';
+    if (buildDiscountType) buildDiscountType.value = ['fixed', 'percentage', 'step'].includes(buildDiscount.mode || buildDiscount.type) ? (buildDiscount.mode || buildDiscount.type) : 'percentage';
+    if (buildDiscountValue) buildDiscountValue.value = Number.isFinite(Number(buildDiscount.value)) ? Number(buildDiscount.value) : Number(buildDiscount.fixedAmount ?? buildDiscount.percentage) || 0;
+    const buildDiscountThreshold = document.getElementById('settingBuildGlobalDiscountThreshold');
+    const buildDiscountPerStep = document.getElementById('settingBuildGlobalDiscountPerStep');
+    if (buildDiscountThreshold) buildDiscountThreshold.value = Number(buildDiscount.thresholdAmount) || 500000;
+    if (buildDiscountPerStep) buildDiscountPerStep.value = Number(buildDiscount.discountPerThreshold ?? buildDiscount.discountPerStep) || 25000;
+    renderBuilderSectionsSettings();
     const elWa = document.getElementById('settingWhatsapp');
     const elDf = document.getElementById('settingDeliveryFee');
     if (elWa) elWa.value = storeSettings.whatsappNumber || storeSettings.whatsapp || storeSettings.storePhone || '';
@@ -3215,8 +3241,11 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
 
     const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
-    const buildDiscountType = document.getElementById('settingBuildGlobalDiscountType').value === 'fixed' ? 'fixed' : 'percentage';
+    const buildDiscountType = ['fixed', 'percentage', 'step'].includes(document.getElementById('settingBuildGlobalDiscountType').value) ? document.getElementById('settingBuildGlobalDiscountType').value : 'percentage';
     const buildDiscountValue = Math.max(0, Number(document.getElementById('settingBuildGlobalDiscountValue').value || 0));
+    const thresholdAmount = Math.max(1, Number(document.getElementById('settingBuildGlobalDiscountThreshold').value || 500000));
+    const discountPerThreshold = Math.max(0, Number(document.getElementById('settingBuildGlobalDiscountPerStep').value || 25000));
+    const builderSections = pendingBuilderSections || Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...document.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`)].map((input) => String(input.dataset.builderProductId)) } ]));
 
     try {
         await update(ref(db, 'settings'), {
@@ -3237,12 +3266,26 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             deliveryFee: df,
             buildGlobalDiscount: {
                 enabled: document.getElementById('settingBuildGlobalDiscountEnabled').checked === true,
+                mode: buildDiscountType,
                 type: buildDiscountType,
                 value: buildDiscountValue,
+                fixedAmount: buildDiscountType === 'fixed' ? buildDiscountValue : 0,
+                percentage: buildDiscountType === 'percentage' ? buildDiscountValue : 0,
+                thresholdAmount,
+                discountPerThreshold,
                 updatedAt: Date.now(),
                 updatedBy: currentAdminUser?.uid || null
-            }
+            },
+            builderSections
         });
+        const readBack = await get(ref(db, 'settings'));
+        const saved = readBack.exists() ? readBack.val() : {};
+        if (saved.buildGlobalDiscount?.mode !== buildDiscountType || Number(saved.buildGlobalDiscount?.thresholdAmount) !== thresholdAmount) throw new Error('BUILDER_SETTINGS_READBACK_MISMATCH');
+        for (const [id, section] of Object.entries(builderSections)) {
+            const expected = [...new Set(section.allowedProductIds.map(String))].sort().join(',');
+            const actual = [...new Set((saved.builderSections?.[id]?.allowedProductIds || []).map(String))].sort().join(',');
+            if (expected !== actual) throw new Error(`BUILDER_SECTION_READBACK_MISMATCH:${id}`);
+        }
         alert('تم حفظ الإعدادات بنجاح.');
     } catch(err) {
         alert('فشل حفظ الإعدادات: ' + err.message);
@@ -3737,6 +3780,8 @@ window.renderAdminGallery = function() {
             <img src="${String(imageUrl).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]))}" data-image-preview="${imageItem.id}">
             <div class="admin-gallery-actions">
                 ${!isPrimary ? '<button type="button" class="admin-gallery-btn" data-image-action="primary" title="جعلها الرئيسية"><i class="fa-solid fa-star"></i></button>' : ''}
+                <button type="button" class="admin-gallery-btn" data-image-action="up" title="تقديم"><i class="fa-solid fa-arrow-right"></i></button>
+                <button type="button" class="admin-gallery-btn" data-image-action="down" title="تأخير"><i class="fa-solid fa-arrow-left"></i></button>
                 <button type="button" class="admin-gallery-btn" data-image-action="remove" title="حذف"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
@@ -3761,8 +3806,18 @@ document.getElementById('adminGalleryContainer')?.addEventListener('click', (eve
         return;
     }
     if (action === 'primary') {
-        productImageItems.forEach((item) => { item.isPrimary = item.id === image.id; });
+        const index = productImageItems.indexOf(image);
+        if (index > 0) productImageItems.splice(index, 1), productImageItems.unshift(image);
         setProductImageState(productImageItems, image.id);
+        return;
+    }
+    if (action === 'up' || action === 'down') {
+        const index = productImageItems.indexOf(image);
+        const next = action === 'up' ? index - 1 : index + 1;
+        if (index >= 0 && next >= 0 && next < productImageItems.length) {
+            [productImageItems[index], productImageItems[next]] = [productImageItems[next], productImageItems[index]];
+            setProductImageState(productImageItems, image.id);
+        }
         return;
     }
     activeProductImageId = image.id;

@@ -39,7 +39,7 @@
         <!-- Left side: Cart, Favorites, Account, appearance, language. -->
         <div class="header-actions" aria-label="اختصارات المتجر">
           <button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة">
-            <i class="fa-solid fa-cart-shopping"></i>
+            <span class="cart-icon" aria-hidden="true"></span>
             <span class="cart-badge" id="cartBadge">0</span>
           </button>
           <button class="icon-btn" id="favBtn" type="button" aria-label="المفضلة">
@@ -278,7 +278,7 @@
 
   <!-- ===== FLOATING BUTTONS ===== -->
   <button class="floating-cart" id="floatingCartBtn" type="button" aria-label="فتح السلة">
-    <i class="fa-solid fa-cart-shopping"></i>
+    <span class="cart-icon" aria-hidden="true"></span>
     <span id="floatingCartBadge">0</span>
   </button>
   <button class="chatbot-fab" id="chatbotFab" type="button" aria-label="فتح مساعد سبايدر">
@@ -289,7 +289,7 @@
   <div class="drawer-overlay" id="cartOverlay"></div>
   <aside class="cart-drawer" id="cartSidebar" aria-label="سلة المشتريات">
     <div class="drawer-head">
-      <h2><i class="fa-solid fa-cart-shopping"></i> سلة المشتريات</h2>
+      <h2><span class="cart-icon" aria-hidden="true"></span> سلة المشتريات</h2>
       <button class="icon-btn" id="closeCartBtn" type="button" aria-label="إغلاق السلة">
         <i class="fa-solid fa-xmark"></i>
       </button>
