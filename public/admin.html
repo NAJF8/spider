@@ -54,7 +54,7 @@
                 <li><a href="#" class="nav-item active" data-view="view-dashboard"><i class="fa-solid fa-house"></i> <span>الرئيسية</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-products"><i class="fa-solid fa-box"></i> <span>المنتجات</span> <span class="counter-badge" id="navProductsCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-pricing"><i class="fa-solid fa-money-bill-trend-up"></i> <span>إدارة الأسعار</span></a></li>
-                <li><a href="#" class="nav-item" data-view="view-builder-discounts"><i class="fa-solid fa-tags"></i> <span>خصومات ابنِ تجميعتك</span></a></li>
+                <li><a href="#" class="nav-item" data-view="view-builder-discounts"><i class="fa-solid fa-screwdriver-wrench"></i> <span>ابني تجميعتك</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-categories"><i class="fa-solid fa-border-all"></i> <span>الأقسام</span> <span class="counter-badge" id="navCategoriesCount">0</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-brands"><i class="fa-solid fa-award"></i> <span>شعارات العلامات</span></a></li>
                 <li><a href="#" class="nav-item" data-view="view-orders"><i class="fa-solid fa-cart-shopping"></i> <span>الطلبات</span> <span class="badge" id="ordersBadge">0</span></a></li>
@@ -272,9 +272,15 @@
             <section id="view-builder-discounts" class="admin-view">
                 <div class="view-header">
                     <div>
-                        <h2><i class="fa-solid fa-tags"></i> خصومات فاتورة ابنِ تجميعتك</h2>
-                        <p>إدارة خصم مستقل على إجمالي قيمة التجميعة كاملة حسب الشريحة المحددة.</p>
+                        <h2><i class="fa-solid fa-screwdriver-wrench"></i> ابنِ تجميعتك</h2>
+                        <p>إدارة أقسام التجميعة، المنتجات المسموحة، وخصومات فاتورة التجميعة.</p>
                     </div>
+                </div>
+                <div class="box builder-sections-management-box">
+                    <div class="builder-sections-management-heading"><div><h3>أقسام ومنتجات ابنِ تجميعتك</h3><p>حدد المنتجات المسموحة للظهور داخل كل قسم من Build Your PC.</p></div></div>
+                    <div class="form-group"><label for="builderSectionsProductSearch">البحث عن المنتجات داخل الأقسام</label><input type="search" id="builderSectionsProductSearch" placeholder="ابحث باسم المنتج أو SKU..." dir="rtl"></div>
+                    <div id="builderSectionsSettings" class="builder-sections-settings-list"></div>
+                    <div class="header-controls-group"><button type="button" class="btn btn-primary" id="saveBuilderSectionsBtn"><i class="fa-solid fa-floppy-disk"></i> حفظ منتجات الأقسام</button></div>
                 </div>
                 <div class="box builder-invoice-discount-box">
                     <div class="builder-invoice-discount-heading">
@@ -547,7 +553,6 @@
                                 <small class="form-hint">سيتم إضافتها على إجمالي الطلب.</small>
                             </div>
                             <div class="form-group"><label>عتبة الكمية المحدودة</label><input type="number" id="settingLowStockThreshold" min="0" placeholder="3"><small class="form-hint">تظهر للزبون كـ «كمية محدودة» دون كشف المخزون إذا لم تعتمد ذلك.</small></div>
-                            <div class="form-group builder-sections-settings"><label>منتجات أقسام «ابني تجميعتك» المسموحة</label><small class="form-hint">إذا لم تختر أي منتج لقسم، تبقى فلترة القسم القديمة فعالة.</small><input type="search" id="builderSectionsProductSearch" placeholder="ابحث باسم المنتج أو SKU..." dir="rtl"><div id="builderSectionsSettings" class="builder-sections-settings-list"></div></div>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> حفظ الإعدادات</button>
                     </form>
