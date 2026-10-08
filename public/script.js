@@ -403,14 +403,14 @@ const modal = (id, open) => {
 
 const UNIFIED_CATEGORY_ICONS = {
   // Top-Level Categories
-  'cat-computers': 'assets/category-fallbacks/computer.svg?v=3',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=3',
-  'cat-security': 'assets/category-fallbacks/security.svg?v=3',
-  'cat-printers': 'assets/category-fallbacks/printer.svg?v=3',
-  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=3',
-  'cat-network': 'assets/category-fallbacks/network.svg?v=3',
-  'cat-power': 'assets/category-fallbacks/power.svg?v=3',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=3',
+  'cat-computers': 'assets/category-modern/computers.svg?v=1',
+  'cat-pc-parts': 'assets/category-modern/pc-parts.svg?v=1',
+  'cat-security': 'assets/category-modern/security.svg?v=1',
+  'cat-printers': 'assets/category-modern/printers.svg?v=1',
+  'cat-monitors': 'assets/category-modern/monitors.svg?v=1',
+  'cat-network': 'assets/category-modern/network.svg?v=1',
+  'cat-power': 'assets/category-modern/power.svg?v=1',
+  'cat-accessories': 'assets/category-modern/accessories.svg?v=1',
 
   // PC Parts Subcategories
   'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
@@ -430,6 +430,8 @@ const SIDEBAR_ICONS = UNIFIED_CATEGORY_ICONS;
 // historical FontAwesome contract from `cat.icon` so the two surfaces stay
 // visually independent.
 function sidebarCategoryIcon(cat) {
+  const unified = SIDEBAR_ICONS[cat?.id];
+  if (unified) return `<img class="sidebar-category-icon" src="${esc(unified)}" alt="" aria-hidden="true">`;
   const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
   const icon = key.includes('network') || key.includes('شبك') ? 'fa-circle-nodes'
     : key.includes('power') || key.includes('طاقة') || key.includes('psu') ? 'fa-power-off'
@@ -439,22 +441,22 @@ function sidebarCategoryIcon(cat) {
 }
 
 const FALLBACK_IMAGES = {
-  'cat-computers': 'assets/category-fallbacks/computer.svg?v=3',
+  'cat-computers': 'assets/category-modern/computers.svg?v=1',
   'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
   'cat-ram': 'assets/category-fallbacks/ram.svg?v=3',
-  'cat-monitors': 'assets/category-fallbacks/monitor.svg?v=3',
-  'cat-printers': 'assets/category-fallbacks/printer.svg?v=3',
-  'cat-network': 'assets/category-fallbacks/network.svg?v=3',
-  'cat-pc-parts': 'assets/category-fallbacks/pc-parts.svg?v=3',
+  'cat-monitors': 'assets/category-modern/monitors.svg?v=1',
+  'cat-printers': 'assets/category-modern/printers.svg?v=1',
+  'cat-network': 'assets/category-modern/network.svg?v=1',
+  'cat-pc-parts': 'assets/category-modern/pc-parts.svg?v=1',
   'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=3',
   'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=3',
   'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=3',
   'cat-psu': 'assets/category-fallbacks/power.svg?v=3',
   'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=3',
   'cat-cases': 'assets/category-fallbacks/computer.svg?v=3',
-  'cat-accessories': 'assets/category-fallbacks/accessories.svg?v=3',
-  'cat-power': 'assets/category-fallbacks/power.svg?v=3',
-  'cat-security': 'assets/category-fallbacks/security.svg?v=3'
+  'cat-accessories': 'assets/category-modern/accessories.svg?v=1',
+  'cat-power': 'assets/category-modern/power.svg?v=1',
+  'cat-security': 'assets/category-modern/security.svg?v=1'
 };
 const FALLBACK_KEYWORDS = [
   ['معالج', 'cpu'], ['cpu', 'cpu'], ['رام', 'ram'], ['ذاكرة', 'ram'],
