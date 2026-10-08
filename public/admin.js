@@ -729,6 +729,104 @@ const BUILDER_DISCOUNT_PARTS = [
     { id: 'cat-cases', label: 'الصندوق Case' }
 ];
 const BUILDER_DISCOUNT_CATEGORY_IDS = new Set(BUILDER_DISCOUNT_PARTS.map((part) => part.id));
+const DEFAULT_BUILDER_INVOICE_TIERS = [
+    { id: 'tier-1', min: 500000, max: 999999, discount: 25000, enabled: true, order: 1 },
+    { id: 'tier-2', min: 1000000, max: 1499999, discount: 50000, enabled: true, order: 2 },
+    { id: 'tier-3', min: 1500000, max: 1999999, discount: 75000, enabled: true, order: 3 }
+];
+
+function builderInvoiceConfig() {
+    const configured = storeSettings?.buildGlobalDiscount?.invoiceTiers;
+    const tiers = configured && typeof configured === 'object'
+        ? Object.entries(configured).map(([id, tier]) => ({ id, ...tier }))
+        : DEFAULT_BUILDER_INVOICE_TIERS.map((tier) => ({ ...tier }));
+    return { enabled: storeSettings?.buildGlobalDiscount?.invoiceDiscountEnabled === true, tiers };
+}
+
+function sortedBuilderInvoiceTiers(config = builderInvoiceConfig()) {
+    return config.tiers.filter((tier) => tier && typeof tier === 'object').map((tier, index) => ({
+        id: String(tier.id || `tier-${index + 1}`),
+        min: Number(tier.min),
+        max: tier.max === null || tier.max === '' || tier.max === undefined ? null : Number(tier.max),
+        discount: Number(tier.discount),
+        enabled: tier.enabled !== false,
+        order: Number(tier.order) || index + 1
+    })).sort((a, b) => a.min - b.min || a.order - b.order);
+}
+
+function builderInvoiceTierOverlaps(candidate, tiers, ignoreId = '') {
+    return tiers.some((tier) => tier.id !== ignoreId && tier.enabled && candidate.enabled
+        && candidate.min <= (tier.max === null ? Infinity : tier.max)
+        && (candidate.max === null || candidate.max >= tier.min));
+}
+
+function renderBuilderInvoiceTiers() {
+    const body = document.getElementById('builderInvoiceTiersBody');
+    const toggle = document.getElementById('builderInvoiceDiscountEnabled');
+    if (!body) return;
+    const config = builderInvoiceConfig();
+    if (toggle) toggle.checked = config.enabled;
+    const tiers = sortedBuilderInvoiceTiers(config);
+    body.innerHTML = tiers.length ? tiers.map((tier) => `<tr><td>${formatPrice(tier.min)}</td><td>${tier.max === null ? 'مفتوح' : formatPrice(tier.max)}</td><td>${formatPrice(tier.discount)}</td><td><span class="status-badge ${tier.enabled ? 'status-published' : 'status-hidden'}">${tier.enabled ? 'مفعّل' : 'معطّل'}</span></td><td><button type="button" class="btn btn-outline btn-sm" data-edit-builder-invoice-tier="${escapeHtml(tier.id)}">تعديل</button> <button type="button" class="btn btn-danger btn-sm" data-delete-builder-invoice-tier="${escapeHtml(tier.id)}">حذف</button></td></tr>`).join('') : '<tr><td colspan="5" class="text-center">لا توجد شرائح محفوظة.</td></tr>';
+    body.querySelectorAll('[data-edit-builder-invoice-tier]').forEach((button) => button.addEventListener('click', () => openBuilderInvoiceTierForm(button.dataset.editBuilderInvoiceTier)));
+    body.querySelectorAll('[data-delete-builder-invoice-tier]').forEach((button) => button.addEventListener('click', () => deleteBuilderInvoiceTier(button.dataset.deleteBuilderInvoiceTier)));
+}
+
+function openBuilderInvoiceTierForm(id = '') {
+    const form = document.getElementById('builderInvoiceTierForm');
+    if (!form) return;
+    const tier = sortedBuilderInvoiceTiers().find((item) => item.id === id);
+    document.getElementById('builderInvoiceTierId').value = tier?.id || '';
+    document.getElementById('builderInvoiceTierMin').value = tier?.min ?? '';
+    document.getElementById('builderInvoiceTierMax').value = tier?.max ?? '';
+    document.getElementById('builderInvoiceTierDiscount').value = tier?.discount ?? '';
+    document.getElementById('builderInvoiceTierEnabled').checked = tier?.enabled !== false;
+    form.hidden = false;
+}
+
+function closeBuilderInvoiceTierForm() { const form = document.getElementById('builderInvoiceTierForm'); if (form) form.hidden = true; }
+
+async function saveBuilderInvoiceConfig(config) {
+    if (!canManageBuilderDiscounts()) throw new Error('ليس لديك صلاحية إدارة خصومات فاتورة التجميعة.');
+    if (isDemoMode) throw new Error('لا يمكن الحفظ في وضع المعاينة.');
+    const tiers = Object.fromEntries(sortedBuilderInvoiceTiers(config).map((tier, index) => [tier.id, { min: tier.min, max: tier.max, discount: tier.discount, enabled: tier.enabled, order: index + 1 }]));
+    const previous = storeSettings?.buildGlobalDiscount && typeof storeSettings.buildGlobalDiscount === 'object' ? storeSettings.buildGlobalDiscount : {};
+    const payload = { ...previous, invoiceDiscountEnabled: config.enabled === true, invoiceTiers: tiers, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
+    await update(ref(db), { 'settings/buildGlobalDiscount': payload });
+    const snapshot = await get(ref(db, 'settings/buildGlobalDiscount'));
+    const saved = snapshot.exists() ? snapshot.val() : null;
+    if (!saved || saved.invoiceDiscountEnabled !== payload.invoiceDiscountEnabled || Object.keys(saved.invoiceTiers || {}).length !== Object.keys(tiers).length) throw new Error('BUILDER_INVOICE_SETTINGS_READBACK_MISMATCH');
+    storeSettings = { ...storeSettings, buildGlobalDiscount: saved };
+    localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
+    renderBuilderInvoiceTiers();
+}
+
+async function saveBuilderInvoiceTier(event) {
+    event.preventDefault();
+    const id = String(document.getElementById('builderInvoiceTierId').value || '').trim();
+    const min = Number(document.getElementById('builderInvoiceTierMin').value);
+    const maxRaw = String(document.getElementById('builderInvoiceTierMax').value || '').trim();
+    const max = maxRaw === '' ? null : Number(maxRaw);
+    const discount = Number(document.getElementById('builderInvoiceTierDiscount').value);
+    const enabled = document.getElementById('builderInvoiceTierEnabled').checked === true;
+    const config = builderInvoiceConfig();
+    const current = sortedBuilderInvoiceTiers(config);
+    const candidate = { id: id || `tier-${Date.now()}`, min, max, discount, enabled, order: current.length + 1 };
+    if (!Number.isFinite(min) || min < 0 || (max !== null && (!Number.isFinite(max) || max <= min)) || !Number.isFinite(discount) || discount < 0 || (max !== null && discount > max) || builderInvoiceTierOverlaps(candidate, current, id)) {
+        alert(builderInvoiceTierOverlaps(candidate, current, id) ? 'هذه الشريحة تتداخل مع شريحة موجودة' : 'تحقق من الحدود وقيمة الخصم: الحد الأدنى غير سالب، والحد الأعلى أكبر منه، والخصم غير سالب ولا يتجاوز الحد الأعلى.');
+        return;
+    }
+    const next = current.filter((tier) => tier.id !== id).concat(candidate);
+    try { await saveBuilderInvoiceConfig({ enabled: config.enabled, tiers: next }); closeBuilderInvoiceTierForm(); alert('تم حفظ شريحة خصم الفاتورة والتحقق من Firebase.'); }
+    catch (error) { alert(`فشل حفظ شريحة خصم الفاتورة: ${error.message || 'خطأ غير معروف'}`); }
+}
+
+async function deleteBuilderInvoiceTier(id) {
+    if (!window.confirm('هل تريد حذف شريحة الخصم هذه؟')) return;
+    const config = builderInvoiceConfig();
+    try { await saveBuilderInvoiceConfig({ enabled: config.enabled, tiers: sortedBuilderInvoiceTiers(config).filter((tier) => tier.id !== id) }); closeBuilderInvoiceTierForm(); alert('تم حذف الشريحة والتحقق من Firebase.'); }
+    catch (error) { alert(`فشل حذف الشريحة: ${error.message || 'خطأ غير معروف'}`); }
+}
 
 function canManageBuilderDiscounts() {
     return isDemoMode || Boolean(currentAdminUser && (currentAdminUser.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.store_settings === true));
@@ -904,6 +1002,14 @@ async function saveBuilderProductDiscount(productId) {
 document.getElementById('builderDiscountSearch')?.addEventListener('input', renderBuilderDiscountsTable);
 document.getElementById('builderDiscountCategoryFilter')?.addEventListener('change', renderBuilderDiscountsTable);
 document.getElementById('builderDiscountStatusFilter')?.addEventListener('change', renderBuilderDiscountsTable);
+document.getElementById('addBuilderInvoiceTierBtn')?.addEventListener('click', () => openBuilderInvoiceTierForm());
+document.getElementById('cancelBuilderInvoiceTierBtn')?.addEventListener('click', closeBuilderInvoiceTierForm);
+document.getElementById('builderInvoiceTierForm')?.addEventListener('submit', saveBuilderInvoiceTier);
+document.getElementById('builderInvoiceDiscountEnabled')?.addEventListener('change', async (event) => {
+    const config = builderInvoiceConfig();
+    try { await saveBuilderInvoiceConfig({ enabled: event.target.checked === true, tiers: config.tiers }); alert('تم تحديث تفعيل خصومات فاتورة التجميعة والتحقق من Firebase.'); }
+    catch (error) { event.target.checked = config.enabled; alert(`فشل تحديث التفعيل: ${error.message || 'خطأ غير معروف'}`); }
+});
 
 // ================= DASHBOARD RENDERING =================
 function renderRecentOrders() {
@@ -3148,17 +3254,7 @@ onValue(ref(db, 'settings'), (snapshot) => {
     Object.entries(fields).forEach(([id, value]) => { const el = document.getElementById(id); if (el) el.value = value; });
     const chatbotEnabled = document.getElementById('settingChatbotEnabled');
     if (chatbotEnabled) chatbotEnabled.checked = storeSettings.chatbotEnabled !== false;
-    const buildDiscount = storeSettings.buildGlobalDiscount || {};
-    const buildDiscountEnabled = document.getElementById('settingBuildGlobalDiscountEnabled');
-    const buildDiscountType = document.getElementById('settingBuildGlobalDiscountType');
-    const buildDiscountValue = document.getElementById('settingBuildGlobalDiscountValue');
-    if (buildDiscountEnabled) buildDiscountEnabled.checked = buildDiscount.enabled === true;
-    if (buildDiscountType) buildDiscountType.value = ['fixed', 'percentage', 'step'].includes(buildDiscount.mode || buildDiscount.type) ? (buildDiscount.mode || buildDiscount.type) : 'percentage';
-    if (buildDiscountValue) buildDiscountValue.value = Number.isFinite(Number(buildDiscount.value)) ? Number(buildDiscount.value) : Number(buildDiscount.fixedAmount ?? buildDiscount.percentage) || 0;
-    const buildDiscountThreshold = document.getElementById('settingBuildGlobalDiscountThreshold');
-    const buildDiscountPerStep = document.getElementById('settingBuildGlobalDiscountPerStep');
-    if (buildDiscountThreshold) buildDiscountThreshold.value = Number(buildDiscount.thresholdAmount) || 500000;
-    if (buildDiscountPerStep) buildDiscountPerStep.value = Number(buildDiscount.discountPerThreshold ?? buildDiscount.discountPerStep) || 25000;
+    renderBuilderInvoiceTiers();
     renderBuilderSectionsSettings();
     const elWa = document.getElementById('settingWhatsapp');
     const elDf = document.getElementById('settingDeliveryFee');
@@ -3241,10 +3337,6 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
 
     const wa = document.getElementById('settingWhatsapp').value.replace(/[^0-9]/g, '').replace(/^00/, '');
     const df = Number(document.getElementById('settingDeliveryFee').value);
-    const buildDiscountType = ['fixed', 'percentage', 'step'].includes(document.getElementById('settingBuildGlobalDiscountType').value) ? document.getElementById('settingBuildGlobalDiscountType').value : 'percentage';
-    const buildDiscountValue = Math.max(0, Number(document.getElementById('settingBuildGlobalDiscountValue').value || 0));
-    const thresholdAmount = Math.max(1, Number(document.getElementById('settingBuildGlobalDiscountThreshold').value || 500000));
-    const discountPerThreshold = Math.max(0, Number(document.getElementById('settingBuildGlobalDiscountPerStep').value || 25000));
     const builderSections = pendingBuilderSections || Object.fromEntries(ADMIN_BUILDER_SECTIONS.map(([id]) => [id, { allowedProductIds: [...document.querySelectorAll(`[data-builder-section="${CSS.escape(id)}"]:checked`)].map((input) => String(input.dataset.builderProductId)) } ]));
 
     try {
@@ -3264,23 +3356,10 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
             lowStockThreshold: Math.max(0, Number(document.getElementById('settingLowStockThreshold').value || 3)),
             chatbotEnabled: document.getElementById('settingChatbotEnabled').checked,
             deliveryFee: df,
-            buildGlobalDiscount: {
-                enabled: document.getElementById('settingBuildGlobalDiscountEnabled').checked === true,
-                mode: buildDiscountType,
-                type: buildDiscountType,
-                value: buildDiscountValue,
-                fixedAmount: buildDiscountType === 'fixed' ? buildDiscountValue : 0,
-                percentage: buildDiscountType === 'percentage' ? buildDiscountValue : 0,
-                thresholdAmount,
-                discountPerThreshold,
-                updatedAt: Date.now(),
-                updatedBy: currentAdminUser?.uid || null
-            },
             builderSections
         });
         const readBack = await get(ref(db, 'settings'));
         const saved = readBack.exists() ? readBack.val() : {};
-        if (saved.buildGlobalDiscount?.mode !== buildDiscountType || Number(saved.buildGlobalDiscount?.thresholdAmount) !== thresholdAmount) throw new Error('BUILDER_SETTINGS_READBACK_MISMATCH');
         for (const [id, section] of Object.entries(builderSections)) {
             const expected = [...new Set(section.allowedProductIds.map(String))].sort().join(',');
             const actual = [...new Set((saved.builderSections?.[id]?.allowedProductIds || []).map(String))].sort().join(',');
