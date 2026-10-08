@@ -2010,3 +2010,59 @@ html[data-theme="dark"] #accountModal .account-address-form select option{
   color:#15171c !important;
   -webkit-text-fill-color:#15171c !important;
 }
+
+/* ===== Cart icon visibility hotfix ===== */
+.cart-icon{
+  position:relative !important;
+  display:inline-block !important;
+  width:1.15em !important;
+  height:1.15em !important;
+  min-width:1.15em !important;
+  min-height:1.15em !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background-color:currentColor !important;
+}
+.fa-cart-shopping{
+  font-size:1em !important;
+  width:1.15em !important;
+  height:1.15em !important;
+  min-width:1.15em !important;
+  min-height:1.15em !important;
+}
+.floating-cart .cart-icon{
+  position:absolute !important;
+  inset:50% auto auto 50% !important;
+  transform:translate(-50%,-50%) !important;
+  color:#fff !important;
+  background-color:#fff !important;
+  width:25px !important;
+  height:25px !important;
+  min-width:25px !important;
+  min-height:25px !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+.floating-cart #floatingCartBadge{
+  position:absolute !important;
+  top:-3px !important;
+  right:-4px !important;
+  left:auto !important;
+  bottom:auto !important;
+  transform:none !important;
+  background:#17191d !important;
+  color:#fff !important;
+  border:2px solid #fff !important;
+  border-radius:99px !important;
+  min-width:18px !important;
+  width:auto !important;
+  height:18px !important;
+  padding:0 4px !important;
+  font-size:9px !important;
+  line-height:14px !important;
+  text-align:center !important;
+  font-weight:700 !important;
+  box-shadow:none !important;
+}
