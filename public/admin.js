@@ -3022,10 +3022,22 @@ function renderBuilderSectionsSettings() {
     if (!root) return;
     const query = String(document.getElementById('builderSectionsProductSearch')?.value || '').trim().toLowerCase();
     const configured = pendingBuilderSections || storeSettings.builderSections || {};
+    const productImage = (product) => Array.isArray(product?.images) && product.images[0] ? product.images[0] : (product?.image || '/images/default-product.svg');
+    const productSearchText = (product) => `${product.name || ''} ${product.nameAr || ''} ${product.nameEn || ''} ${product.sku || ''} ${product.model || ''} ${product.brand || ''}`.toLowerCase();
     root.innerHTML = ADMIN_BUILDER_SECTIONS.map(([id, label, categoryId]) => {
         const selected = new Set(Array.isArray(configured[id]?.allowedProductIds) ? configured[id].allowedProductIds.map(String) : []);
-        const matches = products.filter((product) => (product.categoryId || product.category) === categoryId && (!query || `${product.name || ''} ${product.nameAr || ''} ${product.sku || ''} ${product.model || ''}`.toLowerCase().includes(query)));
-        return `<details class="builder-section-setting" open><summary><strong>${escapeHtml(label)}</strong><span class="builder-section-count" data-builder-section-count="${id}">${selected.size} مختار</span></summary><div class="builder-section-products">${matches.length ? matches.map((product) => `<label class="checkbox-label"><input type="checkbox" data-builder-section="${id}" data-builder-product-id="${escapeHtml(product.id)}" ${selected.has(String(product.id)) ? 'checked' : ''}><span>${escapeHtml(product.name || product.nameAr || product.id)}${product.sku ? ` <small>${escapeHtml(product.sku)}</small>` : ''}</span></label>`).join('') : '<small class="form-hint">لا توجد منتجات مطابقة في هذا القسم.</small>'}</div></details>`;
+        const matches = products.filter((product) => (product.categoryId || product.category) === categoryId && (!query || productSearchText(product).includes(query)))
+            .sort((a, b) => Number(selected.has(String(b.id))) - Number(selected.has(String(a.id))) || String(a.name || a.nameAr || '').localeCompare(String(b.name || b.nameAr || '')));
+        const cards = matches.map((product) => {
+            const productId = String(product.id);
+            const isSelected = selected.has(productId);
+            const productName = product.name || product.nameAr || product.nameEn || product.id;
+            const model = product.sku || product.model || '';
+            const brand = product.brand || '';
+            const price = Number(product.public_price ?? product.retail_price ?? product.price) || 0;
+            return `<label class="builder-product-card${isSelected ? ' is-selected' : ''}" data-builder-product-card="${escapeHtml(productId)}"><input class="builder-product-checkbox" type="checkbox" data-builder-section="${id}" data-builder-product-id="${escapeHtml(productId)}" ${isSelected ? 'checked' : ''} aria-label="اختيار ${escapeHtml(productName)}"><span class="builder-product-card-image"><img src="${escapeHtml(productImage(product))}" alt="${escapeHtml(productName)}" loading="lazy"></span><span class="builder-product-card-copy"><strong>${escapeHtml(productName)}</strong>${brand ? `<small>${escapeHtml(brand)}</small>` : ''}${model ? `<small>SKU / Model: ${escapeHtml(model)}</small>` : ''}<b>${formatPrice(price)}</b></span><span class="builder-product-card-status">${isSelected ? 'مختار' : 'غير مختار'}</span></label>`;
+        }).join('');
+        return `<details class="builder-section-setting" open><summary><strong>${escapeHtml(label)}</strong><span class="builder-section-count" data-builder-section-count="${id}">${selected.size} مختار</span></summary><div class="builder-section-products">${cards || '<small class="form-hint">لا توجد منتجات مطابقة في هذا القسم.</small>'}</div></details>`;
     }).join('');
     root.querySelectorAll('[data-builder-section]').forEach((input) => input.addEventListener('change', () => {
         const section = input.dataset.builderSection;
@@ -3034,7 +3046,13 @@ function renderBuilderSectionsSettings() {
         if (input.checked) selected.add(String(input.dataset.builderProductId));
         else selected.delete(String(input.dataset.builderProductId));
         pendingBuilderSections = { ...current, [section]: { ...(current[section] || {}), allowedProductIds: [...selected] } };
-        const count = root.querySelectorAll(`[data-builder-section="${CSS.escape(section)}"]:checked`).length;
+        const card = input.closest('[data-builder-product-card]');
+        if (card) {
+            card.classList.toggle('is-selected', input.checked);
+            const status = card.querySelector('.builder-product-card-status');
+            if (status) status.textContent = input.checked ? 'مختار' : 'غير مختار';
+        }
+        const count = selected.size;
         const output = root.querySelector(`[data-builder-section-count="${CSS.escape(section)}"]`);
         if (output) output.textContent = `${count} مختار`;
     }));
