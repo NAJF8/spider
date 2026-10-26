@@ -709,6 +709,25 @@ document.getElementById('pricingSearch')?.addEventListener('input', renderPricin
 document.getElementById('pricingCategoryFilter')?.addEventListener('change', renderPricingManagementTable);
 document.getElementById('pricingStatusFilter')?.addEventListener('change', renderPricingManagementTable);
 
+function pricingConfig() { return storeSettings?.pricingConfig && typeof storeSettings.pricingConfig === 'object' ? storeSettings.pricingConfig : { site: {}, categoryOverrides: {} }; }
+function hydratePriceConfigControls() {
+    const config = pricingConfig(); const site = config.site || {};
+    const force = document.getElementById('priceForceHideAll'); const adjustment = document.getElementById('sitePriceAdjustment'); const rounding = document.getElementById('sitePriceRounding');
+    if (force) force.checked = config.forceHideAll === true;
+    if (adjustment) adjustment.value = Number(site.percentAdjustment || 0);
+    if (rounding) rounding.value = String(Number(site.roundTo || 0));
+}
+async function saveSitePriceConfig() {
+    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.store_settings !== true)) return alert('ليست لديك صلاحية إدارة إعدادات الأسعار.');
+    const percentAdjustment = Number(document.getElementById('sitePriceAdjustment')?.value);
+    const roundTo = Number(document.getElementById('sitePriceRounding')?.value);
+    if (!Number.isFinite(percentAdjustment) || percentAdjustment < -100 || percentAdjustment > 1000 || ![0,250,500,1000,5000,10000].includes(roundTo)) return alert('تحقق من نسبة التعديل وخيار التقريب.');
+    const previous = pricingConfig(); const next = { ...previous, forceHideAll: document.getElementById('priceForceHideAll')?.checked === true, site: { ...(previous.site || {}), percentAdjustment, roundTo }, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
+    try { await update(ref(db), { 'settings/pricingConfig': next, [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'site_price_config_changed', actorUid: currentAdminUser.uid, previous, next, timestamp: Date.now() } }); storeSettings = { ...storeSettings, pricingConfig: next }; hydratePriceConfigControls(); renderPricingManagementTable(); alert('تم حفظ إعداد الأسعار العام.'); }
+    catch (error) { alert(`تعذر حفظ إعداد الأسعار: ${error.message || 'خطأ غير معروف'}`); }
+}
+document.getElementById('saveSitePriceConfig')?.addEventListener('click', saveSitePriceConfig);
+
 // ================= BUILDER PRODUCT DISCOUNTS =================
 const DEFAULT_BUILDER_INVOICE_TIERS = [
     { id: 'tier-1', min: 500000, max: 999999, discount: 25000, enabled: true, order: 1 },
@@ -3094,6 +3113,7 @@ onValue(ref(db, 'settings'), (snapshot) => {
     pendingBuilderSections = null;
     // Store in localStorage for storefront
     localStorage.setItem('spider_store_settings', JSON.stringify(storeSettings));
+    hydratePriceConfigControls();
 
     // Update UI
     const fields = {

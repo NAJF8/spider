@@ -10,6 +10,8 @@ export default {
 export {
   normalizePricingTier,
   resolveProductPrice,
+  resolveConfiguredPrice,
+  priceRuleFor,
   normalizeIraqPhone,
   validatePin,
   validatePassword,
@@ -431,6 +433,34 @@ function resolveProductPrice(product, privatePrice = {}, tier = 'public') {
     ? positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice)
     : tier === 'special' ? positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice) : null;
   return tierPrice ?? publicPrice ?? 0;
+}
+
+// Prices are always calculated from the immutable base price.  Configuration is
+// deliberately data-only, so the same resolver can be used by checkout, chat,
+// and future catalog endpoints without accumulating percentage changes.
+function priceRuleFor(product, settings = {}, categories = {}) {
+  const config = settings?.pricingConfig && typeof settings.pricingConfig === 'object' ? settings.pricingConfig : {};
+  const categoryId = String(product?.categoryId || product?.category || '');
+  const category = categories?.[categoryId] || {};
+  const parentId = String(category?.parentId || category?.parentCategory || category?.parent || '');
+  const categoryRules = config.categoryOverrides && typeof config.categoryOverrides === 'object' ? config.categoryOverrides : {};
+  return {
+    ...(config.site || {}),
+    ...(parentId ? categoryRules[parentId] || {} : {}),
+    ...(categoryRules[categoryId] || {}),
+    ...(product?.pricingOverride && typeof product.pricingOverride === 'object' ? product.pricingOverride : {}),
+    forceHide: config.forceHideAll === true
+  };
+}
+
+function resolveConfiguredPrice(product, privatePrice = {}, tier = 'public', settings = {}, categories = {}) {
+  const rule = priceRuleFor(product, settings, categories);
+  const basePrice = resolveProductPrice({ ...product, public_price: product?.basePrice ?? product?.public_price ?? product?.retail_price ?? product?.price }, privatePrice, tier);
+  const percent = Number(rule.percentAdjustment ?? 0);
+  const unrounded = Math.round(basePrice * (1 + (Number.isFinite(percent) ? percent : 0) / 100));
+  const step = Number(rule.roundTo ?? 0);
+  const price = step > 0 && Number.isInteger(step) ? Math.round(unrounded / step) * step : unrounded;
+  return { basePrice, price: Math.max(0, price), visible: rule.forceHide !== true && rule.hidePrice !== true, rule };
 }
 
 async function handleRequest(request, env) {
@@ -995,17 +1025,19 @@ async function handleRequest(request, env) {
 
         validationStage = 'catalog-and-settings';
         // Fetch live products and settings
-        const [productsRes, settingsRes] = await Promise.all([
+        const [productsRes, settingsRes, categoriesRes] = await Promise.all([
           fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json${databaseQuery}`)
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json${databaseQuery}`),
+          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/categories.json${databaseQuery}`)
         ]);
 
-        if (!productsRes.ok || !settingsRes.ok) {
+        if (!productsRes.ok || !settingsRes.ok || !categoriesRes.ok) {
           return errorResponse('DATABASE_ERROR', 500);
         }
 
         const productsObj = await productsRes.json() || {};
         const settingsObj = await settingsRes.json() || {};
+        const categoriesObj = await categoriesRes.json() || {};
         let accountType = 'public';
         const authHeader = request.headers?.get?.('Authorization') || '';
         const token = authHeader.replace(/^Bearer\s+/i, '').trim();
@@ -1047,25 +1079,28 @@ async function handleRequest(request, env) {
           }
 
           const privatePrice = privatePrices[item.id] || {};
-          const livePrice = resolveProductPrice(liveProd, privatePrice, accountType);
-          if (livePrice <= 0) return rejectCheckout(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
-          subtotal += (livePrice * item.qty);
-          if (item.source === 'builder') builderOriginalSubtotal += (livePrice * item.qty);
+          const configured = resolveConfiguredPrice(liveProd, privatePrice, accountType, settingsObj, categoriesObj);
+          if (configured.visible && configured.price <= 0) return rejectCheckout(`PRODUCT_PRICE_UNAVAILABLE_${item.id}`, 400);
+          const livePrice = configured.price;
+          const lineTotal = configured.visible ? livePrice * item.qty : 0;
+          subtotal += lineTotal;
+          if (item.source === 'builder' && configured.visible) builderOriginalSubtotal += lineTotal;
           verifiedItems.push({
             id: item.id,
             product_id: item.id,
             name: liveProd.name,
             product_name: liveProd.name,
-            price: livePrice,
-            unit_price: livePrice,
-            base_unit_price: livePrice,
+            price: configured.visible ? livePrice : 0,
+            unit_price: configured.visible ? livePrice : 0,
+            base_unit_price: configured.basePrice,
+            priceVisible: configured.visible,
             source: item.source,
             builderPart: item.builderPart,
             pricing_tier_applied: accountType,
             public_price_snapshot: positivePrice(liveProd?.public_price ?? liveProd?.retail_price ?? liveProd?.price),
             special_price_snapshot: positivePrice(privatePrice?.special_price ?? privatePrice?.specialPrice),
             wholesale_price_snapshot: positivePrice(privatePrice?.wholesale_price ?? privatePrice?.wholesalePrice),
-            line_total: livePrice * item.qty,
+            line_total: lineTotal,
             qty: item.qty,
             quantity: item.qty
           });
@@ -1082,7 +1117,7 @@ async function handleRequest(request, env) {
         const builderInvoiceDiscount = builderInvoiceDiscountTier ? Math.min(builderSubtotal, Math.round(builderInvoiceDiscountTier.discount)) : 0;
         const finalSubtotal = Math.max(0, subtotal - builderInvoiceDiscount);
         const grandTotal = finalSubtotal + appliedDeliveryFee;
-        const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
+        const orderNumber = `SP-${Math.floor(100000 + Math.random() * 900000)}`;
         const newOrderId = crypto.randomUUID();
 
         const authenticatedUser = token ? await verifyFirebaseIdToken(token, env) : null;
@@ -1111,6 +1146,7 @@ async function handleRequest(request, env) {
           grandTotal,
           timestamp: Date.now(),
           status: 'pending',
+          whatsappStatus: 'not_sent',
           customer_pricing_tier: accountType,
           items: verifiedItems,
         };
@@ -1127,6 +1163,17 @@ async function handleRequest(request, env) {
           return errorResponse('ORDER_SAVE_FAILED', 500);
         }
 
+        const whatsappNumber = String(settingsObj.storeWhatsApp || settingsObj.whatsappNumber || settingsObj.whatsapp || '9647827337942').replace(/[^0-9]/g, '');
+        const hiddenCount = verifiedItems.filter((item) => item.priceVisible === false).length;
+        const messageLines = [
+          'طلب جديد — SPIDER NAJAF', '', `رقم الطلب: ${orderNumber}`, '',
+          `اسم الزبون: ${String(customer.name)}`, `رقم الهاتف: ${String(customer.phone)}`,
+          `المحافظة / المنطقة: ${String(customer.governorate || '')} / ${String(customer.district || '')}`,
+          `العنوان: ${String(customer.addressDetails || '')}`, `الملاحظات: ${String(customer.notes || '')}`, '', 'المنتجات:',
+          ...verifiedItems.map((item, index) => `${index + 1}. ${item.name} — ${item.quantity} — ${item.priceVisible ? `${item.line_total.toLocaleString('en-IQ')} د.ع` : 'السعر عند الطلب'}`), '',
+          `مجموع المنتجات المسعّرة: ${finalSubtotal.toLocaleString('en-IQ')} د.ع`, `التوصيل: ${appliedDeliveryFee.toLocaleString('en-IQ')} د.ع`,
+          hiddenCount ? 'الإجمالي النهائي يُحدد بعد تأكيد أسعار المنتجات الأخرى.' : `الإجمالي: ${grandTotal.toLocaleString('en-IQ')} د.ع`
+        ];
         const responsePayload = {
           success: true,
           orderId: newOrderId,
@@ -1140,7 +1187,10 @@ async function handleRequest(request, env) {
           builderInvoiceDiscountTier: builderInvoiceDiscountTier?.id || null,
           deliveryFee: appliedDeliveryFee,
           grandTotal,
-          items: verifiedItems
+          items: verifiedItems,
+          hasHiddenPriceItems: hiddenCount > 0,
+          whatsappNumber,
+          whatsappMessage: messageLines.join('\n')
         };
         if (requestId) {
           const replaySave = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/checkout_requests/${encodeURIComponent(requestId)}.json${databaseQuery}`, {

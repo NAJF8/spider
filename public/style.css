@@ -273,6 +273,9 @@ img{max-width:100%;display:block}
   padding:6px 10px;border-radius:8px;
   font-size:12px;font-weight:700;margin:-2px 0 12px;
 }
+.catalog-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end;margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}
+.catalog-filters label{display:grid;gap:5px;font-size:12px;font-weight:700}.catalog-filters select,.catalog-filters input{min-height:38px;border:1px solid var(--line);border-radius:8px;padding:6px;background:transparent;color:inherit}.catalog-filters fieldset{grid-column:1/-1;border:0;padding:0;margin:0}.catalog-filters legend{font-size:12px;font-weight:700;margin-bottom:7px}.catalog-brand-filters{display:flex;flex-wrap:wrap;gap:7px}.catalog-brand-filters label{display:flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid var(--line);border-radius:999px}.catalog-filters output{font-weight:700;font-size:13px;align-self:center}
+@media (max-width:600px){.catalog-filters{grid-template-columns:1fr 1fr}.catalog-filters button,.catalog-filters output{grid-column:span 1}}
 
 /* ===== CATEGORIES — Circular Row ===== */
 /* No toggle button — always visible */

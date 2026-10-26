@@ -2,7 +2,6 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
-import { generateOrderReceiptPdf } from './pdf-receipt.js?v=20261003-3';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
@@ -33,7 +32,7 @@ const state = {
   favorites: [],
   settings: {},
   brandLogos: {},
-  filters: { category: '', brand: '', search: '' },
+  filters: { category: '', brands: [], search: '', minPrice: '', maxPrice: '', sort: '' },
   showCategories: false,
   showBrands: true,
   compare: ['', ''],
@@ -270,17 +269,31 @@ const validPrice = (value) => {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;
 };
-const getEffectivePrice = (product, profile = null) => {
+const productPriceRule = (product) => {
+  const config = state.settings?.pricingConfig || {};
+  const categoryId = String(categoryIdFor(product) || '');
+  const category = state.categories.find((item) => item.id === categoryId) || {};
+  const parentId = String(category.parentId || category.parentCategory || category.parent || '');
+  const rules = config.categoryOverrides || {};
+  return { ...(config.site || {}), ...(parentId ? rules[parentId] || {} : {}), ...(rules[categoryId] || {}), ...(product.pricingOverride || {}), forceHide: config.forceHideAll === true };
+};
+const priceInfo = (product, profile = null) => {
   const tier = normalizePricingTier(profile);
   const privatePrice = state.privatePrices?.[product?.id] || {};
-  const publicPrice = validPrice(product?.public_price ?? product?.retail_price ?? product?.price);
+  const publicPrice = validPrice(product?.basePrice ?? product?.public_price ?? product?.retail_price ?? product?.price);
   const tierPrice = tier === 'wholesale'
     ? validPrice(privatePrice.wholesale_price ?? privatePrice.wholesalePrice)
     : tier === 'special' ? validPrice(privatePrice.special_price ?? privatePrice.specialPrice) : null;
-  return tierPrice ?? publicPrice ?? 0;
+  const base = tierPrice ?? publicPrice ?? 0;
+  const rule = productPriceRule(product);
+  const adjusted = Math.round(base * (1 + (Number(rule.percentAdjustment) || 0) / 100));
+  const step = Number(rule.roundTo || 0);
+  return { price: step > 0 ? Math.round(adjusted / step) * step : adjusted, visible: rule.forceHide !== true && rule.hidePrice !== true, base, rule };
 };
+const getEffectivePrice = (product, profile = null) => priceInfo(product, profile).price;
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
+const productPriceMarkup = (product, value = productPrice(product)) => priceInfo(product).visible ? formatPrice(value) : (language === 'en' ? 'Price on request' : 'السعر عند الطلب');
 const builderPriceDetails = (product) => {
   const basePrice = productPrice(product);
   return { basePrice, discount: 0, finalPrice: basePrice };
@@ -296,10 +309,10 @@ const storeWhatsAppNumber = () => normalizeWhatsApp(state.settings.storeWhatsApp
 const setReceiptShareMode = () => {
   const button = $('whatsappOrderBtn');
   const note = $('receiptWhatsappNote');
-  if (button) button.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${language === 'en' ? 'Download receipt and open WhatsApp' : 'تحميل الوصل وفتح واتساب'}`;
+  if (button) button.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ${language === 'en' ? 'Open WhatsApp' : 'فتح واتساب'}`;
   if (note) note.textContent = language === 'en'
-    ? 'The receipt will download and the store WhatsApp chat will open. Attach the downloaded PDF there.'
-    : 'سيُحمّل الوصل وتفتح محادثة واتساب المتجر. أرفق ملف PDF المحمّل في المحادثة.';
+    ? 'A prepared text message will open in WhatsApp. Opening it does not confirm it was sent.'
+    : 'ستُفتح رسالة نصية جاهزة في واتساب؛ فتحها لا يعني تأكيد الإرسال.';
 };
 const safeUrl = (v) => { try { const u = new URL(String(v || '').trim()); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 const productStock = (p) => p?.stockQuantity ?? p?.stock;
@@ -512,12 +525,21 @@ function brandMatches(value, selected) {
 }
 
 function filteredProducts() {
-  const { category, brand, search } = state.filters;
-  return state.products.filter((p) =>
-    productCategoryMatch(p, category) &&
-    brandMatches(p.brand, brand) &&
-    (!search || productText(p).includes(search.toLowerCase()))
-  );
+  const { category, brands = [], search, minPrice, maxPrice, sort } = state.filters;
+  const result = state.products.filter((p) => {
+    const info = priceInfo(p);
+    const min = Number(minPrice), max = Number(maxPrice);
+    const priceMatches = !info.visible || ((!Number.isFinite(min) || info.price >= min) && (!Number.isFinite(max) || info.price <= max));
+    return productCategoryMatch(p, category) &&
+    (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
+    (!search || productText(p).includes(search.toLowerCase())) && priceMatches;
+  });
+  if (sort === 'price-asc' || sort === 'price-desc') result.sort((a, b) => {
+    const ap = priceInfo(a), bp = priceInfo(b);
+    if (!ap.visible) return 1; if (!bp.visible) return -1;
+    return sort === 'price-asc' ? ap.price - bp.price : bp.price - ap.price;
+  });
+  return result;
 }
 
 // ===== Settings =====
@@ -674,7 +696,7 @@ function productCard(p, ctx) {
       ${p.model || p.subcategory ? `<div class="product-model">${esc(p.model || p.subcategory || '')}</div>` : ''}
       <div class="product-stock-wrap">${availabilityMarkup(p)}</div>
       <div class="price-row">
-        <strong class="product-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : formatPrice(productPrice(p))}</strong>
+        <strong class="product-price">${p.builderOnly === true ? builderOnlyLabelMarkup() : productPriceMarkup(p)}</strong>
         ${!p.builderOnly && p.originalPrice ? `<span class="old-price">${formatPrice(p.originalPrice)}</span>` : ''}
       </div>
       <div class="product-actions">
@@ -733,16 +755,28 @@ function renderProducts() {
   bindProductActions($('productsGrid'));
   const bits = [
     state.filters.search && `${t('searchFilter')}: ${state.filters.search}`,
-    state.filters.brand && `${t('brandFilter')}: ${state.filters.brand}`,
+    state.filters.brands?.length && `${t('brandFilter')}: ${state.filters.brands.join('، ')}`,
     state.filters.category && `${t('categoryFilter')}: ${categoryName(state.filters.category)}`
   ].filter(Boolean);
   $('activeFilter').textContent = englishDigits(bits.join(' · '));
   $('activeFilter').classList.toggle('hidden', !bits.length);
   $('productsSectionTitle').textContent = bits.length ? t('productResults') : t('latestProducts');
+  renderCatalogFilters();
 }
 
+function renderCatalogFilters() {
+  const root = $('catalogBrandFilters'); if (!root) return;
+  const candidates = state.products.filter((p) => productCategoryMatch(p, state.filters.category) && (!state.filters.search || productText(p).includes(state.filters.search.toLowerCase())));
+  const brands = canonicalBrandRecords(candidates);
+  root.innerHTML = brands.map((brand) => `<label><input type="checkbox" value="${esc(brand.name)}" ${state.filters.brands.includes(brand.name) ? 'checked' : ''}> ${esc(brand.name)} (${brand.count})</label>`).join('') || '<span>لا توجد علامات</span>';
+  $('catalogSort').value = state.filters.sort; $('catalogMinPrice').value = state.filters.minPrice; $('catalogMaxPrice').value = state.filters.maxPrice;
+  $('catalogResultCount').textContent = `${filteredProducts().length} نتيجة`;
+  root.querySelectorAll('input').forEach((input) => input.addEventListener('change', () => { state.filters.brands = [...root.querySelectorAll('input:checked')].map((i) => i.value); syncFiltersToUrl(); renderProducts(); }));
+}
+function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.minPrice) p.set('min', f.minPrice); if (f.maxPrice) p.set('max', f.maxPrice); if (f.sort) p.set('sort', f.sort); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
+
 function filterProductsByCategory(categoryId) {
-  state.filters = { category: categoryId || '', brand: '', search: '' };
+  state.filters = { ...state.filters, category: categoryId || '', brands: [] };
   if ($('searchInput')) $('searchInput').value = '';
   renderProducts();
   closeSidebar();
@@ -751,7 +785,7 @@ function filterProductsByCategory(categoryId) {
 window.filterProductsByCategory = filterProductsByCategory;
 
 function clearFilters() {
-  state.filters = { category: '', brand: '', search: '' };
+  state.filters = { category: '', brands: [], search: '', minPrice: '', maxPrice: '', sort: '' };
   $('searchInput').value = '';
   document.querySelectorAll('.brand-item').forEach((b) => b.classList.remove('active'));
   $('clearBrandBtn').classList.add('hidden');
@@ -796,11 +830,11 @@ function renderBrands() {
         const prod = state.products.find((p) => brandMatches(p.brand, record.key));
         const fallback = brand.trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 3).toUpperCase();
         const logo = brandLogoFor(brand) || prod?.brandLogo || prod?.logo;
-        return `<button type="button" class="brand-item ${brandMatches(state.filters.brand, record.key) ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${brandLogoMarkup(logo, fallback || brand.slice(0, 3).toUpperCase())}<span class="brand-name">${esc(brand)}</span></button>`;
+        return `<button type="button" class="brand-item ${state.filters.brands?.some((value) => brandMatches(value, record.key)) ? 'active' : ''}" data-brand="${esc(brand)}" aria-label="${esc(`عرض منتجات ${brand}`)}">${brandLogoMarkup(logo, fallback || brand.slice(0, 3).toUpperCase())}<span class="brand-name">${esc(brand)}</span></button>`;
       }).join('')
     : `<div class="empty-state">${t('noBrands')}</div>`;
   $('brandsGrid').querySelectorAll('[data-brand]').forEach((b) => b.addEventListener('click', () => {
-    state.filters = { category: '', brand: b.dataset.brand, search: '' };
+    state.filters = { ...state.filters, category: '', brands: [b.dataset.brand], search: '' };
     $('searchInput').value = '';
     $('clearBrandBtn').classList.remove('hidden');
     renderBrands();
@@ -1559,10 +1593,11 @@ function renderCart() {
     item.public_price_snapshot = validPrice(p.public_price ?? p.retail_price ?? p.price);
     item.special_price_snapshot = validPrice(state.privatePrices?.[p.id]?.special_price);
     item.wholesale_price_snapshot = validPrice(state.privatePrices?.[p.id]?.wholesale_price);
-    total += appliedPrice * item.qty;
+    const priceVisible = priceInfo(p).visible;
+    if (priceVisible) total += appliedPrice * item.qty;
     return `<div class="cart-item"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div>
       <div class="cart-item-title">${esc(productName(p))}</div>
-      <div class="cart-item-price">${formatPrice(appliedPrice * item.qty)}</div>
+      <div class="cart-item-price">${priceVisible ? formatPrice(appliedPrice * item.qty) : (language === 'en' ? 'Price on request' : 'السعر عند الطلب')}</div>
       <div class="cart-item-actions">
         <button class="qty-btn" type="button" data-qty="${idx}:1">+</button>
         <span>${item.qty}</span>
@@ -2068,11 +2103,11 @@ async function submitCheckout(event) {
       throw new Error(result.error || result.code || 'CHECKOUT_FAILED');
     }
     const orderSnapshot = { ...result, deliveryMethod: payload.deliveryMethod, orderId: result.orderId, orderNumber: result.orderNumber, timestamp: Date.now(), customerName: payload.customer.name, customerPhone: payload.customer.phone, governorate: payload.customer.governorate, district: payload.customer.district, subdistrict: payload.customer.subdistrict, neighborhood: payload.customer.neighborhood, addressDetails: payload.customer.addressDetails, notes: payload.customer.notes, items: result.items || [] };
-    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: storeWhatsAppNumber() };
+    orderSnapshot.whatsappMessage = result.whatsappMessage || '';
+    pendingReceipt = { order: orderSnapshot, language, whatsappNumber: result.whatsappNumber || storeWhatsAppNumber() };
     state.cart = []; renderCart(); modal('checkoutModal', false);
     const successNumber = $('orderSuccessNumber'); if (successNumber) successNumber.textContent = `${language === 'en' ? 'Order number' : 'رقم الطلب'}: ${result.orderNumber}`;
     $('orderSuccessTitle').textContent = language === 'en' ? 'Order created successfully' : 'تم إنشاء الطلب بنجاح';
-    $('downloadReceiptBtn').textContent = language === 'en' ? 'Download receipt PDF' : 'تحميل الوصل PDF';
     setReceiptShareMode();
     modal('orderSuccessModal', true);
   } catch (e) {
@@ -2116,34 +2151,17 @@ function bindBuilderPageEvents() {
 
 function bindReceiptEvents() {
   $('closeOrderSuccessBtn')?.addEventListener('click', () => modal('orderSuccessModal', false));
-  $('downloadReceiptBtn')?.addEventListener('click', async () => {
-    if (!pendingReceipt) return;
-    const button = $('downloadReceiptBtn'); const label = button.textContent; button.disabled = true; button.textContent = language === 'en' ? 'Preparing PDF...' : 'جارٍ تجهيز الوصل...';
-    try {
-      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
-      const url = URL.createObjectURL(file);
-      const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (error) { console.error('PDF_GENERATION_FAILED', { name: error?.name, message: error?.message, stack: error?.stack }); showToast(language === 'en' ? 'Could not create the receipt; you can continue via WhatsApp.' : 'تعذر إنشاء الوصل، يمكنك متابعة الطلب عبر واتساب.'); }
-    finally { button.disabled = false; button.textContent = label; }
+  $('copyWhatsappMessageBtn')?.addEventListener('click', async () => {
+    if (!pendingReceipt?.order?.whatsappMessage) return;
+    try { await navigator.clipboard.writeText(pendingReceipt.order.whatsappMessage); showToast(language === 'en' ? 'Message copied.' : 'تم نسخ رسالة الطلب.'); }
+    catch { showToast(language === 'en' ? 'Could not copy the message.' : 'تعذر نسخ رسالة الطلب.'); }
   });
-  $('whatsappOrderBtn')?.addEventListener('click', async () => {
+  $('whatsappOrderBtn')?.addEventListener('click', () => {
     if (!pendingReceipt?.whatsappNumber) return;
-    const button = $('whatsappOrderBtn');
-    button.disabled = true;
-    try {
-      const file = await generateOrderReceiptPdf(pendingReceipt.order, pendingReceipt.language, { download: false, asFile: true });
-      const blobUrl = URL.createObjectURL(file);
-      const link = document.createElement('a'); link.href = blobUrl; link.download = file.name; link.click();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      const waUrl = `https://wa.me/${pendingReceipt.whatsappNumber}`;
-      const opened = window.open(waUrl, '_blank');
-      if (!opened) window.location.href = waUrl;
-      showToast(language === 'en' ? 'The receipt was downloaded. Attach it in the open WhatsApp chat.' : 'تم تحميل الوصل. أرفقه في محادثة واتساب المفتوحة.');
-    } catch (error) {
-      console.error('RECEIPT_SHARE_FAILED', { name: error?.name, message: error?.message, stack: error?.stack });
-      showToast(language === 'en' ? 'Could not prepare the receipt.' : 'تعذر تجهيز الوصل.');
-    } finally { button.disabled = false; setReceiptShareMode(); }
+    const waUrl = `https://wa.me/${pendingReceipt.whatsappNumber}?text=${encodeURIComponent(pendingReceipt.order.whatsappMessage || '')}`;
+    const opened = window.open(waUrl, '_blank', 'noopener');
+    if (!opened) window.location.href = waUrl;
+    showToast(language === 'en' ? 'WhatsApp was opened. Sending the message is still your confirmation.' : 'فُتح واتساب؛ إرسال الرسالة يبقى تأكيدك النهائي.');
   });
 }
 
@@ -2205,7 +2223,7 @@ function bindEvents() {
   $('searchInput').addEventListener('input', (e) => {
     state.filters.search = e.target.value;
     state.filters.category = '';
-    state.filters.brand = '';
+    state.filters.brands = [];
     renderSuggestions(e.target.value);
     renderProducts();
   });
@@ -2249,6 +2267,9 @@ function bindEvents() {
   $('checkoutBtn').addEventListener('click', openCheckout);
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
+  $('catalogSort')?.addEventListener('change', (event) => { state.filters.sort = event.target.value; syncFiltersToUrl(); renderProducts(); });
+  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', (event) => { state.filters[id === 'catalogMinPrice' ? 'minPrice' : 'maxPrice'] = event.target.value; syncFiltersToUrl(); renderProducts(); }));
+  $('resetCatalogFilters')?.addEventListener('click', () => { clearFilters(); syncFiltersToUrl(); });
   $('checkoutForm').querySelectorAll('input[name="deliveryMethod"]').forEach((input) => input.addEventListener('change', () => updateCheckoutFulfilment()));
   bindAddressHierarchy();
 
