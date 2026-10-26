@@ -419,6 +419,7 @@ function updateAllDashboardViews() {
     renderCategoryDistribution();
     renderProductsManagementTable();
     renderPricingManagementTable();
+    renderCategoryPriceControls();
     renderBuilderSectionsSettings();
     renderPricingCustomers();
     renderCategoriesManagementTable();
@@ -656,10 +657,11 @@ function renderPricingManagementTable() {
         return (!query || text.includes(query)) && (!category || (p.categoryId || p.category) === category) && (!status || (p.status || (p.isHidden ? 'hidden' : 'published')) === status);
     });
     tbody.innerHTML = filtered.length ? filtered.map((p) => {
-        const prices = privatePricesByProduct[p.id] || {};
-        return `<tr><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '')}</td><td><input class="pricing-input" type="number" min="1" step="1" data-public-price="${escapeHtml(p.id)}" value="${Number(p.public_price ?? p.price) || ''}"></td><td><input class="pricing-input" type="number" min="1" step="1" data-wholesale-price="${escapeHtml(p.id)}" value="${prices.wholesale_price || ''}" placeholder="fallback"></td><td><input class="pricing-input" type="number" min="1" step="1" data-special-price="${escapeHtml(p.id)}" value="${prices.special_price || ''}" placeholder="fallback"></td><td><span class="visibility-badge ${p.isHidden ? 'hidden' : 'visible'}">${p.isHidden ? 'مخفي' : 'نشط'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">حفظ</button></td></tr>`;
-    }).join('') : '<tr><td colspan="8" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
-    tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => saveProductPricing(button.dataset.savePricing)));
+        const prices = privatePricesByProduct[p.id] || {}; const preview = adminPricePreview(p); const categoryName = categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '';
+        return `<tr><td><input type="checkbox" data-pricing-product-select="${escapeHtml(p.id)}" aria-label="تحديد ${escapeHtml(p.name || '')}"></td><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categoryName)}</td><td>${preview.base.toLocaleString('en-IQ')} د.ع</td><td>${preview.hidden ? 'السعر عند الطلب' : `${preview.final.toLocaleString('en-IQ')} د.ع`}</td><td>${preview.percent}%</td><td><span class="visibility-badge ${preview.hidden ? 'hidden' : 'visible'}">${preview.hidden ? 'مخفي' : 'ظاهر'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">تعديل الأسعار</button></td></tr>`;
+    }).join('') : '<tr><td colspan="9" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
+    tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => openProductModal(button.dataset.savePricing)));
+    const selectAll = document.getElementById('selectAllPricingProducts'); if (selectAll) { selectAll.checked = false; selectAll.onchange = () => tbody.querySelectorAll('[data-pricing-product-select]').forEach((input) => { input.checked = selectAll.checked; }); }
 }
 
 async function saveProductPricing(id) {
@@ -708,14 +710,43 @@ window.saveProductPricing = saveProductPricing;
 document.getElementById('pricingSearch')?.addEventListener('input', renderPricingManagementTable);
 document.getElementById('pricingCategoryFilter')?.addEventListener('change', renderPricingManagementTable);
 document.getElementById('pricingStatusFilter')?.addEventListener('change', renderPricingManagementTable);
+async function applyBulkProductPriceConfig() {
+    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.products_edit !== true && window.currentAdminPermissions?.special_prices !== true)) return alert('ليست لديك صلاحية تعديل أسعار المنتجات.');
+    const ids = [...document.querySelectorAll('[data-pricing-product-select]:checked')].map((input) => input.dataset.pricingProductSelect); if (!ids.length) return alert('حدد منتجاً واحداً على الأقل.');
+    const percentRaw = document.getElementById('bulkProductPriceAdjustment')?.value || ''; const roundRaw = document.getElementById('bulkProductPriceRounding')?.value || ''; const visibility = document.getElementById('bulkProductPriceVisibility')?.value || ''; const updates = {}; const before = {};
+    ids.forEach((id) => { const product = products.find((item) => item.id === id); if (!product) return; before[id] = product.pricingOverride || null; const next = { ...(product.pricingOverride || {}) }; if (percentRaw !== '') next.percentAdjustment = Number(percentRaw); if (roundRaw === 'clear') delete next.roundTo; else if (roundRaw !== '') next.roundTo = Number(roundRaw); if (visibility === 'hide') next.hidePrice = true; else if (visibility === 'show') next.hidePrice = false; updates[`products/${id}/pricingOverride`] = Object.keys(next).length ? next : null; });
+    const auditKey = push(ref(db, 'auditLogs')).key; updates[`auditLogs/${auditKey}`] = { action: 'bulk_product_price_config_changed', actorUid: currentAdminUser.uid, productIds: ids, before, percentAdjustment: percentRaw === '' ? null : Number(percentRaw), roundTo: roundRaw || null, visibility: visibility || null, timestamp: Date.now() };
+    try { await update(ref(db), updates); ids.forEach((id) => { const product = products.find((item) => item.id === id); if (product) product.pricingOverride = updates[`products/${id}/pricingOverride`] || undefined; }); renderPricingManagementTable(); alert('تم تطبيق إعداد الأسعار على المنتجات المحددة.'); } catch (error) { alert(`تعذر تطبيق التعديل الجماعي: ${error.message || 'خطأ غير معروف'}`); }
+}
+document.getElementById('applyBulkProductPriceConfig')?.addEventListener('click', applyBulkProductPriceConfig);
 
 function pricingConfig() { return storeSettings?.pricingConfig && typeof storeSettings.pricingConfig === 'object' ? storeSettings.pricingConfig : { site: {}, categoryOverrides: {} }; }
+const priceRoundOptions = [0, 250, 500, 1000, 5000, 10000];
+function categoryParentFor(id) { const category = categories.find((item) => String(item.id) === String(id)); return String(category?.parentId || category?.parentCategory || category?.parent || ''); }
+function adminPriceRule(product, config = pricingConfig()) { const id = String(product?.categoryId || product?.category || ''); const parent = categoryParentFor(id); const overrides = config.categoryOverrides || {}; return { ...(config.site || {}), ...(parent ? overrides[parent] || {} : {}), ...(overrides[id] || {}), ...(product?.pricingOverride || {}), forceHide: config.forceHideAll === true }; }
+function adminPricePreview(product, config = pricingConfig()) { const base = Number(product?.basePrice ?? product?.public_price ?? product?.price ?? 0); const rule = adminPriceRule(product, config); const percent = Number(rule.percentAdjustment || 0); const adjusted = Math.round(base * (1 + (Number.isFinite(percent) ? percent : 0) / 100)); const roundTo = Number(rule.roundTo || 0); return { base, final: roundTo > 0 ? Math.round(adjusted / roundTo) * roundTo : adjusted, hidden: rule.forceHide || rule.hidePrice === true, percent, roundTo }; }
+function renderCategoryPriceControls() {
+    const root = document.getElementById('categoryPricingControls'); if (!root) return;
+    const overrides = pricingConfig().categoryOverrides || {};
+    root.innerHTML = categories.length ? categories.map((category) => { const rule = overrides[category.id] || {}; const label = category.name || category.nameAr || category.id; return `<div class="category-price-row" data-category-price-row="${escapeHtml(category.id)}"><label class="checkbox-label"><input type="checkbox" data-category-price-select="${escapeHtml(category.id)}"> ${escapeHtml(label)}${categoryParentFor(category.id) ? ' (فرعي)' : ' (رئيسي)'}</label><select data-category-price-hide><option value="">وراثة الإظهار</option><option value="show" ${rule.hidePrice === false ? 'selected' : ''}>إظهار</option><option value="hide" ${rule.hidePrice === true ? 'selected' : ''}>إخفاء</option></select><input data-category-price-percent type="number" step="0.01" placeholder="% وراثة" value="${rule.percentAdjustment ?? ''}"><select data-category-price-round><option value="">وراثة</option>${priceRoundOptions.map((value) => `<option value="${value}" ${String(rule.roundTo ?? '') === String(value) ? 'selected' : ''}>${value ? value.toLocaleString('en-IQ') : 'بدون'}</option>`).join('')}</select><button type="button" class="btn btn-outline btn-sm" data-category-price-clear>إلغاء التخصيص</button></div>`; }).join('') : '<p class="form-hint">لا توجد أقسام.</p>';
+    root.querySelectorAll('[data-category-price-clear]').forEach((button) => button.addEventListener('click', () => { const row = button.closest('[data-category-price-row]'); row.querySelector('[data-category-price-hide]').value = ''; row.querySelector('[data-category-price-percent]').value = ''; row.querySelector('[data-category-price-round]').value = ''; }));
+}
+async function saveCategoryPriceConfig() {
+    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.store_settings !== true)) return alert('ليست لديك صلاحية إدارة إعدادات الأسعار.');
+    const previous = pricingConfig(); const overrides = { ...(previous.categoryOverrides || {}) }; const selected = [...document.querySelectorAll('[data-category-price-select]:checked')].map((input) => input.closest('[data-category-price-row]'));
+    if (!selected.length) return alert('حدد قسماً واحداً على الأقل.');
+    selected.forEach((row) => { const id = row.dataset.categoryPriceRow; const hide = row.querySelector('[data-category-price-hide]').value; const percentRaw = row.querySelector('[data-category-price-percent]').value; const round = row.querySelector('[data-category-price-round]').value; const rule = {}; if (hide === 'hide') rule.hidePrice = true; if (hide === 'show') rule.hidePrice = false; if (percentRaw !== '') rule.percentAdjustment = Number(percentRaw); if (round !== '') rule.roundTo = Number(round); if (Object.keys(rule).length) overrides[id] = rule; else delete overrides[id]; });
+    const next = { ...previous, categoryOverrides: overrides, updatedAt: Date.now(), updatedBy: currentAdminUser.uid };
+    try { await update(ref(db), { 'settings/pricingConfig': next, [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'category_price_config_changed', actorUid: currentAdminUser.uid, previous, next, timestamp: Date.now() } }); storeSettings = { ...storeSettings, pricingConfig: next }; renderCategoryPriceControls(); renderPricingManagementTable(); alert('تم حفظ إعدادات الأقسام المحددة.'); } catch (error) { alert(`تعذر حفظ إعدادات الأقسام: ${error.message || 'خطأ غير معروف'}`); }
+}
 function hydratePriceConfigControls() {
     const config = pricingConfig(); const site = config.site || {};
     const force = document.getElementById('priceForceHideAll'); const adjustment = document.getElementById('sitePriceAdjustment'); const rounding = document.getElementById('sitePriceRounding');
     if (force) force.checked = config.forceHideAll === true;
     if (adjustment) adjustment.value = Number(site.percentAdjustment || 0);
     if (rounding) rounding.value = String(Number(site.roundTo || 0));
+    renderCategoryPriceControls();
+    const preview = document.getElementById('sitePricePreview'); if (preview) { const sample = products[0]; const result = sample ? adminPricePreview(sample, config) : null; preview.textContent = result ? `معاينة: ${result.base.toLocaleString('en-IQ')} ← ${result.hidden ? 'السعر عند الطلب' : result.final.toLocaleString('en-IQ')}` : ''; }
 }
 async function saveSitePriceConfig() {
     if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.store_settings !== true)) return alert('ليست لديك صلاحية إدارة إعدادات الأسعار.');
@@ -727,6 +758,7 @@ async function saveSitePriceConfig() {
     catch (error) { alert(`تعذر حفظ إعداد الأسعار: ${error.message || 'خطأ غير معروف'}`); }
 }
 document.getElementById('saveSitePriceConfig')?.addEventListener('click', saveSitePriceConfig);
+document.getElementById('saveCategoryPriceConfig')?.addEventListener('click', saveCategoryPriceConfig);
 
 // ================= BUILDER PRODUCT DISCOUNTS =================
 const DEFAULT_BUILDER_INVOICE_TIERS = [
@@ -1393,6 +1425,10 @@ window.openProductModal = function(id = null) {
     if (translationStatus) translationStatus.textContent = '';
     form.reset();
     document.getElementById('prodId').value = '';
+    document.getElementById('prodPriceHidden').checked = false;
+    document.getElementById('prodPriceAdjustment').value = '';
+    document.getElementById('prodPriceRounding').value = '';
+    document.getElementById('prodPricePreview').textContent = '';
     resetProductImageState();
     ['prodCpuSocket', 'prodMotherboardSocket', 'prodRamType', 'prodSupportedRamTypes'].forEach((field) => { const element = document.getElementById(field); if (element) element.value = ''; });
 
@@ -1407,6 +1443,10 @@ window.openProductModal = function(id = null) {
             document.getElementById('prodBrand').value = prod.brand || '';
             document.getElementById('prodModel').value = prod.model || '';
             document.getElementById('prodPrice').value = prod.price || '';
+            document.getElementById('prodPriceHidden').checked = prod.pricingOverride?.hidePrice === true;
+            document.getElementById('prodPriceAdjustment').value = prod.pricingOverride?.percentAdjustment ?? '';
+            document.getElementById('prodPriceRounding').value = prod.pricingOverride?.roundTo ?? '';
+            const preview = adminPricePreview(prod); document.getElementById('prodPricePreview').textContent = `السعر الأصلي: ${preview.base.toLocaleString('en-IQ')} د.ع — النهائي: ${preview.hidden ? 'السعر عند الطلب' : `${preview.final.toLocaleString('en-IQ')} د.ع`}`;
             const privatePrice = privatePricesByProduct[id] || {};
             document.getElementById('prodWholesalePrice').value = privatePrice.wholesale_price ?? prod.wholesale_price ?? '';
             document.getElementById('prodSpecialPrice').value = privatePrice.special_price ?? prod.special_price ?? '';
@@ -1532,6 +1572,7 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         model: document.getElementById('prodModel').value.trim(),
         price: retailPrice,
         public_price: retailPrice,
+        basePrice: retailPrice,
         originalPrice: document.getElementById('prodOriginalPrice').value ? Number(document.getElementById('prodOriginalPrice').value) : null,
         stock: document.getElementById('prodStock').value ? Number(document.getElementById('prodStock').value) : null,
         warranty: document.getElementById('prodWarranty').value.trim(),
@@ -1548,6 +1589,15 @@ document.getElementById('productForm').addEventListener('submit', async (e) => {
         isHidden: document.getElementById('prodStatus').value !== 'published',
         updatedAt: Date.now()
     };
+    const override = {};
+    const priceHidden = document.getElementById('prodPriceHidden').checked === true;
+    const adjustmentRaw = document.getElementById('prodPriceAdjustment').value;
+    const roundingRaw = document.getElementById('prodPriceRounding').value;
+    if (priceHidden) override.hidePrice = true;
+    if (adjustmentRaw !== '') override.percentAdjustment = Number(adjustmentRaw);
+    if (roundingRaw !== '') override.roundTo = Number(roundingRaw);
+    if (Object.keys(override).length) prodData.pricingOverride = override;
+    else prodData.pricingOverride = null;
     const privatePrices = { wholesale_price: wholesaleRaw ? Number(wholesaleRaw) : null, special_price: specialRaw ? Number(specialRaw) : null, updatedAt: Date.now(), updatedBy: currentAdminUser?.uid || null };
 
     if (isDemoMode) {

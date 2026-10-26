@@ -1,7 +1,7 @@
 {
   "rules": {
     "products": {
-      ".read": true,
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/active').val() === true && root.child('admins/'+auth.uid+'/enabled').val() !== false && root.child('admins/'+auth.uid+'/status').val() !== 'disabled' && (root.child('admins/'+auth.uid+'/permissions/products_edit').val() === true || root.child('admins/'+auth.uid+'/permissions/products_add').val() === true || root.child('admins/'+auth.uid+'/permissions/store_settings').val() === true)))",
       "$productId": {
         ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (!data.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_add').val() === true)) || (data.exists() && newData.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_edit').val() === true)) || (data.exists() && !newData.exists() && (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'products_delete').val() === true))"
       }
@@ -19,7 +19,7 @@
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'categories').val() === true)"
     },
     "settings": {
-      ".read": true,
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/active').val() === true && root.child('admins/'+auth.uid+'/enabled').val() !== false && root.child('admins/'+auth.uid+'/status').val() !== 'disabled' && root.child('admins/'+auth.uid+'/permissions/store_settings').val() === true))",
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'store_settings').val() === true)"
     },
     "builder_discounts": {

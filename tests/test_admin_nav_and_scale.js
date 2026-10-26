@@ -9,12 +9,14 @@ const rulesContent = fs.readFileSync('database.rules.json', 'utf8');
 const rules = JSON.parse(rulesContent);
 const SUPER_ADMIN_UID = 'e8uTdYi5TQOsrztxPnlD7X4GKAx1';
 
-assert(rules.rules.products['.write'].includes(SUPER_ADMIN_UID), 'صلاحية كتابة المنتجات محصورة بـ Super Admin');
+const productWriteRule = rules.rules.products['.write'] || Object.values(rules.rules.products).find((value) => value && typeof value['.write'] === 'string')?.['.write'] || '';
+assert(productWriteRule.includes(SUPER_ADMIN_UID), 'صلاحية كتابة المنتجات محصورة بـ Super Admin');
 assert(rules.rules.categories['.write'].includes(SUPER_ADMIN_UID), 'صلاحية كتابة الأقسام محصورة بـ Super Admin');
 assert(rules.rules.orders['.read'].includes(SUPER_ADMIN_UID), 'قراءة الطلبات محصورة بـ Super Admin فقط');
-assert(!rules.rules.orders['.read'].includes('true'), 'الطلبات ليست عامة للقراءة');
+assert(rules.rules.orders['.read'] !== true && !/^\s*true\s*$/.test(rules.rules.orders['.read']), 'الطلبات ليست عامة للقراءة');
 assert(rules.rules.settings['.write'].includes(SUPER_ADMIN_UID), 'صلاحية الإعدادات محصورة بـ Super Admin');
-assert(rules.rules.users['.write'].includes(SUPER_ADMIN_UID), 'صلاحية المستخدمين محصورة بـ Super Admin');
+const userWriteRule = rules.rules.users['.write'] || Object.values(rules.rules.users).find((value) => value && typeof value['.write'] === 'string')?.['.write'] || '';
+assert(userWriteRule.includes(SUPER_ADMIN_UID), 'صلاحية المستخدمين محصورة بـ Super Admin');
 console.log('✓ نجح الاختبار: جميع الصلاحيات في Firebase RTDB محصورة بـ Super Admin مع حماية سرية بيانات العملاء.');
 
 // 2. Test Navigation Engine & View Switching

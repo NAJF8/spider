@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker from './index.js';
+import worker, { publicCatalogProduct, resolveConfiguredPrice } from './index.js';
 
 const allowedOrigin = 'https://spider-aaa19.web.app';
 const disallowedOrigin = 'https://example.com';
@@ -134,8 +134,78 @@ test('/api/store/prices returns authorized catalog pricing without exposing secr
   try {
     const response = await worker.fetch(request('/api/store/prices', { headers: { Authorization: 'Bearer test-id-token' } }), baseEnv);
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { success: true, accountType: 'wholesale', prices: { p1: { wholesale_price: 123 } } });
+    assert.deepEqual(await response.json(), { success: true, accountType: 'wholesale', prices: {} });
     assertCors(response);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('pricing resolver applies product > child > parent > site precedence and integer rounding', () => {
+  const product = { id: 'p1', basePrice: 123400, categoryId: 'child', pricingOverride: { percentAdjustment: 10, roundTo: 1000 } };
+  const settings = { pricingConfig: { site: { percentAdjustment: 50, roundTo: 250 }, categoryOverrides: { parent: { percentAdjustment: 20, roundTo: 500 }, child: { percentAdjustment: 30, roundTo: 250 } } } };
+  const resolved = resolveConfiguredPrice(product, {}, 'public', settings, { child: { parentId: 'parent' } });
+  assert.equal(resolved.basePrice, 123400);
+  assert.equal(resolved.price, 136000);
+  assert.equal(resolved.visible, true);
+});
+
+test('public catalog sanitizer never returns source price fields or hidden price values', () => {
+  const hidden = publicCatalogProduct('p1', { name: 'Hidden', price: 123400, basePrice: 123400, metadata: { originalPrice: 123400, safeLabel: 'GPU' }, pricingOverride: { hidePrice: true }, status: 'published' }, {}, 'public', {}, {});
+  assert.equal(hidden.priceVisible, false);
+  assert.equal(Object.prototype.hasOwnProperty.call(hidden, 'customerPrice'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(hidden, 'price'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(hidden, 'basePrice'), false);
+  assert.equal(JSON.stringify(hidden).includes('123400'), false);
+  const visible = publicCatalogProduct('p2', { name: 'Visible', price: 123400, status: 'published' }, {}, 'public', {}, {});
+  assert.equal(visible.customerPrice, 123400);
+  assert.equal(Object.prototype.hasOwnProperty.call(visible, 'price'), false);
+});
+
+test('public catalog endpoint strips hidden prices and pricing policy', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('/products.json')) return Response.json({ hidden: { name: 'Hidden', price: 900000, status: 'published', pricingOverride: { hidePrice: true } }, visible: { name: 'Visible', price: 100000, status: 'published' } });
+    if (url.includes('/settings.json')) return Response.json({ deliveryFee: 5000, pricingConfig: { forceHideAll: true, site: { percentAdjustment: 10 } }, storeNameAr: 'Spider' });
+    if (url.includes('/categories.json')) return Response.json({});
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/catalog'), baseEnv);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.products.hidden.priceVisible, false);
+    assert.equal(Object.prototype.hasOwnProperty.call(body.products.hidden, 'customerPrice'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(body.products.hidden, 'price'), false);
+    assert.equal(body.products.visible.priceVisible, false, 'global hide must override an otherwise visible product');
+    assert.equal(Object.prototype.hasOwnProperty.call(body.products.visible, 'customerPrice'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(body.settings, 'pricingConfig'), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('checkout accepts hidden-price products without leaking their value into the order message', async () => {
+  const originalFetch = globalThis.fetch;
+  let savedOrder;
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input);
+    if (url.includes('/products.json')) return Response.json({ p1: { name: 'Hidden GPU', price: 123400, status: 'published', stock: 3, pricingOverride: { hidePrice: true } } });
+    if (url.includes('/settings.json')) return Response.json({ deliveryFee: 5000, whatsappNumber: '9647827337942' });
+    if (url.includes('/categories.json')) return Response.json({});
+    if (url.includes('/private_prices.json')) return Response.json({});
+    if (url.includes('/orders/') && options.method === 'PUT') { savedOrder = JSON.parse(options.body); return Response.json({ name: 'saved' }); }
+    if (url.includes('/checkout_requests/')) return Response.json(null, { status: 404 });
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Request-Id': 'hidden-price-request-1234' }, body: JSON.stringify({ requestId: 'hidden-price-request-1234', items: [{ id: 'p1', qty: 1 }], customer: { name: 'Ali', phone: '07812345678', governorate: 'Najaf', district: 'Center', addressDetails: 'Street 1' } }) }), baseEnv);
+    const result = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(result.subtotal, 0);
+    assert.equal(result.hasHiddenPriceItems, true);
+    assert.match(result.whatsappMessage, /السعر عند الطلب/);
+    assert.equal(result.whatsappMessage.includes('123,400'), false);
+    assert.equal(savedOrder.items[0].price, 0);
+    assert.equal(savedOrder.items[0].priceVisible, false);
+    assert.equal(JSON.stringify(savedOrder).includes('123400'), false);
   } finally { globalThis.fetch = originalFetch; }
 });
 

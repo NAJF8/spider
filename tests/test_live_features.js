@@ -18,10 +18,11 @@ console.log('\n[Test 2] فحص اعتماد المتجر على Firebase كمص�
 const scriptJs = fs.readFileSync('public/script.js', 'utf8');
 
 assert(!scriptJs.includes('demo-data.js'), 'تم التخلص نهائياً من ملف demo-data.js');
-assert(scriptJs.includes('onValue(ref(db, \'categories\')'), 'يتم جلب الأقسام من Firebase مباشرة');
-assert(scriptJs.includes('onValue(ref(db, \'products\')'), 'يتم جلب المنتجات من Firebase مباشرة');
-assert(scriptJs.includes('prod.status === \'published\''), 'يتم عرض المنتجات المنشورة فقط');
-console.log('✓ نجح الاختبار: المتجر يعتمد كلياً على Firebase Realtime Database ويفلتر المسودات.');
+assert(scriptJs.includes("onValue(categoriesRef"), 'يتم جلب الأقسام من Firebase مباشرة');
+assert(scriptJs.includes('/api/store/catalog'), 'يتم جلب الكتالوج المنقّى من Worker الآمن');
+assert(!scriptJs.includes("onValue(ref(db, 'products')"), 'لا يقرأ المتجر المنتجات الخام من Firebase');
+assert(scriptJs.includes('state.products = Object.entries(data.products || {})'), 'يتم عرض كتالوج Worker المنشور فقط');
+console.log('✓ نجح الاختبار: المتجر يعتمد على كتالوج Worker المنقّى ولا يقرأ أسعار Firebase الخام.');
 
 // 3. Verify Secure Checkout Verification
 console.log('\n[Test 3] اختبار أمان ووظيفة السلة مؤقتاً:');
