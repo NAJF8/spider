@@ -1,24 +1,31 @@
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getDatabase, ref, onValue, get, update, connectDatabaseEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 
-const firebaseConfig = {
+const IS_LOCAL_EMULATOR = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const firebaseConfig = IS_LOCAL_EMULATOR ? {
+  apiKey: 'demo-api-key', authDomain: 'demo-spider-staging.firebaseapp.com',
+  databaseURL: 'http://127.0.0.1:9000?ns=demo-spider-staging', projectId: 'demo-spider-staging', storageBucket: 'demo-spider-staging.appspot.com'
+} : {
   apiKey: 'AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0',
   authDomain: 'spider-aaa19.firebaseapp.com',
   databaseURL: 'https://spider-aaa19-default-rtdb.asia-southeast1.firebasedatabase.app',
-  projectId: 'spider-aaa19',
-  storageBucket: 'spider-aaa19.firebasestorage.app'
+  projectId: 'spider-aaa19', storageBucket: 'spider-aaa19.firebasestorage.app'
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
+if (IS_LOCAL_EMULATOR) {
+  connectDatabaseEmulator(db, '127.0.0.1', 9000);
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+}
 const provider = new GoogleAuthProvider();
 
 const CART_STORAGE_KEY = 'spider.cart.v1';
 const FAVORITES_KEY = 'spider.favorites.v1';
 const ALERTS_KEY = 'spider.availability-alerts.v1';
-const BACKEND_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+const BACKEND_URL = IS_LOCAL_EMULATOR
   ? 'http://127.0.0.1:8787'
   : 'https://spider-backend.coffee101.workers.dev';
 let pendingReceipt = null;

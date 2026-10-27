@@ -1,9 +1,9 @@
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') {
-      return preflightResponse(request);
+      return preflightResponse(request, env);
     }
-    return withCors(await handleRequest(request, env), request);
+    return withCors(await handleRequest(request, env), request, env);
   }
 };
 
@@ -260,7 +260,7 @@ async function handleBrandManagement(request, env) {
 
 async function verifyFirebaseIdToken(token, env) {
   if (!token) return null;
-  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(env.FIREBASE_API_KEY)}`, {
+  const response = await fetch(`${firebaseAuthLookupUrl(env)}?key=${encodeURIComponent(env.FIREBASE_API_KEY)}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token })
   });
   const data = await response.json().catch(() => ({}));
@@ -544,16 +544,16 @@ async function handleRequest(request, env) {
       try {
         const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
         if (!token) return errorResponse('AUTH_REQUIRED', 401);
-        const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+        const verifyRes = await fetch(`${firebaseAuthLookupUrl(env)}?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
         const verifyData = await verifyRes.json();
         const uid = verifyData?.users?.[0]?.localId;
         if (!uid) return errorResponse('AUTH_INVALID', 401);
         const databaseSecret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!databaseSecret) return errorResponse('PRICE_BACKEND_NOT_CONFIGURED', 503);
-        const query = `?auth=${encodeURIComponent(databaseSecret)}`;
+        const query = firebaseAuthQuery(env, databaseSecret);
         const [profileRes, pricesRes] = await Promise.all([
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/profiles/${encodeURIComponent(uid)}.json${query}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${query}`)
+          fetch(`${firebaseBaseUrl(env, `profiles/${encodeURIComponent(uid)}.json`)}${query}`),
+          fetch(`${firebaseBaseUrl(env, 'private_prices.json')}${query}`)
         ]);
         const profile = profileRes.ok ? await profileRes.json() : null;
         const accountType = normalizePricingTier(profile);
@@ -569,7 +569,7 @@ async function handleRequest(request, env) {
       try {
         const secret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!secret) return errorResponse('CATALOG_BACKEND_NOT_CONFIGURED', 503);
-        const databaseQuery = `?auth=${encodeURIComponent(secret)}`;
+        const databaseQuery = firebaseAuthQuery(env, secret);
         const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
         let accountType = 'public';
         if (token) {
@@ -580,10 +580,10 @@ async function handleRequest(request, env) {
           accountType = normalizePricingTier(profile);
         }
         const [productsResponse, settingsResponse, categoriesResponse, privatePricesResponse] = await Promise.all([
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/categories.json${databaseQuery}`),
-          accountType === 'public' ? Promise.resolve(null) : fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`)
+          fetch(`${firebaseBaseUrl(env, 'products.json')}${databaseQuery}`),
+          fetch(`${firebaseBaseUrl(env, 'settings.json')}${databaseQuery}`),
+          fetch(`${firebaseBaseUrl(env, 'categories.json')}${databaseQuery}`),
+          accountType === 'public' ? Promise.resolve(null) : fetch(`${firebaseBaseUrl(env, 'private_prices.json')}${databaseQuery}`)
         ]);
         if (!productsResponse.ok || !settingsResponse.ok || !categoriesResponse.ok) return errorResponse('CATALOG_DATABASE_ERROR', 503);
         const products = await productsResponse.json() || {};
@@ -624,7 +624,7 @@ async function handleRequest(request, env) {
         const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
         let accountType = 'public';
         if (token) {
-          const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+          const verifyRes = await fetch(`${firebaseAuthLookupUrl(env)}?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
           const verifyData = await verifyRes.json();
           const uid = verifyData?.users?.[0]?.localId;
           if (!uid) return errorResponse('AUTH_INVALID', 401);
@@ -716,7 +716,7 @@ async function handleRequest(request, env) {
       try {
         const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
         if (!token) return errorResponse('AUTH_REQUIRED', 401);
-        const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+        const verifyRes = await fetch(`${firebaseAuthLookupUrl(env)}?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
         const verifyData = await verifyRes.json().catch(() => ({}));
         const uid = verifyData?.users?.[0]?.localId;
         if (!verifyRes.ok || !uid) return errorResponse('AUTH_INVALID', 401);
@@ -786,7 +786,7 @@ async function handleRequest(request, env) {
         if (!token) return errorResponse('AUTH_REQUIRED', 401);
 
         // Google Identity Toolkit natively checks signature, expiry, and issues it for this specific API_KEY (project)
-        const verifyUrl = `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`;
+        const verifyUrl = `${firebaseAuthLookupUrl(env)}?key=${env.FIREBASE_API_KEY}`;
         const verifyRes = await fetch(verifyUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1073,7 +1073,7 @@ async function handleRequest(request, env) {
         if (!databaseSecret) {
           return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
         }
-        const databaseQuery = `?auth=${encodeURIComponent(databaseSecret)}`;
+        const databaseQuery = firebaseAuthQuery(env, databaseSecret);
 
         // A client retry may safely replay the same response after the first save.
         // The request id is opaque and contains no customer data.
@@ -1081,7 +1081,7 @@ async function handleRequest(request, env) {
           return rejectCheckout('INVALID_REQUEST_ID', 400);
         }
         const requestRecordUrl = requestId
-          ? `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/checkout_requests/${encodeURIComponent(requestId)}.json${databaseQuery}`
+          ? `${firebaseBaseUrl(env, `checkout_requests/${encodeURIComponent(requestId)}.json`)}${databaseQuery}`
           : '';
         if (requestId) {
           const replayRes = await fetch(requestRecordUrl);
@@ -1096,9 +1096,9 @@ async function handleRequest(request, env) {
         validationStage = 'catalog-and-settings';
         // Fetch live products and settings
         const [productsRes, settingsRes, categoriesRes] = await Promise.all([
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/products.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/settings.json${databaseQuery}`),
-          fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/categories.json${databaseQuery}`)
+          fetch(`${firebaseBaseUrl(env, 'products.json')}${databaseQuery}`),
+          fetch(`${firebaseBaseUrl(env, 'settings.json')}${databaseQuery}`),
+          fetch(`${firebaseBaseUrl(env, 'categories.json')}${databaseQuery}`)
         ]);
 
         if (!productsRes.ok || !settingsRes.ok) {
@@ -1112,17 +1112,17 @@ async function handleRequest(request, env) {
         const authHeader = request.headers?.get?.('Authorization') || '';
         const token = authHeader.replace(/^Bearer\s+/i, '').trim();
         if (token) {
-          const verifyRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+          const verifyRes = await fetch(`${firebaseAuthLookupUrl(env)}?key=${env.FIREBASE_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
           const verifyData = await verifyRes.json();
           const uid = verifyData?.users?.[0]?.localId;
           if (!uid) return errorResponse('AUTH_INVALID', 401);
-          const profileRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/profiles/${encodeURIComponent(uid)}.json${databaseQuery}`);
+          const profileRes = await fetch(`${firebaseBaseUrl(env, `profiles/${encodeURIComponent(uid)}.json`)}${databaseQuery}`);
           if (profileRes.ok) {
             const profile = await profileRes.json();
             accountType = normalizePricingTier(profile);
           }
         }
-        const privatePricesRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/private_prices.json${databaseQuery}`);
+        const privatePricesRes = await fetch(`${firebaseBaseUrl(env, 'private_prices.json')}${databaseQuery}`);
         const privatePrices = privatePricesRes.ok ? ((await privatePricesRes.json()) || {}) : {};
         const builderInvoiceSettings = settingsObj.buildGlobalDiscount && typeof settingsObj.buildGlobalDiscount === 'object' ? settingsObj.buildGlobalDiscount : {};
         const deliveryFee = Number(settingsObj.deliveryFee);
@@ -1239,7 +1239,7 @@ async function handleRequest(request, env) {
           items: verifiedItems,
         };
 
-        const saveRes = await fetch(`https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/orders/${newOrderId}.json${databaseQuery}`, {
+        const saveRes = await fetch(`${firebaseBaseUrl(env, `orders/${newOrderId}.json`)}${databaseQuery}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderPayload)
@@ -1360,12 +1360,25 @@ async function handleRequest(request, env) {
 const chatInFlight = new Map();
 
 function firebaseUrl(env, path, secret) {
-  return `${firebaseBaseUrl(env, path)}${path.includes('?') ? '&' : '?'}auth=${encodeURIComponent(secret)}`;
+  return `${firebaseBaseUrl(env, path)}${firebaseAuthQuery(env, secret, path.includes('?'))}`;
+}
+
+function firebaseAuthQuery(env, secret, hasQuery = false) {
+  const params = [];
+  const namespace = String(env.FIREBASE_DATABASE_NAMESPACE || '').trim();
+  if (namespace) params.push(`ns=${encodeURIComponent(namespace)}`);
+  params.push(`auth=${encodeURIComponent(secret)}`);
+  return `${hasQuery ? '&' : '?'}${params.join('&')}`;
 }
 
 function firebaseBaseUrl(env, path) {
   const normalizedPath = String(path || '').replace(/^\/+/, '') || '.json';
-  return `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app/${normalizedPath}`;
+  const base = String(env.FIREBASE_DATABASE_URL || `https://${env.FIREBASE_PROJECT_ID}-default-rtdb.asia-southeast1.firebasedatabase.app`).replace(/\/+$/, '');
+  return `${base}/${normalizedPath}`;
+}
+
+function firebaseAuthLookupUrl(env) {
+  return String(env.FIREBASE_AUTH_LOOKUP_URL || 'https://identitytoolkit.googleapis.com/v1/accounts:lookup').replace(/\/+$/, '');
 }
 
 function normalizeChatState(value) {
@@ -1643,10 +1656,15 @@ const ALLOWED_ORIGINS = new Set([
   'https://spidernajaf.com',
   'https://www.spidernajaf.com'
 ]);
+const LOCAL_ORIGINS = new Set(['http://localhost:5000', 'http://127.0.0.1:5000']);
 
 const WORKER_BUILD = 'spider-deepseek-v4-1-flash-2026-09-24';
 
-function corsHeaders(request) {
+function isAllowedOrigin(origin, env = {}) {
+  return ALLOWED_ORIGINS.has(origin) || (String(env.ALLOW_LOCAL_ORIGIN || '').toLowerCase() === 'true' && LOCAL_ORIGINS.has(origin));
+}
+
+function corsHeaders(request, env = {}) {
   const origin = request.headers?.get?.('Origin') || '';
   const headers = new Headers({
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -1655,23 +1673,23 @@ function corsHeaders(request) {
     'Vary': 'Origin',
     'X-Worker-Build': WORKER_BUILD
   });
-  if (ALLOWED_ORIGINS.has(origin)) {
+  if (isAllowedOrigin(origin, env)) {
     headers.set('Access-Control-Allow-Origin', origin);
   }
   return headers;
 }
 
-function withCors(response, request) {
+function withCors(response, request, env = {}) {
   const headers = new Headers();
   if (typeof response.headers?.forEach === 'function') response.headers.forEach((value, key) => headers.set(key, value));
   else for (const [key, value] of Object.entries(response.headers || {})) headers.set(key, value);
-  const cors = corsHeaders(request);
+  const cors = corsHeaders(request, env);
   cors.forEach((value, key) => headers.set(key, value));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-function preflightResponse(request) {
+function preflightResponse(request, env = {}) {
   const origin = request.headers?.get?.('Origin') || '';
-  const status = origin && !ALLOWED_ORIGINS.has(origin) ? 403 : 204;
-  return new Response(null, { status, headers: corsHeaders(request) });
+  const status = origin && !isAllowedOrigin(origin, env) ? 403 : 204;
+  return new Response(null, { status, headers: corsHeaders(request, env) });
 }

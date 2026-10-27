@@ -1,10 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, onValue, push, set, update, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, onValue, push, set, update, remove, get, connectDatabaseEmulator } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { DEMO_CATEGORIES, DEMO_PRODUCTS, DEMO_ORDERS } from "./demo-data.js";
 import { INITIAL_CATEGORIES, INITIAL_PRODUCTS } from './catalog-seed.js';
 
-const firebaseConfig = {
+const IS_LOCAL_EMULATOR = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const firebaseConfig = IS_LOCAL_EMULATOR ? {
+    apiKey: "demo-api-key", authDomain: "demo-spider-staging.firebaseapp.com",
+    databaseURL: "http://127.0.0.1:9000?ns=demo-spider-staging", projectId: "demo-spider-staging", storageBucket: "demo-spider-staging.appspot.com"
+} : {
     apiKey: "AIzaSyA3_h6cWLhOx3nBgH2mGBAUpVaGpqQOxz0",
     authDomain: "spider-aaa19.firebaseapp.com",
     databaseURL: "https://spider-aaa19-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -15,11 +19,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
+if (IS_LOCAL_EMULATOR) {
+    connectDatabaseEmulator(db, '127.0.0.1', 9000);
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+}
 const googleProvider = new GoogleAuthProvider();
 
 // Strict Super Admin Configuration
-const SUPER_ADMIN_UID = 'e8uTdYi5TQOsrztxPnlD7X4GKAx1';
-const SPIDER_BACKEND_ENDPOINT = 'https://spider-backend.coffee101.workers.dev';
+const SUPER_ADMIN_UID = IS_LOCAL_EMULATOR ? 'local-super-admin' : 'e8uTdYi5TQOsrztxPnlD7X4GKAx1';
+const SPIDER_BACKEND_ENDPOINT = IS_LOCAL_EMULATOR ? 'http://127.0.0.1:8787' : 'https://spider-backend.coffee101.workers.dev';
 
 // DOM Elements
 const loginScreen = document.getElementById('login-screen');
