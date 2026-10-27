@@ -139,12 +139,12 @@ test('/api/store/prices returns authorized catalog pricing without exposing secr
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('pricing resolver applies product > child > parent > site precedence and integer rounding', () => {
+test('pricing resolver uses only the site percentage and rounds the final dinar once', () => {
   const product = { id: 'p1', basePrice: 123400, categoryId: 'child', pricingOverride: { percentAdjustment: 10, roundTo: 1000 } };
   const settings = { pricingConfig: { site: { percentAdjustment: 50, roundTo: 250 }, categoryOverrides: { parent: { percentAdjustment: 20, roundTo: 500 }, child: { percentAdjustment: 30, roundTo: 250 } } } };
   const resolved = resolveConfiguredPrice(product, {}, 'public', settings, { child: { parentId: 'parent' } });
   assert.equal(resolved.basePrice, 123400);
-  assert.equal(resolved.price, 136000);
+  assert.equal(resolved.price, 185100);
   assert.equal(resolved.visible, true);
 });
 
@@ -182,7 +182,7 @@ test('public catalog endpoint strips hidden prices and pricing policy', async ()
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('checkout accepts hidden-price products without leaking their value into the order message', async () => {
+test('checkout rejects a hidden or unspecified-price product instead of creating a zero-price order', async () => {
   const originalFetch = globalThis.fetch;
   let savedOrder;
   globalThis.fetch = async (input, options = {}) => {
@@ -198,14 +198,9 @@ test('checkout accepts hidden-price products without leaking their value into th
   try {
     const response = await worker.fetch(request('/api/store/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Request-Id': 'hidden-price-request-1234' }, body: JSON.stringify({ requestId: 'hidden-price-request-1234', items: [{ id: 'p1', qty: 1 }], customer: { name: 'Ali', phone: '07812345678', governorate: 'Najaf', district: 'Center', addressDetails: 'Street 1' } }) }), baseEnv);
     const result = await response.json();
-    assert.equal(response.status, 200);
-    assert.equal(result.subtotal, 0);
-    assert.equal(result.hasHiddenPriceItems, true);
-    assert.match(result.whatsappMessage, /السعر عند الطلب/);
-    assert.equal(result.whatsappMessage.includes('123,400'), false);
-    assert.equal(savedOrder.items[0].price, 0);
-    assert.equal(savedOrder.items[0].priceVisible, false);
-    assert.equal(JSON.stringify(savedOrder).includes('123400'), false);
+    assert.equal(response.status, 400);
+    assert.equal(result.error, 'PRODUCT_PRICE_UNAVAILABLE_p1');
+    assert.equal(savedOrder, undefined);
   } finally { globalThis.fetch = originalFetch; }
 });
 

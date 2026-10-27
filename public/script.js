@@ -283,15 +283,14 @@ const validPrice = (value) => {
 };
 const productPriceRule = (product) => {
   const config = state.settings?.pricingConfig || {};
-  const categoryId = String(categoryIdFor(product) || '');
-  const category = state.categories.find((item) => item.id === categoryId) || {};
-  const parentId = String(category.parentId || category.parentCategory || category.parent || '');
-  const rules = config.categoryOverrides || {};
-  return { ...(config.site || {}), ...(parentId ? rules[parentId] || {} : {}), ...(rules[categoryId] || {}), ...(product.pricingOverride || {}), forceHide: config.forceHideAll === true };
+  // One transparent rule for every product: historic per-category/per-product
+  // overrides and special rounding are intentionally ignored.
+  return { percentAdjustment: Number(config.site?.percentAdjustment) || 0, forceHide: config.forceHideAll === true || product?.pricingOverride?.hidePrice === true };
 };
 const priceInfo = (product, profile = null) => {
   if (Object.prototype.hasOwnProperty.call(product || {}, 'priceVisible')) {
-    return { price: Number(product.customerPrice) || 0, visible: product.priceVisible === true, base: null, rule: {} };
+    const price = validPrice(product.customerPrice);
+    return { price: price ?? 0, visible: product.priceVisible === true && price !== null, base: null, rule: {}, purchasable: product.priceVisible === true && price !== null };
   }
   const tier = normalizePricingTier(profile);
   const privatePrice = state.privatePrices?.[product?.id] || {};
@@ -302,13 +301,16 @@ const priceInfo = (product, profile = null) => {
   const base = tierPrice ?? publicPrice ?? 0;
   const rule = productPriceRule(product);
   const adjusted = Math.round(base * (1 + (Number(rule.percentAdjustment) || 0) / 100));
-  const step = Number(rule.roundTo || 0);
-  return { price: step > 0 ? Math.round(adjusted / step) * step : adjusted, visible: rule.forceHide !== true && rule.hidePrice !== true, base, rule };
+  const price = validPrice(adjusted) ?? 0;
+  const visible = rule.forceHide !== true && price > 0;
+  return { price, visible, base, rule, purchasable: visible };
 };
 const getEffectivePrice = (product, profile = null) => priceInfo(product, profile).price;
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
-const productPriceMarkup = (product, value = productPrice(product)) => priceInfo(product).visible ? formatPrice(value) : (language === 'en' ? 'Price on request' : 'السعر عند الطلب');
+const unspecifiedPriceLabel = () => language === 'en' ? 'Unspecified' : 'غير محدد';
+const productPriceMarkup = (product, value = productPrice(product)) => priceInfo(product).purchasable ? formatPrice(value) : unspecifiedPriceLabel();
+const canPurchaseProduct = (product) => isAvailable(product) && priceInfo(product).purchasable;
 const builderPriceDetails = (product) => {
   const basePrice = productPrice(product);
   return { basePrice, discount: 0, finalPrice: basePrice };
@@ -550,18 +552,20 @@ function filteredProducts() {
     const info = priceInfo(p);
     // A price-on-request item remains in results but is never compared or
     // sorted using a private/original price.
-    const priceMatches = !info.visible || ((min === null || info.price >= min) && (max === null || info.price <= max));
+    // Products without a real price remain discoverable, but never match a
+    // numerical range and are never treated as zero.
+    const priceMatches = !info.purchasable ? (min === null && max === null) : ((min === null || info.price >= min) && (max === null || info.price <= max));
     return productCategoryMatch(p, category) &&
     (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
     (!search || productText(p).includes(search.toLowerCase())) && priceMatches;
   });
   if (sort === 'price-asc' || sort === 'price-desc') result.sort((a, b) => {
     const ap = priceInfo(a), bp = priceInfo(b);
-    if (!ap.visible && !bp.visible) return 0;
-    if (!ap.visible) return 1; if (!bp.visible) return -1;
+    if (!ap.purchasable && !bp.purchasable) return 0;
+    if (!ap.purchasable) return 1; if (!bp.purchasable) return -1;
     return sort === 'price-asc' ? ap.price - bp.price : bp.price - ap.price;
   });
-  if (sort === 'name-asc') result.sort((a, b) => productName(a).localeCompare(productName(b), language));
+  if (sort === 'oldest') result.sort((a, b) => Number(a.createdAt || a.updatedAt || 0) - Number(b.createdAt || b.updatedAt || 0));
   return result;
 }
 
@@ -802,7 +806,7 @@ function productCard(p, ctx) {
         ${!p.builderOnly && p.originalPrice ? `<span class="old-price">${formatPrice(p.originalPrice)}</span>` : ''}
       </div>
       <div class="product-actions">
-        ${isAvailable(p) && !p.builderOnly
+        ${canPurchaseProduct(p) && !p.builderOnly
           ? `<button class="btn product-add-btn" type="button" data-add="${esc(p.id)}"><span class="cart-icon" aria-hidden="true"></span> ${t('addToCart')}</button>`
           : `<button class="btn stock-btn" type="button" data-alert="${esc(p.id)}"><i class="fa-regular fa-bell"></i> ${t('notify')}</button>`
         }
@@ -1580,12 +1584,12 @@ function updateBuilder() {
   const totals = calculateBuilderTotals(selected);
   const total = totals.finalTotal;
   const visible = state.builderPriceVisible === true;
-  $('builderTotal').textContent = visible ? (totals.hasHiddenPrice ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : formatPrice(total)) : '—';
+  $('builderTotal').textContent = visible ? (totals.hasHiddenPrice ? unspecifiedPriceLabel() : formatPrice(total)) : '—';
   if ($('builderPriceCards')) $('builderPriceCards').hidden = !visible;
   if ($('builderSubtotal')) $('builderSubtotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.subtotal) : (totals.hasHiddenPrice ? (language === 'en' ? 'Partial total' : 'مجموع جزئي') : '—');
   if ($('builderInvoiceDiscount')) $('builderInvoiceDiscount').textContent = formatPrice(totals.invoiceDiscount);
   if ($('builderInvoiceDiscountRow')) $('builderInvoiceDiscountRow').hidden = !visible || totals.invoiceDiscount <= 0;
-  if ($('builderFinalTotal')) $('builderFinalTotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.finalTotal) : (totals.hasHiddenPrice ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : '—');
+  if ($('builderFinalTotal')) $('builderFinalTotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.finalTotal) : (totals.hasHiddenPrice ? unspecifiedPriceLabel() : '—');
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
   if ($('compatibilityBox')) { $('compatibilityBox').className = `compatibility-box ${tone}`; $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`; }
@@ -1600,7 +1604,7 @@ function quoteLines(products) {
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
   const totals = calculateBuilderTotals(products);
-  const partialLabel = language === 'en' ? 'Price on request' : 'السعر عند الطلب';
+  const partialLabel = unspecifiedPriceLabel();
   $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>المجموع قبل الخصم</span><span>${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.subtotal)}</span></div>${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `<div class="quote-total"><span>خصم فاتورة التجميعة</span><span>-${formatPrice(totals.invoiceDiscount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.finalTotal)}</span></div>`;
     $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${priceInfo(p).visible ? formatPrice(builderProductPrice(p)) : partialLabel}`).join('\n') + `\nالمجموع قبل الخصم: ${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.subtotal)}${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `\nخصم فاتورة التجميعة: -${formatPrice(totals.invoiceDiscount)}` : ''}\n${t('total')}: ${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.finalTotal)}`;
   modal('quoteModal', true);
@@ -1759,7 +1763,7 @@ function _addItemToCartLogic(productId, source = 'store') {
   if (!product) return false;
   if (product.builderOnly === true && source !== 'builder') { showToast(t('builderOnlyMessage')); return false; }
   const pricing = priceInfo(product);
-  if (!isAvailable(product) || (pricing.visible && pricing.price <= 0)) { openAvailability(productId); return false; }
+  if (!isAvailable(product) || !pricing.purchasable) { openAvailability(productId); return false; }
   const item = state.cart.find((e) => e.id === productId);
   if (item) { item.qty = Math.min(100, item.qty + 1); item.builderSource = item.builderSource || source === 'builder'; }
   else state.cart.push({ id: productId, qty: 1, nameSnapshot: productName(product), ...(source === 'builder' ? { builderSource: true } : {}) });
@@ -1806,7 +1810,7 @@ function renderCart() {
   $('cartBadge').textContent = count;
   $('floatingCartBadge').textContent = count;
   let total = 0;
-  let hasHiddenPrice = false;
+  let hasUnpricedItems = false;
   const tier = normalizePricingTier(state.accountProfile);
   let hasUnavailableItems = false;
   const unavailableLabels = [];
@@ -1824,12 +1828,12 @@ function renderCart() {
     item.public_price_snapshot = validPrice(p.public_price ?? p.retail_price ?? p.price);
     item.special_price_snapshot = validPrice(state.privatePrices?.[p.id]?.special_price);
     item.wholesale_price_snapshot = validPrice(state.privatePrices?.[p.id]?.wholesale_price);
-    const priceVisible = priceInfo(p).visible;
+    const priceVisible = priceInfo(p).purchasable;
     if (priceVisible) total += appliedPrice * item.qty;
-    else hasHiddenPrice = true;
+    else { hasUnpricedItems = true; hasUnavailableItems = true; unavailableLabels.push(productName(p)); }
     return `<div class="cart-item"><img src="${esc(imageFor(p))}" alt="${esc(productName(p))}"><div>
       <div class="cart-item-title">${esc(productName(p))}</div>
-      <div class="cart-item-price">${priceVisible ? formatPrice(appliedPrice * item.qty) : (language === 'en' ? 'Price on request' : 'السعر عند الطلب')}</div>
+      <div class="cart-item-price">${priceVisible ? formatPrice(appliedPrice * item.qty) : unspecifiedPriceLabel()}</div>
       <div class="cart-item-actions">
         <button class="qty-btn" type="button" data-qty="${idx}:1">+</button>
         <span>${item.qty}</span>
@@ -1841,7 +1845,7 @@ function renderCart() {
     ? `<div class="cart-unavailable-warning" role="alert"><strong>${language === 'en' ? 'Some products are no longer available' : 'بعض المنتجات لم تعد متوفرة'}</strong><span>${language === 'en' ? `Remove: ${unavailableLabels.map(esc).join(', ')}` : `أزل المنتجات التالية قبل إتمام الطلب: ${unavailableLabels.map(esc).join('، ')}`}</span></div>`
     : '';
   $('cartItemsList').innerHTML = rows.length ? `${unavailableWarning}${rows.join('')}` : `<div class="empty-state">${t('emptyCart')}</div>`;
-  $('cartTotalValue').textContent = hasHiddenPrice ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : formatPrice(total);
+  $('cartTotalValue').textContent = hasUnpricedItems ? unspecifiedPriceLabel() : formatPrice(total);
   $('checkoutBtn').disabled = !rows.length || hasUnavailableItems;
   $('checkoutBtn').setAttribute('aria-disabled', String(!rows.length || hasUnavailableItems));
   $('checkoutBtn').title = hasUnavailableItems
@@ -2032,7 +2036,7 @@ function accountProfileMarkup() {
   const summary = esc(profile.email || profile.phone || '');
   const provinceOptions = ACCOUNT_PROVINCES.map((item) => `<option value="${esc(item)}" ${item === province ? 'selected' : ''}>${esc(item)}</option>`).join('');
   const cityOptions = Object.keys(IRAQ_ADDRESS_DATA[province] || {}).map((item) => `<option value="${esc(item)}" ${item === city ? 'selected' : ''}>${esc(item)}</option>`).join('');
-  return `<div class="account-summary"><span class="account-avatar"><i class="fa-solid fa-user"></i></span><div><strong>${esc(accountName)}</strong><small dir="ltr">${summary}</small></div><button class="btn btn-outline account-logout" id="logoutBtn" type="button">${t('logout')}</button></div><nav class="account-nav" aria-label="أقسام الحساب"><button class="active" type="button" data-account-section="details">تفاصيل الحساب</button><button type="button" data-account-section="orders">الطلبات</button></nav><section class="account-panel" data-account-panel="details"><h3>تفاصيل الحساب</h3><dl class="account-profile-grid"><div><dt>الاسم الأول</dt><dd>${value('firstName')}</dd></div><div><dt>الاسم الأخير</dt><dd>${value('lastName')}</dd></div><div><dt>البريد الإلكتروني</dt><dd dir="ltr">${value('email')}</dd></div><div><dt>رقم الهاتف</dt><dd dir="ltr">${value('phone')}</dd></div></dl><form class="account-address-form" id="accountAddressForm"><div><label for="accountProvince">المحافظة</label><select id="accountProvince" name="accountProvince" required><option value="">اختر المحافظة...</option>${provinceOptions}</select></div><div><label for="accountCity">المدينة / القضاء</label><select id="accountCity" name="accountCity"><option value="">${province ? 'اختر المدينة / القضاء...' : 'اختر المحافظة أولاً'}</option>${cityOptions}</select></div><button class="btn btn-primary" type="submit">إضافة أو تعديل</button></form><details class="account-collapsible"><summary>الأمان <span>تغيير كلمة المرور</span></summary><form class="phone-auth-form" id="changePinForm"><div class="password-input-wrap"><input id="currentPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الحالية"><button type="button" class="password-toggle" data-password-toggle="currentPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinConfirmInput" required type="password" dir="ltr" placeholder="تأكيد كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinConfirmInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><button class="btn btn-outline" type="submit">تغيير كلمة المرور</button></form></details><div class="account-danger-zone"><h3>حذف الحساب</h3><p>حذف الحساب يحتاج إلى معالجة موثقة من الدعم لحماية الطلبات والإيصالات.</p><button type="button" class="btn btn-outline" data-account-delete-info>طلب حذف الحساب</button></div></section><section class="account-panel" data-account-panel="orders" hidden><h3>الطلبات (${orders.length})</h3>${orders.length ? `<ul class="account-orders">${orders.map((order) => `<li><div><strong>#${esc(order.orderNumber || order.id)}</strong><small>${esc(accountOrderStatus(order))} · ${esc(order.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل')}</small></div><span>${order.hasHiddenPriceItems === true ? 'السعر عند الطلب' : formatPrice(order.grandTotal)}</span><button class="btn btn-outline" type="button" data-order-open="${esc(order.id)}">عرض التفاصيل</button></li>`).join('')}</ul>` : `<div class="empty-state">ما عندك طلبات حالياً<br><button class="btn btn-outline" type="button" data-orders-browse>تصفح المنتجات.</button></div>`}</section>`;
+  return `<div class="account-summary"><span class="account-avatar"><i class="fa-solid fa-user"></i></span><div><strong>${esc(accountName)}</strong><small dir="ltr">${summary}</small></div><button class="btn btn-outline account-logout" id="logoutBtn" type="button">${t('logout')}</button></div><nav class="account-nav" aria-label="أقسام الحساب"><button class="active" type="button" data-account-section="details">تفاصيل الحساب</button><button type="button" data-account-section="orders">الطلبات</button></nav><section class="account-panel" data-account-panel="details"><h3>تفاصيل الحساب</h3><dl class="account-profile-grid"><div><dt>الاسم الأول</dt><dd>${value('firstName')}</dd></div><div><dt>الاسم الأخير</dt><dd>${value('lastName')}</dd></div><div><dt>البريد الإلكتروني</dt><dd dir="ltr">${value('email')}</dd></div><div><dt>رقم الهاتف</dt><dd dir="ltr">${value('phone')}</dd></div></dl><form class="account-address-form" id="accountAddressForm"><div><label for="accountProvince">المحافظة</label><select id="accountProvince" name="accountProvince" required><option value="">اختر المحافظة...</option>${provinceOptions}</select></div><div><label for="accountCity">المدينة / القضاء</label><select id="accountCity" name="accountCity"><option value="">${province ? 'اختر المدينة / القضاء...' : 'اختر المحافظة أولاً'}</option>${cityOptions}</select></div><button class="btn btn-primary" type="submit">إضافة أو تعديل</button></form><details class="account-collapsible"><summary>الأمان <span>تغيير كلمة المرور</span></summary><form class="phone-auth-form" id="changePinForm"><div class="password-input-wrap"><input id="currentPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الحالية"><button type="button" class="password-toggle" data-password-toggle="currentPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinInput" required type="password" dir="ltr" placeholder="كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><div class="password-input-wrap"><input id="newPinConfirmInput" required type="password" dir="ltr" placeholder="تأكيد كلمة المرور الجديدة"><button type="button" class="password-toggle" data-password-toggle="newPinConfirmInput" aria-label="إظهار كلمة المرور"><i class="fa-solid fa-eye"></i></button></div><button class="btn btn-outline" type="submit">تغيير كلمة المرور</button></form></details><div class="account-danger-zone"><h3>حذف الحساب</h3><p>حذف الحساب يحتاج إلى معالجة موثقة من الدعم لحماية الطلبات والإيصالات.</p><button type="button" class="btn btn-outline" data-account-delete-info>طلب حذف الحساب</button></div></section><section class="account-panel" data-account-panel="orders" hidden><h3>الطلبات (${orders.length})</h3>${orders.length ? `<ul class="account-orders">${orders.map((order) => `<li><div><strong>#${esc(order.orderNumber || order.id)}</strong><small>${esc(accountOrderStatus(order))} · ${esc(order.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل')}</small></div><span>${order.hasHiddenPriceItems === true ? unspecifiedPriceLabel() : formatPrice(order.grandTotal)}</span><button class="btn btn-outline" type="button" data-order-open="${esc(order.id)}">عرض التفاصيل</button></li>`).join('')}</ul>` : `<div class="empty-state">ما عندك طلبات حالياً<br><button class="btn btn-outline" type="button" data-orders-browse>تصفح المنتجات.</button></div>`}</section>`;
 }
 
 async function saveAccountAddress(event) {
@@ -2069,7 +2073,7 @@ function renderOrderDetails(order) {
   const date = order?.timestamp || order?.createdAt;
   $('orderDetailsTitle').textContent = `${language === 'en' ? 'Order' : 'الطلب'} #${order?.orderNumber || order?.id || ''}`;
   const totalDiscount = Number(order?.builderInvoiceDiscount || 0);
-  const onRequest = language === 'en' ? 'Price on request' : 'السعر عند الطلب';
+  const onRequest = unspecifiedPriceLabel();
   const hasHidden = order?.hasHiddenPriceItems === true || items.some((item) => item.priceVisible === false);
   $('orderDetailsContent').innerHTML = `<div class="order-detail-summary"><div><span>رقم الطلب</span><strong>${esc(order?.orderNumber || order?.id || '—')}</strong></div><div><span>التاريخ</span><strong>${esc(date ? new Date(Number(date)).toLocaleString('ar-IQ') : '—')}</strong></div><div><span>الحالة</span><strong>${esc(accountOrderStatus(order))}</strong></div><div><span>طريقة الاستلام</span><strong>${order?.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}</strong></div></div><ul class="order-detail-items">${items.length ? items.map((item) => { const itemPrice = item.priceVisible === false ? onRequest : money(item.unit_price ?? item.price); const line = item.priceVisible === false ? onRequest : money(item.line_total ?? ((item.unit_price ?? item.price ?? 0) * (item.qty || item.quantity || 1))); return `<li><div><strong>${esc(item.name || item.product_name || item.productName || 'منتج')}</strong><small>الكمية: ${esc(item.qty || item.quantity || 1)} · سعر الشراء: ${esc(itemPrice)}</small></div><strong>${esc(line)}</strong></li>`; }).join('') : '<li>لا توجد تفاصيل منتجات محفوظة.</li>'}</ul><dl class="order-detail-totals"><div><dt>الخصم</dt><dd>${hasHidden ? onRequest : money(totalDiscount)}</dd></div><div><dt>التوصيل</dt><dd>${money(order?.deliveryFee)}</dd></div><div><dt>الإجمالي</dt><dd>${hasHidden ? onRequest : money(order?.grandTotal)}</dd></div></dl>${order?.deliveryMethod !== 'pickup' ? `<div class="order-detail-address"><strong>عنوان التوصيل</strong><p>${esc([order?.governorate, order?.district || order?.city, order?.subdistrict, order?.neighborhood, order?.addressDetails || order?.address].filter(Boolean).join('، ') || 'غير محفوظ')}</p></div>` : ''}`;
   modal('orderDetailsModal', true);
@@ -2186,7 +2190,7 @@ function appendChat(text, user = false, products = []) {
   products.forEach((p) => {
     const card = document.createElement('div');
     card.className = 'chat-product';
-    const chatPrice = p.priceVisible === false ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : formatPrice(validPrice(p.price) ?? productPrice(p));
+    const chatPrice = p.priceVisible === false ? unspecifiedPriceLabel() : formatPrice(validPrice(p.price) ?? productPrice(p));
     card.innerHTML = `<img src="${esc(p.image || imageFor(p))}" alt=""><div><strong>${esc(productName(p))}</strong><span>${p.builderOnly === true ? builderOnlyLabelMarkup() : chatPrice}</span><small>${p.available ? (language === 'en' ? 'Available' : 'متوفر') : (language === 'en' ? 'Unavailable' : 'غير متوفر')}</small><div class="chat-product-actions"><button type="button" data-chat-open>عرض المنتج</button>${p.builderOnly === true ? '' : '<button type="button" data-chat-cart>أضف للسلة</button>'}</div></div>`;
     card.querySelector('[data-chat-open]').addEventListener('click', (e) => { e.stopPropagation(); openProductDetails(p.id); });
     card.querySelector('[data-chat-cart]').addEventListener('click', (e) => { e.stopPropagation(); if (p.available) { addToCart(p.id); showToast(t('added')); } });
@@ -2271,17 +2275,16 @@ function normalizeIraqPhone(value) {
 }
 // ===== Checkout =====
 function openCheckout() {
-  const unavailable = state.cart.find((item) => !cartProduct(item));
+  const unavailable = state.cart.find((item) => !cartProduct(item) || !canPurchaseProduct(cartProduct(item)));
   if (unavailable) {
     showToast(language === 'en' ? `Remove unavailable product: ${cartItemLabel(unavailable)}` : `أزل المنتج غير المتوفر: ${cartItemLabel(unavailable)}`);
     openCart();
     return;
   }
-  const hasHiddenPrice = state.cart.some((item) => { const product = cartProduct(item); return product && !priceInfo(product).visible; });
-  const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p && priceInfo(p).visible ? (item.builderSource ? builderProductPrice(p) : productPrice(p)) * item.qty : 0); }, 0);
+  const total = state.cart.reduce((sum, item) => { const p = cartProduct(item); return sum + (p && priceInfo(p).purchasable ? (item.builderSource ? builderProductPrice(p) : productPrice(p)) * item.qty : 0); }, 0);
   const checkoutForm = $('checkoutForm');
-  if (checkoutForm) checkoutForm.dataset.hiddenPrice = String(hasHiddenPrice);
-  $('checkoutSubtotal').textContent = hasHiddenPrice ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : formatPrice(total);
+  if (checkoutForm) checkoutForm.dataset.hiddenPrice = 'false';
+  $('checkoutSubtotal').textContent = formatPrice(total);
   updateCheckoutFulfilment(total);
   closeCart();
   modal('checkoutModal', true);
@@ -2305,12 +2308,11 @@ function updateCheckoutFulfilment(subtotal = null) {
   const delivery = method === 'delivery';
   $('deliveryFields')?.toggleAttribute('hidden', !delivery);
   ['orderGov', 'orderDistrict', 'orderAddress'].forEach((id) => $(id)?.toggleAttribute('required', delivery));
-  const hasHiddenPrice = form.dataset.hiddenPrice === 'true';
   const total = subtotal ?? (Number(String($('checkoutSubtotal')?.textContent || '').replace(/[^0-9.]/g, '')) || 0);
   const fee = delivery ? Number(deliveryFee || 0) : 0;
   $('checkoutDeliveryFee').textContent = formatPrice(fee);
   $('checkoutDeliveryRow')?.toggleAttribute('hidden', !delivery);
-  $('checkoutTotal').textContent = hasHiddenPrice ? (language === 'en' ? 'Price on request' : 'السعر عند الطلب') : formatPrice(total + fee);
+  $('checkoutTotal').textContent = formatPrice(total + fee);
 }
 
 function checkoutDebugSummary(payload) {
@@ -2572,6 +2574,42 @@ document.addEventListener('keydown', (event) => {
 
 // ===== Firebase Listeners =====
 const categoriesRef = ref(db, 'categories');
+const catalogVersionRef = ref(db, 'catalogVersion');
+let lastCatalogVersion = null;
+let catalogVersionObserved = false;
+let catalogRefreshTimer = null;
+let loadedAppVersion = null;
+
+function schedulePublicCatalogReload() {
+  if (catalogRefreshTimer) clearTimeout(catalogRefreshTimer);
+  catalogRefreshTimer = setTimeout(() => loadPublicCatalog(), 180);
+}
+
+function checkoutOrOrderIsOpen() {
+  return ['checkoutModal', 'orderSuccessModal'].some((id) => $(id)?.classList.contains('open'));
+}
+
+async function checkForSafeAppUpdate() {
+  try {
+    const response = await fetch('version.json', { cache: 'no-store' });
+    const next = response.ok ? String((await response.json())?.version || '') : '';
+    if (!next) return;
+    if (loadedAppVersion && next !== loadedAppVersion && !state.cart.length && !checkoutOrOrderIsOpen()) {
+      window.location.reload();
+      return;
+    }
+    loadedAppVersion = next;
+  } catch { /* A missed update check must never interrupt shopping. */ }
+}
+
+onValue(catalogVersionRef, (snapshot) => {
+  const next = snapshot.val();
+  if (catalogVersionObserved && next !== lastCatalogVersion) schedulePublicCatalogReload();
+  lastCatalogVersion = next;
+  catalogVersionObserved = true;
+});
+checkForSafeAppUpdate();
+window.setInterval(checkForSafeAppUpdate, 5 * 60 * 1000);
 console.log('CATEGORY_DEBUG', {
   firebaseProjectId: firebaseConfig.projectId,
   databaseHost: new URL(firebaseConfig.databaseURL).hostname,

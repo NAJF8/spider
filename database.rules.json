@@ -14,6 +14,10 @@
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'categories').val() === true)"
     },
+    "catalogVersion": {
+      ".read": true,
+      ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/products_add').val() === true || root.child('admins/'+auth.uid+'/permissions/products_edit').val() === true || root.child('admins/'+auth.uid+'/permissions/products_delete').val() === true || root.child('admins/'+auth.uid+'/permissions/categories').val() === true || root.child('admins/'+auth.uid+'/permissions/store_settings').val() === true)"
+    },
     "offers": {
       ".read": true,
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'categories').val() === true)"
