@@ -115,20 +115,15 @@
       </a>
     </section>
 
-    <!-- 3. CATEGORIES — Always visible circular row -->
+    <!-- 3. CATEGORIES — progressive card navigation -->
     <section class="section-pad categories-section" aria-label="أقسام المتجر">
-      <div class="section-heading categories-heading"><div class="section-title-bar"><h2 id="categoriesSectionTitle">جميع الأقسام</h2></div></div>
-      <div class="categories-row" id="categoriesRow">
+      <div class="section-heading categories-heading"><div class="section-title-bar"><h2 id="categoriesSectionTitle">تصفح حسب القسم</h2></div></div>
+      <nav class="catalog-breadcrumb" id="catalogBreadcrumb" aria-label="مسار الأقسام"></nav>
+      <div class="category-card-grid" id="categoriesRow" aria-live="polite">
         <div class="loading-state">جاري تحميل الأقسام...</div>
       </div>
-      <!-- Show-all toggle (optional) -->
-      <div style="text-align:center;margin-top:12px">
-        <button class="section-toggle hidden" id="viewAllCatBtn" type="button"
-          aria-expanded="false" aria-controls="categoriesRow" style="display:none">
-          <span id="categoriesTitle">انقر لعرض الأقسام</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </button>
-      </div>
+      <section class="subcategory-panel hidden" id="subcategoryPanel" aria-labelledby="subcategoryPanelTitle"></section>
+      <button class="section-toggle hidden" id="viewAllCatBtn" type="button" aria-expanded="false" aria-controls="categoriesRow" style="display:none"><span id="categoriesTitle">انقر لعرض الأقسام</span></button>
     </section>
 
     <!-- 4. PRODUCTS -->
@@ -137,26 +132,28 @@
         <div class="section-title-bar">
           <h2 id="productsSectionTitle">أحدث المنتجات</h2>
         </div>
-        <button class="text-btn" id="viewAllProdBtn" type="button">
-          عرض الكل <i class="fa-solid fa-arrow-left"></i>
-        </button>
+        <div class="catalog-heading-actions">
+          <button class="catalog-filter-toggle" id="openCatalogFilters" type="button" aria-expanded="false" aria-controls="catalogFilters"><i class="fa-solid fa-sliders"></i> الفلاتر <span id="catalogFilterCount" hidden>0</span></button>
+          <button class="text-btn" id="viewAllProdBtn" type="button">عرض الكل <i class="fa-solid fa-arrow-left"></i></button>
+        </div>
       </div>
-      <div class="active-filter hidden" id="activeFilter"></div>
+      <div class="active-filter hidden" id="activeFilter" aria-live="polite"></div>
+      <div class="catalog-filter-scrim" id="catalogFilterScrim" hidden></div>
       <form class="catalog-filters" id="catalogFilters" aria-label="فلترة المنتجات">
-        <label>الترتيب<select id="catalogSort"><option value="">الأحدث</option><option value="price-asc">السعر: الأقل للأعلى</option><option value="price-desc">السعر: الأعلى للأقل</option></select></label>
-        <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
-        <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+        <div class="catalog-filters-head"><strong>تصفية وترتيب المنتجات</strong><button class="icon-btn" id="closeCatalogFilters" type="button" aria-label="إغلاق الفلاتر"><i class="fa-solid fa-xmark"></i></button></div>
+        <label>الترتيب<select id="catalogSort"><option value="">الأحدث</option><option value="price-asc">السعر: الأقل للأعلى</option><option value="price-desc">السعر: الأعلى للأقل</option><option value="name-asc">الاسم أبجدياً</option></select></label>
+        <div class="catalog-price-group"><span class="catalog-control-label">نطاق السعر <small>د.ع</small></span><div class="catalog-price-inputs"><label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label><label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label></div></div>
         <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
-        <fieldset><legend>العلامات التجارية</legend><div id="catalogBrandFilters" class="catalog-brand-filters"></div></fieldset>
-        <button class="btn btn-outline" id="resetCatalogFilters" type="button">إعادة تعيين</button><output id="catalogResultCount"></output>
+        <fieldset><legend>العلامة التجارية</legend><label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label><div id="catalogBrandFilters" class="catalog-brand-filters"></div><button class="text-btn hidden" id="showMoreBrands" type="button" aria-expanded="false">عرض المزيد</button></fieldset>
+        <div class="catalog-filter-actions"><button class="btn btn-outline" id="resetCatalogFilters" type="button">إعادة تعيين</button><button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button><output id="catalogResultCount" aria-live="polite"></output></div>
       </form>
-      <div class="products-grid" id="productsGrid">
-        <div class="loading-state">جاري تحميل المنتجات...</div>
+      <div class="products-grid" id="productsGrid" aria-live="polite" aria-busy="true">
+        <div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div>
       </div>
     </section>
 
     <!-- 5. BRANDS -->
-    <section class="section-pad brands-section" aria-labelledby="brandsTitle">
+    <section class="section-pad brands-section" aria-labelledby="brandsTitle" hidden>
       <div class="section-heading">
         <div class="section-title-bar">
           <h2 id="brandsTitle">العلامات التجارية</h2>
