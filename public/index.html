@@ -144,8 +144,9 @@
       <div class="active-filter hidden" id="activeFilter"></div>
       <form class="catalog-filters" id="catalogFilters" aria-label="فلترة المنتجات">
         <label>الترتيب<select id="catalogSort"><option value="">الأحدث</option><option value="price-asc">السعر: الأقل للأعلى</option><option value="price-desc">السعر: الأعلى للأقل</option></select></label>
-        <label>من السعر<input id="catalogMinPrice" type="number" min="0" step="1" inputmode="numeric"></label>
-        <label>إلى السعر<input id="catalogMaxPrice" type="number" min="0" step="1" inputmode="numeric"></label>
+        <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+        <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+        <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
         <fieldset><legend>العلامات التجارية</legend><div id="catalogBrandFilters" class="catalog-brand-filters"></div></fieldset>
         <button class="btn btn-outline" id="resetCatalogFilters" type="button">إعادة تعيين</button><output id="catalogResultCount"></output>
       </form>

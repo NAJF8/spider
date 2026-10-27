@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue, get, update, connectDatabaseEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
+import { parseOptionalPrice, validateOptionalPriceRange } from './catalog-price-filters.mjs';
 
 const IS_LOCAL_EMULATOR = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const firebaseConfig = IS_LOCAL_EMULATOR ? {
@@ -39,7 +40,7 @@ const state = {
   favorites: [],
   settings: {},
   brandLogos: {},
-  filters: { category: '', brands: [], search: '', minPrice: '', maxPrice: '', sort: '' },
+  filters: { category: '', brands: [], search: '', minPrice: null, maxPrice: null, sort: '' },
   showCategories: false,
   showBrands: true,
   compare: ['', ''],
@@ -536,10 +537,16 @@ function brandMatches(value, selected) {
 
 function filteredProducts() {
   const { category, brands = [], search, minPrice, maxPrice, sort } = state.filters;
+  // Empty and malformed values are intentionally not interpreted as zero.
+  // Validation happens before state is committed, but these guards also keep a
+  // malformed URL or future caller from affecting catalog visibility.
+  const min = parseOptionalPrice(minPrice);
+  const max = parseOptionalPrice(maxPrice);
   const result = state.products.filter((p) => {
     const info = priceInfo(p);
-    const min = Number(minPrice), max = Number(maxPrice);
-    const priceMatches = !info.visible || ((!Number.isFinite(min) || info.price >= min) && (!Number.isFinite(max) || info.price <= max));
+    // A price-on-request item remains in results but is never compared or
+    // sorted using a private/original price.
+    const priceMatches = !info.visible || ((min === null || info.price >= min) && (max === null || info.price <= max));
     return productCategoryMatch(p, category) &&
     (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
     (!search || productText(p).includes(search.toLowerCase())) && priceMatches;
@@ -779,11 +786,53 @@ function renderCatalogFilters() {
   const candidates = state.products.filter((p) => productCategoryMatch(p, state.filters.category) && (!state.filters.search || productText(p).includes(state.filters.search.toLowerCase())));
   const brands = canonicalBrandRecords(candidates);
   root.innerHTML = brands.map((brand) => `<label><input type="checkbox" value="${esc(brand.name)}" ${state.filters.brands.includes(brand.name) ? 'checked' : ''}> ${esc(brand.name)} (${brand.count})</label>`).join('') || '<span>لا توجد علامات</span>';
-  $('catalogSort').value = state.filters.sort; $('catalogMinPrice').value = state.filters.minPrice; $('catalogMaxPrice').value = state.filters.maxPrice;
+  $('catalogSort').value = state.filters.sort;
+  $('catalogMinPrice').value = state.filters.minPrice ?? '';
+  $('catalogMaxPrice').value = state.filters.maxPrice ?? '';
   $('catalogResultCount').textContent = `${filteredProducts().length} نتيجة`;
   root.querySelectorAll('input').forEach((input) => input.addEventListener('change', () => { state.filters.brands = [...root.querySelectorAll('input:checked')].map((i) => i.value); syncFiltersToUrl(); renderProducts(); }));
 }
-function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.minPrice) p.set('min', f.minPrice); if (f.maxPrice) p.set('max', f.maxPrice); if (f.sort) p.set('sort', f.sort); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
+function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.minPrice !== null) p.set('min', String(f.minPrice)); if (f.maxPrice !== null) p.set('max', String(f.maxPrice)); if (f.sort) p.set('sort', f.sort); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
+
+function catalogPriceValidationMessage(validation) {
+  if (validation.error === 'range') return language === 'en' ? 'The minimum price cannot exceed the maximum price.' : 'لا يمكن أن يكون السعر الأدنى أكبر من السعر الأعلى.';
+  if (validation.error === 'invalid') return language === 'en' ? 'Enter a valid non-negative price.' : 'أدخل سعراً صحيحاً غير سالب.';
+  return '';
+}
+
+function setCatalogPriceValidation(validation) {
+  const message = catalogPriceValidationMessage(validation);
+  const error = $('catalogPriceError');
+  if (error) {
+    error.textContent = message;
+    error.hidden = !message;
+  }
+  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.setAttribute('aria-invalid', String(!validation.valid)));
+}
+
+function commitCatalogPriceFilters() {
+  const validation = validateOptionalPriceRange($('catalogMinPrice')?.value, $('catalogMaxPrice')?.value);
+  setCatalogPriceValidation(validation);
+  // Preserve the last valid result set until the price range is valid again.
+  if (!validation.valid) return;
+  state.filters.minPrice = validation.min;
+  state.filters.maxPrice = validation.max;
+  syncFiltersToUrl();
+  renderProducts();
+}
+
+function restoreFiltersFromUrl() {
+  const query = new URLSearchParams(location.search);
+  const range = validateOptionalPriceRange(query.get('min'), query.get('max'));
+  state.filters = {
+    ...state.filters,
+    category: String(query.get('category') || '').trim(),
+    brands: String(query.get('brands') || '').split(',').map((brand) => brand.trim()).filter(Boolean),
+    minPrice: range.valid ? range.min : null,
+    maxPrice: range.valid ? range.max : null,
+    sort: ['price-asc', 'price-desc', 'name-asc'].includes(query.get('sort')) ? query.get('sort') : ''
+  };
+}
 
 function filterProductsByCategory(categoryId) {
   state.filters = { ...state.filters, category: categoryId || '', brands: [] };
@@ -795,7 +844,7 @@ function filterProductsByCategory(categoryId) {
 window.filterProductsByCategory = filterProductsByCategory;
 
 function clearFilters() {
-  state.filters = { category: '', brands: [], search: '', minPrice: '', maxPrice: '', sort: '' };
+  state.filters = { category: '', brands: [], search: '', minPrice: null, maxPrice: null, sort: '' };
   $('searchInput').value = '';
   document.querySelectorAll('.brand-item').forEach((b) => b.classList.remove('active'));
   $('clearBrandBtn').classList.add('hidden');
@@ -2293,7 +2342,7 @@ function bindEvents() {
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
   $('catalogSort')?.addEventListener('change', (event) => { state.filters.sort = event.target.value; syncFiltersToUrl(); renderProducts(); });
-  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', (event) => { state.filters[id === 'catalogMinPrice' ? 'minPrice' : 'maxPrice'] = event.target.value; syncFiltersToUrl(); renderProducts(); }));
+  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', commitCatalogPriceFilters));
   $('resetCatalogFilters')?.addEventListener('click', () => { clearFilters(); syncFiltersToUrl(); });
   $('checkoutForm').querySelectorAll('input[name="deliveryMethod"]').forEach((input) => input.addEventListener('change', () => updateCheckoutFulfilment()));
   bindAddressHierarchy();
@@ -2479,6 +2528,7 @@ bindReceiptEvents();
 readCart();
 readBuilder();
 readUpgrade();
+restoreFiltersFromUrl();
 loadFavorites();
 if (document.body.dataset.page === 'builder') bindBuilderPageEvents();
 else if (document.body.dataset.page === 'upgrade') bindUpgradePageEvents();
