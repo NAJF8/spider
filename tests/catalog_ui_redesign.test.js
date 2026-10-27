@@ -24,6 +24,7 @@ assert.match(script, /catalogVersionRef/);
 assert.match(css, /\.category-card-grid/);
 assert.match(css, /\.catalog-brand-option\.is-selected/);
 assert.match(css, /\.catalog-filters-open \.catalog-filters/);
+assert.match(css, /\.products-grid\{grid-template-columns:repeat\(auto-fit,minmax\(210px,280px\)\);justify-content:start;direction:rtl\}/);
 assert.match(css, /@media \(max-width:760px\)/);
 
 console.log('PASS catalog cards, progressive navigation, premium filters, and mobile sheet wiring');

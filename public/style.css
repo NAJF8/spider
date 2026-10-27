@@ -1030,9 +1030,15 @@ html[data-theme="dark"] .field-error{color:#F51F2A}
 }
 
 @media (min-width:1200px) {
-  .products-grid{grid-template-columns:repeat(5,1fr)}
+  .products-grid{grid-template-columns:repeat(auto-fit,minmax(210px,280px));justify-content:start;direction:rtl}
   .builder-parts{grid-template-columns:repeat(3,minmax(0,1fr))}
   .compare-filters{grid-template-columns:1fr 1fr}
+}
+
+/* Keep sparse catalog results aligned with the document's logical start (right
+   in Arabic) without expanding a couple of product cards across the row. */
+@media (min-width:761px) and (max-width:1199px){
+  .products-grid{grid-template-columns:repeat(auto-fit,minmax(210px,280px));justify-content:start;direction:rtl}
 }
 
 @media (prefers-reduced-motion:reduce) {
