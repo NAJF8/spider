@@ -40,7 +40,8 @@ const state = {
   favorites: [],
   settings: {},
   brandLogos: {},
-  filters: { category: '', brands: [], search: '', minPrice: null, maxPrice: null, sort: '' },
+  filters: { category: '', brands: [], sockets: [], search: '', minPrice: null, maxPrice: null, sort: '', inStockOnly: false },
+  catalogView: 'grid',
   showCategories: false,
   showBrands: true,
   categoryPanelId: '',
@@ -542,7 +543,7 @@ function brandMatches(value, selected) {
 }
 
 function filteredProducts() {
-  const { category, brands = [], search, minPrice, maxPrice, sort } = state.filters;
+  const { category, brands = [], sockets = [], search, minPrice, maxPrice, sort, inStockOnly = false } = state.filters;
   // Empty and malformed values are intentionally not interpreted as zero.
   // Validation happens before state is committed, but these guards also keep a
   // malformed URL or future caller from affecting catalog visibility.
@@ -557,6 +558,8 @@ function filteredProducts() {
     const priceMatches = !info.purchasable ? (min === null && max === null) : ((min === null || info.price >= min) && (max === null || info.price <= max));
     return productCategoryMatch(p, category) &&
     (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
+    (!sockets.length || sockets.some((socket) => productText(p).includes(String(socket).toLowerCase()))) &&
+    (!inStockOnly || isAvailable(p)) &&
     (!search || productText(p).includes(search.toLowerCase())) && priceMatches;
   });
   if (sort === 'price-asc' || sort === 'price-desc') result.sort((a, b) => {
@@ -867,6 +870,7 @@ function renderProducts() {
     return;
   }
   const filtered = filteredProducts();
+  grid.classList.toggle('is-list', state.catalogView === 'list');
   grid.setAttribute('aria-busy', 'false');
   grid.innerHTML = filtered.length
     ? filtered.map(productCard).join('')
@@ -882,6 +886,8 @@ function activeCatalogFilterChips() {
   const chips = [];
   if (state.filters.category) chips.push({ key: 'category', value: state.filters.category, label: categoryName(state.filters.category) });
   state.filters.brands.forEach((brand) => chips.push({ key: 'brand', value: brand, label: brand }));
+  state.filters.sockets?.forEach((socket) => chips.push({ key: 'socket', value: socket, label: socket }));
+  if (state.filters.inStockOnly) chips.push({ key: 'stock', label: language === 'en' ? 'In stock only' : 'في المخزون فقط' });
   if (state.filters.minPrice !== null) chips.push({ key: 'min', label: `${language === 'en' ? 'From' : 'من'} ${formatPrice(state.filters.minPrice)}` });
   if (state.filters.maxPrice !== null) chips.push({ key: 'max', label: `${language === 'en' ? 'To' : 'إلى'} ${formatPrice(state.filters.maxPrice)}` });
   if (state.filters.search) chips.push({ key: 'search', label: `${t('searchFilter')}: ${state.filters.search}` });
@@ -891,6 +897,8 @@ function activeCatalogFilterChips() {
 function removeCatalogFilter({ key, value }) {
   if (key === 'category') { state.filters.category = ''; state.categoryPanelId = ''; }
   if (key === 'brand') state.filters.brands = state.filters.brands.filter((brand) => !brandMatches(brand, value));
+  if (key === 'socket') state.filters.sockets = state.filters.sockets.filter((socket) => socket !== value);
+  if (key === 'stock') state.filters.inStockOnly = false;
   if (key === 'min') state.filters.minPrice = null;
   if (key === 'max') state.filters.maxPrice = null;
   if (key === 'search') { state.filters.search = ''; if ($('searchInput')) $('searchInput').value = ''; }
@@ -921,12 +929,22 @@ function renderCatalogFilters() {
   const search = state.brandSearch.trim().toLowerCase();
   const matchedBrands = allBrands.filter((brand) => !search || brand.name.toLowerCase().includes(search));
   const visibleBrands = state.showAllBrands || search ? matchedBrands : matchedBrands.slice(0, 8);
-  root.innerHTML = visibleBrands.map((brand) => `<button class="catalog-brand-option ${state.filters.brands.some((selected) => brandMatches(selected, brand.key)) ? 'is-selected' : ''}" type="button" data-catalog-brand="${esc(brand.name)}" aria-pressed="${state.filters.brands.some((selected) => brandMatches(selected, brand.key))}"><span>${esc(brand.name)}</span><small>${brand.count}</small><i class="fa-solid fa-check" aria-hidden="true"></i></button>`).join('') || `<span class="no-brand-match">${language === 'en' ? 'No matching brands.' : 'لا توجد علامات مطابقة.'}</span>`;
+  root.innerHTML = visibleBrands.map((brand) => {
+    const selected = state.filters.brands.some((value) => brandMatches(value, brand.key));
+    return `<label class="catalog-check-option"><input type="checkbox" data-catalog-brand="${esc(brand.name)}" ${selected ? 'checked' : ''}><span class="catalog-checkmark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="catalog-check-label">${esc(brand.name)}</span><small>(${brand.count})</small></label>`;
+  }).join('') || `<span class="no-brand-match">${language === 'en' ? 'No matching brands.' : 'لا توجد علامات مطابقة.'}</span>`;
   $('catalogSort').value = state.filters.sort;
+  if ($('catalogStockOnly')) $('catalogStockOnly').checked = state.filters.inStockOnly === true;
   $('catalogMinPrice').value = state.filters.minPrice ?? '';
   $('catalogMaxPrice').value = state.filters.maxPrice ?? '';
   if ($('catalogBrandSearch')) $('catalogBrandSearch').value = state.brandSearch;
   $('catalogResultCount').textContent = `${filteredProducts().length} ${language === 'en' ? 'products' : 'منتجاً'}`;
+  renderCatalogSocketFilters(candidates);
+  syncCatalogPriceRange();
+  $('catalogViewGrid')?.classList.toggle('is-active', state.catalogView === 'grid');
+  $('catalogViewList')?.classList.toggle('is-active', state.catalogView === 'list');
+  $('catalogViewGrid')?.setAttribute('aria-pressed', String(state.catalogView === 'grid'));
+  $('catalogViewList')?.setAttribute('aria-pressed', String(state.catalogView === 'list'));
   const showMore = $('showMoreBrands');
   if (showMore) {
     const canExpand = !search && matchedBrands.length > 8;
@@ -934,14 +952,68 @@ function renderCatalogFilters() {
     showMore.setAttribute('aria-expanded', String(state.showAllBrands));
     showMore.textContent = state.showAllBrands ? (language === 'en' ? 'Show less' : 'عرض أقل') : (language === 'en' ? 'Show more' : 'عرض المزيد');
   }
-  root.querySelectorAll('[data-catalog-brand]').forEach((button) => button.addEventListener('click', () => {
-    const brand = button.dataset.catalogBrand;
+  root.querySelectorAll('[data-catalog-brand]').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const brand = checkbox.dataset.catalogBrand;
     state.filters.brands = state.filters.brands.some((selected) => brandMatches(selected, brand)) ? state.filters.brands.filter((selected) => !brandMatches(selected, brand)) : [...state.filters.brands, brand];
     syncFiltersToUrl();
     renderProducts();
   }));
 }
-function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.search) p.set('q', f.search); if (f.minPrice !== null) p.set('min', String(f.minPrice)); if (f.maxPrice !== null) p.set('max', String(f.maxPrice)); if (f.sort) p.set('sort', f.sort); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
+function renderCatalogSocketFilters(candidates) {
+  const root = $('catalogSocketFilters');
+  if (!root) return;
+  const options = ['LGA 1200', 'LGA 1700', 'LGA 1851'];
+  root.innerHTML = options.map((socket) => {
+    const count = candidates.filter((product) => productText(product).includes(socket.toLowerCase())).length;
+    const selected = state.filters.sockets?.includes(socket);
+    return `<label class="catalog-check-option"><input type="checkbox" data-catalog-socket="${esc(socket)}" ${selected ? 'checked' : ''}><span class="catalog-checkmark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="catalog-check-label">${socket}</span><small>(${count})</small></label>`;
+  }).join('');
+  root.querySelectorAll('[data-catalog-socket]').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const socket = checkbox.dataset.catalogSocket;
+    state.filters.sockets = checkbox.checked ? [...(state.filters.sockets || []), socket] : (state.filters.sockets || []).filter((value) => value !== socket);
+    syncFiltersToUrl();
+    renderProducts();
+  }));
+}
+function catalogPriceBounds() {
+  const values = state.products.map((product) => priceInfo(product).purchasable ? priceInfo(product).price : null).filter((value) => Number.isFinite(value) && value >= 0);
+  if (!values.length) return { min: 0, max: 1000000 };
+  const min = Math.floor(Math.min(...values) / 1000) * 1000;
+  const max = Math.ceil(Math.max(...values) / 1000) * 1000;
+  return { min, max: Math.max(min + 1000, max) };
+}
+function formatCatalogInputPrice(value) { return Number(value || 0).toLocaleString('en-IQ'); }
+function updateCatalogRangeTrack(bounds, minValue, maxValue) {
+  const minLabel = $('catalogMinRangeLabel'), maxLabel = $('catalogMaxRangeLabel');
+  if (minLabel) minLabel.textContent = formatCatalogInputPrice(minValue);
+  if (maxLabel) maxLabel.textContent = formatCatalogInputPrice(maxValue);
+  const track = $('catalogRangeSlider');
+  if (track) {
+    const span = Math.max(1, bounds.max - bounds.min);
+    track.style.setProperty('--range-start', `${((Number(minValue) - bounds.min) / span) * 100}%`);
+    track.style.setProperty('--range-end', `${((Number(maxValue) - bounds.min) / span) * 100}%`);
+  }
+}
+function syncCatalogPriceRange() {
+  const minRange = $('catalogMinRange'), maxRange = $('catalogMaxRange');
+  if (!minRange || !maxRange) return;
+  const bounds = catalogPriceBounds();
+  const selectedMin = state.filters.minPrice === null ? bounds.min : Math.max(bounds.min, Number(state.filters.minPrice));
+  const selectedMax = state.filters.maxPrice === null ? bounds.max : Math.min(bounds.max, Number(state.filters.maxPrice));
+  minRange.min = String(bounds.min); maxRange.min = String(bounds.min); minRange.max = String(bounds.max); maxRange.max = String(bounds.max);
+  minRange.value = String(Math.min(selectedMin, selectedMax)); maxRange.value = String(Math.max(selectedMin, selectedMax));
+  updateCatalogRangeTrack(bounds, minRange.value, maxRange.value);
+}
+function previewCatalogPriceRange() {
+  const minRange = $('catalogMinRange'), maxRange = $('catalogMaxRange');
+  if (!minRange || !maxRange) return;
+  if (Number(minRange.value) > Number(maxRange.value)) {
+    if (document.activeElement === minRange) maxRange.value = minRange.value;
+    else minRange.value = maxRange.value;
+  }
+  updateCatalogRangeTrack(catalogPriceBounds(), minRange.value, maxRange.value);
+}
+function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.sockets?.length) p.set('sockets', f.sockets.join(',')); if (f.search) p.set('q', f.search); if (f.minPrice !== null) p.set('min', String(f.minPrice)); if (f.maxPrice !== null) p.set('max', String(f.maxPrice)); if (f.sort) p.set('sort', f.sort); if (f.inStockOnly) p.set('stock', '1'); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
 
 function catalogPriceValidationMessage(validation) {
   if (validation.error === 'range') return language === 'en' ? 'The minimum price cannot exceed the maximum price.' : 'لا يمكن أن يكون السعر الأدنى أكبر من السعر الأعلى.';
@@ -970,6 +1042,16 @@ function commitCatalogPriceFilters() {
   renderProducts();
 }
 
+function commitCatalogRangeFilters() {
+  const minRange = $('catalogMinRange'), maxRange = $('catalogMaxRange');
+  if (!minRange || !maxRange) return;
+  const bounds = catalogPriceBounds();
+  const min = Number(minRange.value), max = Number(maxRange.value);
+  $('catalogMinPrice').value = min > bounds.min ? String(min) : '';
+  $('catalogMaxPrice').value = max < bounds.max ? String(max) : '';
+  commitCatalogPriceFilters();
+}
+
 function setCatalogFiltersOpen(open) {
   const isOpen = Boolean(open);
   document.body.classList.toggle('catalog-filters-open', isOpen);
@@ -986,10 +1068,12 @@ function restoreFiltersFromUrl() {
     ...state.filters,
     category: String(query.get('category') || '').trim(),
     brands: String(query.get('brands') || '').split(',').map((brand) => brand.trim()).filter(Boolean),
+    sockets: String(query.get('sockets') || '').split(',').map((socket) => socket.trim()).filter(Boolean),
     search: String(query.get('q') || '').trim(),
     minPrice: range.valid ? range.min : null,
     maxPrice: range.valid ? range.max : null,
-    sort: ['price-asc', 'price-desc', 'name-asc'].includes(query.get('sort')) ? query.get('sort') : ''
+    sort: ['price-asc', 'price-desc', 'name-asc'].includes(query.get('sort')) ? query.get('sort') : '',
+    inStockOnly: query.get('stock') === '1'
   };
   if ($('searchInput')) $('searchInput').value = state.filters.search;
 }
@@ -1008,7 +1092,7 @@ function filterProductsByCategory(categoryId) {
 window.filterProductsByCategory = filterProductsByCategory;
 
 function clearFilters() {
-  state.filters = { category: '', brands: [], search: '', minPrice: null, maxPrice: null, sort: '' };
+  state.filters = { category: '', brands: [], sockets: [], search: '', minPrice: null, maxPrice: null, sort: '', inStockOnly: false };
   state.categoryPanelId = '';
   state.brandSearch = '';
   state.showAllBrands = false;
@@ -2456,6 +2540,27 @@ function bindAddressHierarchy() {
 }
 
 function bindEvents() {
+  // Bind the catalog controls first so the filter surface remains usable even
+  // if an unrelated optional storefront widget fails during initialization.
+  $('catalogSort')?.addEventListener('change', (event) => { state.filters.sort = event.target.value; syncFiltersToUrl(); renderProducts(); });
+  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', commitCatalogPriceFilters));
+  ['catalogMinRange', 'catalogMaxRange'].forEach((id) => {
+    $(id)?.addEventListener('input', previewCatalogPriceRange);
+    $(id)?.addEventListener('change', commitCatalogRangeFilters);
+  });
+  $('catalogBrandSearch')?.addEventListener('input', (event) => { state.brandSearch = event.target.value; renderCatalogFilters(); });
+  $('showMoreBrands')?.addEventListener('click', () => { state.showAllBrands = !state.showAllBrands; renderCatalogFilters(); });
+  const resetCatalog = () => { clearFilters(); syncFiltersToUrl(); };
+  $('resetCatalogFilters')?.addEventListener('click', resetCatalog);
+  $('resetCatalogFiltersMobile')?.addEventListener('click', resetCatalog);
+  $('catalogStockOnly')?.addEventListener('change', (event) => { state.filters.inStockOnly = event.target.checked; syncFiltersToUrl(); renderProducts(); });
+  $('catalogViewGrid')?.addEventListener('click', () => { state.catalogView = 'grid'; renderProducts(); });
+  $('catalogViewList')?.addEventListener('click', () => { state.catalogView = 'list'; renderProducts(); });
+  $('openCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(true));
+  $('closeCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
+  $('catalogFilterScrim')?.addEventListener('click', () => setCatalogFiltersOpen(false));
+  $('applyCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
+
   // Categories are always visible — no toggle needed
   const catToggleBtn = $('viewAllCatBtn');
   if (catToggleBtn) catToggleBtn.addEventListener('click', () => { state.showCategories = !state.showCategories; renderCategories(); });
@@ -2507,15 +2612,6 @@ function bindEvents() {
   $('checkoutBtn').addEventListener('click', openCheckout);
   $('closeCheckoutBtn').addEventListener('click', () => modal('checkoutModal', false));
   $('checkoutForm').addEventListener('submit', submitCheckout);
-  $('catalogSort')?.addEventListener('change', (event) => { state.filters.sort = event.target.value; syncFiltersToUrl(); renderProducts(); });
-  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', commitCatalogPriceFilters));
-  $('catalogBrandSearch')?.addEventListener('input', (event) => { state.brandSearch = event.target.value; renderCatalogFilters(); });
-  $('showMoreBrands')?.addEventListener('click', () => { state.showAllBrands = !state.showAllBrands; renderCatalogFilters(); });
-  $('resetCatalogFilters')?.addEventListener('click', () => { clearFilters(); syncFiltersToUrl(); });
-  $('openCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(true));
-  $('closeCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
-  $('catalogFilterScrim')?.addEventListener('click', () => setCatalogFiltersOpen(false));
-  $('applyCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('checkoutForm').querySelectorAll('input[name="deliveryMethod"]').forEach((input) => input.addEventListener('change', () => updateCheckoutFulfilment()));
   bindAddressHierarchy();
 

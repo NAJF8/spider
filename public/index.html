@@ -139,16 +139,68 @@
       </div>
       <div class="active-filter hidden" id="activeFilter" aria-live="polite"></div>
       <div class="catalog-filter-scrim" id="catalogFilterScrim" hidden></div>
-      <form class="catalog-filters" id="catalogFilters" aria-label="فلترة المنتجات">
-        <div class="catalog-filters-head"><strong>تصفية وترتيب المنتجات</strong><button class="icon-btn" id="closeCatalogFilters" type="button" aria-label="إغلاق الفلاتر"><i class="fa-solid fa-xmark"></i></button></div>
-        <label>الترتيب<select id="catalogSort"><option value="">الأحدث</option><option value="oldest">الأقدم</option><option value="price-asc">السعر: الأقل للأعلى</option><option value="price-desc">السعر: الأعلى للأقل</option></select></label>
-        <div class="catalog-price-group"><span class="catalog-control-label">نطاق السعر <small>د.ع</small></span><div class="catalog-price-inputs"><label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label><label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label></div></div>
-        <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
-        <fieldset><legend>العلامة التجارية</legend><label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label><div id="catalogBrandFilters" class="catalog-brand-filters"></div><button class="text-btn hidden" id="showMoreBrands" type="button" aria-expanded="false">عرض المزيد</button></fieldset>
-        <div class="catalog-filter-actions"><button class="btn btn-outline" id="resetCatalogFilters" type="button">إعادة تعيين</button><button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button><output id="catalogResultCount" aria-live="polite"></output></div>
-      </form>
-      <div class="products-grid" id="productsGrid" aria-live="polite" aria-busy="true">
-        <div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div>
+      <div class="catalog-layout">
+        <form class="catalog-filters" id="catalogFilters" aria-label="فلترة المنتجات">
+          <div class="catalog-filters-head">
+            <div class="catalog-filters-title"><i class="fa-solid fa-filter" aria-hidden="true"></i><strong>المرشحات</strong></div>
+            <button class="icon-btn" id="closeCatalogFilters" type="button" aria-label="إغلاق الفلاتر"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="catalog-filter-reset-row"><span>تخصيص النتائج</span><button class="clear-all-filters" id="resetCatalogFilters" type="button">إعادة تعيين الكل <i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button></div>
+          <label class="catalog-stock-toggle" for="catalogStockOnly"><span>في المخزون فقط</span><input id="catalogStockOnly" type="checkbox"><span class="catalog-switch" aria-hidden="true"></span></label>
+
+          <details class="catalog-filter-section" open>
+            <summary>العلامة التجارية <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
+            <div class="catalog-filter-section-body">
+              <label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label>
+              <div id="catalogBrandFilters" class="catalog-brand-filters"></div>
+              <button class="text-btn hidden" id="showMoreBrands" type="button" aria-expanded="false">عرض المزيد</button>
+            </div>
+          </details>
+
+          <details class="catalog-filter-section" open>
+            <summary>السعر <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
+            <div class="catalog-filter-section-body catalog-price-group">
+              <div class="catalog-range-heading"><span>نطاق السعر</span><small>د.ع</small></div>
+              <div class="catalog-range-slider" id="catalogRangeSlider">
+                <div class="catalog-range-track" aria-hidden="true"></div>
+                <input id="catalogMinRange" type="range" min="0" max="1000000" step="1000" value="0" aria-label="الحد الأدنى للسعر">
+                <input id="catalogMaxRange" type="range" min="0" max="1000000" step="1000" value="1000000" aria-label="الحد الأعلى للسعر">
+              </div>
+              <div class="catalog-range-labels" aria-hidden="true"><span id="catalogMinRangeLabel">0</span><span id="catalogMaxRangeLabel">0</span></div>
+              <div class="catalog-price-inputs">
+                <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+                <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+              </div>
+              <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
+            </div>
+          </details>
+
+          <details class="catalog-filter-section">
+            <summary>نوع المنتج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="catalog-filter-section-body catalog-filter-placeholder">اختر نوع المنتج لتضييق النتائج.</div>
+          </details>
+          <details class="catalog-filter-section">
+            <summary>مقبس المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+            <div class="catalog-filter-section-body"><div id="catalogSocketFilters" class="catalog-facet-options"></div></div>
+          </details>
+          <details class="catalog-filter-section"><summary>عامل شكل اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات عامل الشكل ستظهر عند توفرها.</div></details>
+          <details class="catalog-filter-section"><summary>تكنولوجيا الذاكرة <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات الذاكرة ستظهر عند توفرها.</div></details>
+          <details class="catalog-filter-section"><summary>عائلة شرائح اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات الشرائح ستظهر عند توفرها.</div></details>
+          <details class="catalog-filter-section"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات عائلة المعالج ستظهر عند توفرها.</div></details>
+          <details class="catalog-filter-section"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات اللون ستظهر عند توفرها.</div></details>
+
+          <div class="catalog-filter-actions"><button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button><button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button></div>
+        </form>
+        <div class="catalog-results">
+          <div class="catalog-results-bar">
+            <output class="catalog-result-count" id="catalogResultCount" aria-live="polite">0 منتجاً</output>
+            <label class="catalog-sort-control"><span>ترتيب حسب</span><select id="catalogSort" aria-label="ترتيب المنتجات"><option value="">الأحدث</option><option value="oldest">الأقدم</option><option value="price-asc">السعر: الأقل للأعلى</option><option value="price-desc">السعر: الأعلى للأقل</option></select></label>
+            <div class="catalog-view-switch" aria-label="طريقة عرض المنتجات"><button id="catalogViewGrid" class="is-active" type="button" aria-pressed="true" aria-label="عرض شبكي"><i class="fa-solid fa-grip" aria-hidden="true"></i></button><button id="catalogViewList" type="button" aria-pressed="false" aria-label="عرض قائمة"><i class="fa-solid fa-list" aria-hidden="true"></i></button></div>
+          </div>
+          <div class="products-grid" id="productsGrid" aria-live="polite" aria-busy="true">
+            <div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div><div class="product-skeleton" aria-hidden="true"></div>
+          </div>
+        </div>
       </div>
     </section>
 
