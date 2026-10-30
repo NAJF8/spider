@@ -40,7 +40,7 @@ const state = {
   favorites: [],
   settings: {},
   brandLogos: {},
-  filters: { category: '', brands: [], sockets: [], search: '', minPrice: null, maxPrice: null, sort: '', inStockOnly: false },
+  filters: emptyCatalogFilters(),
   catalogView: 'grid',
   showCategories: false,
   showBrands: true,
@@ -177,6 +177,7 @@ const DIRECT_TRANSLATIONS = {
   'حسابي': ['Account', 'حسابي'], 'المفضلة': ['Favorites', 'المفضلة'], 'فتح السلة': ['Open cart', 'فتح السلة'], 'فتح قائمة الأقسام': ['Open categories', 'فتح قائمة الأقسام'], 'إغلاق القائمة': ['Close menu', 'إغلاق القائمة'], 'إغلاق السلة': ['Close cart', 'إغلاق السلة'], 'إغلاق': ['Close', 'إغلاق'],
   'أقسام المتجر': ['Store categories', 'أقسام المتجر'], 'جاري تحميل الأقسام...': ['Loading categories...', 'جاري تحميل الأقسام...'], 'انقر لعرض الأقسام': ['Click to show categories', 'انقر لعرض الأقسام'], 'أظهر': ['Show', 'أظهر'],
   'القسم': ['Category', 'القسم'], 'العلامة التجارية': ['Brand', 'العلامة التجارية'], 'المنتج الأول': ['First product', 'المنتج الأول'], 'المنتج الثاني': ['Second product', 'المنتج الثاني'], 'اختر المنتج الأول': ['Choose first product', 'اختر المنتج الأول'], 'اختر المنتج الثاني': ['Choose second product', 'اختر المنتج الثاني'], 'اختر منتجاً': ['Choose a product', 'اختر منتجاً'], 'اختر منتج المقارنة': ['Choose comparison product', 'اختر منتج المقارنة'], 'فلتر القسم': ['Category filter', 'فلتر القسم'], 'فلتر العلامة التجارية': ['Brand filter', 'فلتر العلامة التجارية'], 'ابحث بالاسم أو الموديل': ['Search by name or model', 'ابحث بالاسم أو الموديل'],
+  'المرشحات': ['Filters', 'المرشحات'], 'تخصيص النتائج': ['Refine results', 'تخصيص النتائج'], 'إعادة تعيين الكل': ['Reset all', 'إعادة تعيين الكل'], 'في المخزون فقط': ['In stock only', 'في المخزون فقط'], 'مقبس المعالج': ['CPU socket', 'مقبس المعالج'], 'عامل شكل اللوحة الأم': ['Motherboard form factor', 'عامل شكل اللوحة الأم'], 'تكنولوجيا الذاكرة': ['Memory technology', 'تكنولوجيا الذاكرة'], 'عائلة شرائح اللوحة الأم': ['Motherboard chipset family', 'عائلة شرائح اللوحة الأم'], 'عائلة المعالج': ['CPU family', 'عائلة المعالج'], 'لون': ['Color', 'لون'], 'نطاق السعر': ['Price range', 'نطاق السعر'], 'من السعر': ['Minimum price', 'من السعر'], 'إلى السعر': ['Maximum price', 'إلى السعر'], 'ترتيب حسب': ['Sort by', 'ترتيب حسب'], 'الأحدث': ['Newest', 'الأحدث'], 'الأقدم': ['Oldest', 'الأقدم'], 'السعر: من الأقل للأعلى': ['Price: low to high', 'السعر: من الأقل للأعلى'], 'السعر: من الأعلى للأقل': ['Price: high to low', 'السعر: من الأعلى للأقل'], 'عرض النتائج': ['Show results', 'عرض النتائج'], 'إعادة تعيين': ['Reset', 'إعادة تعيين'],
   'مقارنة المنتجات': ['Compare products', 'مقارنة المنتجات'], 'مسح المقارنة': ['Clear comparison', 'مسح المقارنة'], 'قارن الآن': ['Compare now', 'قارن الآن'], 'أحدث المنتجات': ['Latest products', 'أحدث المنتجات'], 'عرض الكل': ['View all', 'عرض الكل'], 'العلامات التجارية': ['Brands', 'العلامات التجارية'], 'إظهار': ['Show', 'إظهار'], 'إلغاء الفلتر': ['Clear filter', 'إلغاء الفلتر'], 'طوّر حاسبتك': ['Upgrade your PC', 'طوّر حاسبتك'],
   'تفاصيل المنتج': ['Product details', 'تفاصيل المنتج'], 'عرض سعر للتجميعة': ['Build quote', 'عرض سعر للتجميعة'], 'حسابي والمفضلة': ['Account & favorites', 'حسابي والمفضلة'], 'نبّهني عند التوفر': ['Notify me when available', 'نبّهني عند التوفر'], 'مساعد SPIDER': ['SPIDER assistant', 'مساعد SPIDER'], 'الموقع الجغرافي': ['Location', 'الموقع الجغرافي'], 'نعتز بثقتكم': ['We value your trust', 'نعتز بثقتكم'],
   'السلة فارغة': ['Your cart is empty', 'السلة فارغة'], 'المجموع الكلي': ['Total', 'المجموع الكلي'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'عرض سعر': ['Quote', 'عرض سعر'], 'نسخ العرض': ['Copy quote', 'نسخ العرض'], 'مشاركة عبر واتساب': ['Share via WhatsApp', 'مشاركة عبر واتساب'], 'فتح': ['Open', 'فتح'], 'خروج': ['Sign out', 'خروج'], 'أضف للسلة': ['Add to cart', 'أضف للسلة'], 'التفاصيل': ['Details', 'التفاصيل'], 'إزالة من المفضلة': ['Remove from favorites', 'إزالة من المفضلة'], 'أضف للمفضلة': ['Add to favorites', 'أضف للمفضلة'], 'حفظ طلب التنبيه': ['Save alert request', 'حفظ طلب التنبيه'],
@@ -542,8 +543,65 @@ function brandMatches(value, selected) {
   return !selected || normalizeBrandKey(value) === normalizeBrandKey(selected);
 }
 
+function emptyCatalogFilters() {
+  return {
+    category: '', brands: [], sockets: [], formFactors: [], memoryTypes: [],
+    chipsets: [], cpuFamilies: [], colors: [], search: '', minPrice: null,
+    maxPrice: null, sort: '', inStockOnly: false
+  };
+}
+
+const CATALOG_FACETS = Object.freeze([
+  { key: 'sockets', root: 'catalogSocketFilters', section: 'catalogSocketSection', param: 'sockets', aliases: ['socket', 'المقبس'], paths: [['compatibility', 'socket'], ['socket']] },
+  { key: 'formFactors', root: 'catalogFormFactorFilters', section: 'catalogFormFactorSection', param: 'formFactors', aliases: ['form factor', 'formfactor', 'عامل الشكل'], paths: [['formFactor'], ['form_factor']] },
+  { key: 'memoryTypes', root: 'catalogMemoryTypeFilters', section: 'catalogMemoryTypeSection', param: 'memoryTypes', aliases: ['memory type', 'نوع الذاكرة'], paths: [['memoryType'], ['memory_type']] },
+  { key: 'chipsets', root: 'catalogChipsetFilters', section: 'catalogChipsetSection', param: 'chipsets', aliases: ['chipset', 'الشرائح', 'الشريحة'], paths: [['chipset']] },
+  { key: 'cpuFamilies', root: 'catalogCpuFamilyFilters', section: 'catalogCpuFamilySection', param: 'cpuFamilies', aliases: ['cpu family', 'processor family', 'عائلة المعالج'], paths: [['cpuFamily'], ['cpu_family']] },
+  { key: 'colors', root: 'catalogColorFilters', section: 'catalogColorSection', param: 'colors', aliases: ['color', 'colour', 'اللون'], paths: [['color'], ['colour']] }
+]);
+
+function catalogFacetValueKey(value) {
+  return String(value || '').normalize('NFKC').trim().toLocaleLowerCase();
+}
+
+function catalogFacetValues(product, facet) {
+  const values = new Map();
+  const add = (displayValue, canonicalValue = displayValue) => {
+    const label = String(displayValue || '').trim();
+    const key = catalogFacetValueKey(canonicalValue);
+    if (key && label && !values.has(key)) values.set(key, { key, label });
+  };
+  facet.paths.forEach((path) => {
+    let value = product;
+    path.forEach((segment) => { value = value?.[segment]; });
+    if (Array.isArray(value)) value.forEach(add); else add(value);
+  });
+  specificationEntries(product).forEach((item) => {
+    const specKey = `${item.keyAr} ${item.keyEn}`.toLocaleLowerCase();
+    if (facet.aliases.some((alias) => specKey.includes(alias))) {
+      add(language === 'en' ? (item.valueEn || item.valueAr) : (item.valueAr || item.valueEn), item.valueEn || item.valueAr);
+    }
+  });
+  return [...values.values()];
+}
+
+function productMatchesCatalogFacet(product, facet, selectedValues) {
+  if (!selectedValues?.length) return true;
+  const choices = new Set(catalogFacetValues(product, facet).map((value) => value.key));
+  return selectedValues.some((value) => choices.has(catalogFacetValueKey(value)));
+}
+
+function catalogFacetLabel(facet, value) {
+  const key = catalogFacetValueKey(value);
+  for (const product of state.products) {
+    const match = catalogFacetValues(product, facet).find((item) => item.key === key);
+    if (match) return match.label;
+  }
+  return value;
+}
+
 function filteredProducts() {
-  const { category, brands = [], sockets = [], search, minPrice, maxPrice, sort, inStockOnly = false } = state.filters;
+  const { category, brands = [], search, minPrice, maxPrice, sort, inStockOnly = false } = state.filters;
   // Empty and malformed values are intentionally not interpreted as zero.
   // Validation happens before state is committed, but these guards also keep a
   // malformed URL or future caller from affecting catalog visibility.
@@ -558,7 +616,7 @@ function filteredProducts() {
     const priceMatches = !info.purchasable ? (min === null && max === null) : ((min === null || info.price >= min) && (max === null || info.price <= max));
     return productCategoryMatch(p, category) &&
     (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
-    (!sockets.length || sockets.some((socket) => productText(p).includes(String(socket).toLowerCase()))) &&
+    CATALOG_FACETS.every((facet) => productMatchesCatalogFacet(p, facet, state.filters[facet.key])) &&
     (!inStockOnly || isAvailable(p)) &&
     (!search || productText(p).includes(search.toLowerCase())) && priceMatches;
   });
@@ -679,7 +737,7 @@ function renderSubcategoryPanel() {
     state.categoryPanelId = '';
     renderSubcategoryPanel();
   });
-  panel.querySelectorAll('[data-subcategory-id]').forEach((button) => button.addEventListener('click', () => selectCatalogCategory(button.dataset.subcategoryId));
+  panel.querySelectorAll('[data-subcategory-id]').forEach((button) => button.addEventListener('click', () => selectCatalogCategory(button.dataset.subcategoryId)));
 }
 
 function selectedBrandsValidForCategory(categoryId, brands) {
@@ -886,7 +944,7 @@ function activeCatalogFilterChips() {
   const chips = [];
   if (state.filters.category) chips.push({ key: 'category', value: state.filters.category, label: categoryName(state.filters.category) });
   state.filters.brands.forEach((brand) => chips.push({ key: 'brand', value: brand, label: brand }));
-  state.filters.sockets?.forEach((socket) => chips.push({ key: 'socket', value: socket, label: socket }));
+  CATALOG_FACETS.forEach((facet) => state.filters[facet.key]?.forEach((value) => chips.push({ key: facet.key, value, label: catalogFacetLabel(facet, value) })));
   if (state.filters.inStockOnly) chips.push({ key: 'stock', label: language === 'en' ? 'In stock only' : 'في المخزون فقط' });
   if (state.filters.minPrice !== null) chips.push({ key: 'min', label: `${language === 'en' ? 'From' : 'من'} ${formatPrice(state.filters.minPrice)}` });
   if (state.filters.maxPrice !== null) chips.push({ key: 'max', label: `${language === 'en' ? 'To' : 'إلى'} ${formatPrice(state.filters.maxPrice)}` });
@@ -897,7 +955,8 @@ function activeCatalogFilterChips() {
 function removeCatalogFilter({ key, value }) {
   if (key === 'category') { state.filters.category = ''; state.categoryPanelId = ''; }
   if (key === 'brand') state.filters.brands = state.filters.brands.filter((brand) => !brandMatches(brand, value));
-  if (key === 'socket') state.filters.sockets = state.filters.sockets.filter((socket) => socket !== value);
+  const facet = CATALOG_FACETS.find((item) => item.key === key);
+  if (facet) state.filters[facet.key] = state.filters[facet.key].filter((item) => catalogFacetValueKey(item) !== catalogFacetValueKey(value));
   if (key === 'stock') state.filters.inStockOnly = false;
   if (key === 'min') state.filters.minPrice = null;
   if (key === 'max') state.filters.maxPrice = null;
@@ -939,7 +998,8 @@ function renderCatalogFilters() {
   $('catalogMaxPrice').value = state.filters.maxPrice ?? '';
   if ($('catalogBrandSearch')) $('catalogBrandSearch').value = state.brandSearch;
   $('catalogResultCount').textContent = `${filteredProducts().length} ${language === 'en' ? 'products' : 'منتجاً'}`;
-  renderCatalogSocketFilters(candidates);
+  renderCatalogCategoryFilters(candidates);
+  CATALOG_FACETS.forEach((facet) => renderCatalogFacetFilters(facet, candidates));
   syncCatalogPriceRange();
   $('catalogViewGrid')?.classList.toggle('is-active', state.catalogView === 'grid');
   $('catalogViewList')?.classList.toggle('is-active', state.catalogView === 'list');
@@ -959,18 +1019,34 @@ function renderCatalogFilters() {
     renderProducts();
   }));
 }
-function renderCatalogSocketFilters(candidates) {
-  const root = $('catalogSocketFilters');
+function renderCatalogCategoryFilters(candidates) {
+  const root = $('catalogCategoryFilters');
   if (!root) return;
-  const options = ['LGA 1200', 'LGA 1700', 'LGA 1851'];
-  root.innerHTML = options.map((socket) => {
-    const count = candidates.filter((product) => productText(product).includes(socket.toLowerCase())).length;
-    const selected = state.filters.sockets?.includes(socket);
-    return `<label class="catalog-check-option"><input type="checkbox" data-catalog-socket="${esc(socket)}" ${selected ? 'checked' : ''}><span class="catalog-checkmark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="catalog-check-label">${socket}</span><small>(${count})</small></label>`;
+  const options = orderedCategories().map((category) => ({ category, count: candidates.filter((product) => productCategoryMatch(product, category.id)).length })).filter((item) => item.count > 0);
+  $('catalogCategorySection')?.toggleAttribute('hidden', options.length === 0);
+  root.innerHTML = options.map(({ category, count }) => `<label class="catalog-check-option"><input type="radio" name="catalog-category" data-catalog-category="${esc(category.id)}" ${state.filters.category === category.id ? 'checked' : ''}><span class="catalog-checkmark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="catalog-check-label">${esc(categoryLabel(category))}</span><small>(${count})</small></label>`).join('');
+  root.querySelectorAll('[data-catalog-category]').forEach((input) => input.addEventListener('change', () => selectCatalogCategory(input.dataset.catalogCategory)));
+}
+function renderCatalogFacetFilters(facet, candidates) {
+  const root = $(facet.root);
+  if (!root) return;
+  const options = new Map();
+  candidates.forEach((product) => catalogFacetValues(product, facet).forEach((value) => {
+    const key = value.key;
+    const record = options.get(key) || { value: value.key, label: value.label, count: 0 };
+    record.count += 1;
+    options.set(key, record);
+  }));
+  const entries = [...options.values()].sort((a, b) => a.label.localeCompare(b.label, language));
+  $(facet.section)?.toggleAttribute('hidden', entries.length === 0);
+  root.innerHTML = entries.map(({ value, label, count }) => {
+    const selected = state.filters[facet.key]?.some((item) => catalogFacetValueKey(item) === catalogFacetValueKey(value));
+    return `<label class="catalog-check-option"><input type="checkbox" data-catalog-facet="${esc(facet.key)}" value="${esc(value)}" ${selected ? 'checked' : ''}><span class="catalog-checkmark" aria-hidden="true"><i class="fa-solid fa-check"></i></span><span class="catalog-check-label">${esc(label)}</span><small>(${count})</small></label>`;
   }).join('');
-  root.querySelectorAll('[data-catalog-socket]').forEach((checkbox) => checkbox.addEventListener('change', () => {
-    const socket = checkbox.dataset.catalogSocket;
-    state.filters.sockets = checkbox.checked ? [...(state.filters.sockets || []), socket] : (state.filters.sockets || []).filter((value) => value !== socket);
+  root.querySelectorAll('[data-catalog-facet]').forEach((checkbox) => checkbox.addEventListener('change', () => {
+    const values = state.filters[facet.key] || [];
+    const value = checkbox.value;
+    state.filters[facet.key] = checkbox.checked ? [...values, value] : values.filter((item) => catalogFacetValueKey(item) !== catalogFacetValueKey(value));
     syncFiltersToUrl();
     renderProducts();
   }));
@@ -1013,7 +1089,7 @@ function previewCatalogPriceRange() {
   }
   updateCatalogRangeTrack(catalogPriceBounds(), minRange.value, maxRange.value);
 }
-function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); if (f.sockets?.length) p.set('sockets', f.sockets.join(',')); if (f.search) p.set('q', f.search); if (f.minPrice !== null) p.set('min', String(f.minPrice)); if (f.maxPrice !== null) p.set('max', String(f.maxPrice)); if (f.sort) p.set('sort', f.sort); if (f.inStockOnly) p.set('stock', '1'); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
+function syncFiltersToUrl() { const p = new URLSearchParams(); const f = state.filters; if (f.category) p.set('category', f.category); if (f.brands?.length) p.set('brands', f.brands.join(',')); CATALOG_FACETS.forEach((facet) => { if (f[facet.key]?.length) p.set(facet.param, f[facet.key].join(',')); }); if (f.search) p.set('q', f.search); if (f.minPrice !== null) p.set('min', String(f.minPrice)); if (f.maxPrice !== null) p.set('max', String(f.maxPrice)); if (f.sort) p.set('sort', f.sort); if (f.inStockOnly) p.set('stock', '1'); history.replaceState(null, '', `${location.pathname}${p.toString() ? `?${p}` : ''}`); }
 
 function catalogPriceValidationMessage(validation) {
   if (validation.error === 'range') return language === 'en' ? 'The minimum price cannot exceed the maximum price.' : 'لا يمكن أن يكون السعر الأدنى أكبر من السعر الأعلى.';
@@ -1068,7 +1144,7 @@ function restoreFiltersFromUrl() {
     ...state.filters,
     category: String(query.get('category') || '').trim(),
     brands: String(query.get('brands') || '').split(',').map((brand) => brand.trim()).filter(Boolean),
-    sockets: String(query.get('sockets') || '').split(',').map((socket) => socket.trim()).filter(Boolean),
+    ...Object.fromEntries(CATALOG_FACETS.map((facet) => [facet.key, String(query.get(facet.param) || '').split(',').map((value) => value.trim()).filter(Boolean)])),
     search: String(query.get('q') || '').trim(),
     minPrice: range.valid ? range.min : null,
     maxPrice: range.valid ? range.max : null,
@@ -1092,7 +1168,7 @@ function filterProductsByCategory(categoryId) {
 window.filterProductsByCategory = filterProductsByCategory;
 
 function clearFilters() {
-  state.filters = { category: '', brands: [], sockets: [], search: '', minPrice: null, maxPrice: null, sort: '', inStockOnly: false };
+  state.filters = emptyCatalogFilters();
   state.categoryPanelId = '';
   state.brandSearch = '';
   state.showAllBrands = false;
@@ -2788,30 +2864,52 @@ onValue(categoriesRef, (snapshot) => {
   renderCategories();
 });
 
-async function loadPublicCatalog() {
-  state.catalogLoad = 'loading';
-  renderProducts();
-  try {
-    const headers = {};
-    if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
-    const response = await fetch(`${BACKEND_URL}/api/store/catalog`, { headers });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.success) throw new Error(data.error || 'CATALOG_LOOKUP_FAILED');
-    state.products = Object.entries(data.products || {}).map(([id, product]) => ({ id, ...product }));
-    if (data.categories && typeof data.categories === 'object') {
-      state.categories = Object.entries(data.categories).map(([id, value]) => ({ id, ...(value || {}) })).filter((category) => category.enabled !== false && category.isHidden !== true);
-      state.categoryLoad = 'loaded';
-    }
-    state.productsLoaded = true;
-    state.catalogLoad = 'loaded';
-    applySettings(data.settings || {});
-    renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
-  } catch (error) {
-    state.productsLoaded = false;
-    state.catalogLoad = 'error';
-    console.error('PUBLIC_CATALOG_LOAD_FAILED', { code: error?.message || 'CATALOG_LOOKUP_FAILED' });
+let catalogLoadPromise = null;
+
+function loadPublicCatalog({ force = false } = {}) {
+  // The public catalog must not wait for Firebase Auth. Auth is only needed
+  // for account state and optional private pricing after the public catalog
+  // is visible.
+  if (catalogLoadPromise) return catalogLoadPromise;
+  if (state.productsLoaded && !force) return Promise.resolve();
+
+  const requestPromise = (async () => {
+    state.catalogLoad = 'loading';
     renderProducts();
-  }
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const headers = {};
+      if (authUser) headers.Authorization = `Bearer ${await authUser.getIdToken()}`;
+      const response = await fetch(`${BACKEND_URL}/api/store/catalog`, { headers, signal: controller.signal });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) throw new Error(data.error || 'CATALOG_LOOKUP_FAILED');
+      state.products = Object.entries(data.products || {}).map(([id, product]) => ({ id, ...product }));
+      if (data.categories && typeof data.categories === 'object') {
+        state.categories = Object.entries(data.categories).map(([id, value]) => ({ id, ...(value || {}) })).filter((category) => category.enabled !== false && category.isHidden !== true);
+        state.categoryLoad = 'loaded';
+      }
+      state.productsLoaded = true;
+      state.catalogLoad = 'loaded';
+      applySettings(data.settings || {});
+      renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
+    } catch (error) {
+      state.productsLoaded = false;
+      state.catalogLoad = 'error';
+      console.error('PUBLIC_CATALOG_LOAD_FAILED', {
+        code: error?.name === 'AbortError' ? 'CATALOG_TIMEOUT' : (error?.message || 'CATALOG_LOOKUP_FAILED')
+      });
+      renderProducts();
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  })();
+
+  const wrappedPromise = requestPromise.finally(() => {
+    if (catalogLoadPromise === wrappedPromise) catalogLoadPromise = null;
+  });
+  catalogLoadPromise = wrappedPromise;
+  return wrappedPromise;
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -2822,7 +2920,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     try { await loadAccountProfile(user); } catch (error) { console.error('Account profile load failed', { code: error?.code || 'PROFILE_LOAD_FAILED' }); }
   } else state.accountOrders = [];
-  await loadPublicCatalog();
+  await loadPublicCatalog({ force: Boolean(user) });
   updateAccountGreeting();
   if (user) user.getIdToken().then((token) => fetch(`${BACKEND_URL}/api/store/prices`, { headers: { Authorization: `Bearer ${token}` } })).then((response) => response.ok ? response.json() : null).then((data) => { if (data?.prices) { const tier = data.pricing_tier || data.accountType || 'public'; state.accountProfile = { ...state.accountProfile, pricing_tier: tier, accountType: tier }; state.privatePrices = data.prices; renderProducts(); renderCart(); renderAccount(); } }).catch(() => {});
   loadFavorites();
@@ -2832,6 +2930,9 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // ===== Init =====
+// Start the public catalog before optional UI hydration so a non-critical
+// storefront widget cannot leave customers on the initial skeleton forever.
+void loadPublicCatalog();
 bindAppearanceEvents();
 bindReceiptEvents();
 readCart();
@@ -2839,9 +2940,14 @@ readBuilder();
 readUpgrade();
 restoreFiltersFromUrl();
 loadFavorites();
-if (document.body.dataset.page === 'builder') bindBuilderPageEvents();
-else if (document.body.dataset.page === 'upgrade') bindUpgradePageEvents();
-else bindEvents();
+try {
+  if (document.body.dataset.page === 'builder') bindBuilderPageEvents();
+  else if (document.body.dataset.page === 'upgrade') bindUpgradePageEvents();
+  else bindEvents();
+} catch (error) {
+  // An optional storefront control must never prevent catalog loading.
+  console.error('STOREFRONT_INIT_NON_BLOCKING_ERROR', { message: error?.message || String(error) });
+}
 updateFavoriteBadge();
 renderCart();
 renderAccount();

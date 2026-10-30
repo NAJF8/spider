@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="style.css?v=20261006-header-pricing1">
+<link rel="stylesheet" href="style.css?v=20261030-guest-catalog-filter-fix">
 </head>
 <body>
 
@@ -175,19 +175,19 @@
             </div>
           </details>
 
-          <details class="catalog-filter-section">
-            <summary>نوع المنتج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-            <div class="catalog-filter-section-body catalog-filter-placeholder">اختر نوع المنتج لتضييق النتائج.</div>
+          <details class="catalog-filter-section" id="catalogCategorySection" open>
+            <summary>القسم <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
+            <div class="catalog-filter-section-body"><div id="catalogCategoryFilters" class="catalog-facet-options"></div></div>
           </details>
-          <details class="catalog-filter-section">
+          <details class="catalog-filter-section" id="catalogSocketSection">
             <summary>مقبس المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
             <div class="catalog-filter-section-body"><div id="catalogSocketFilters" class="catalog-facet-options"></div></div>
           </details>
-          <details class="catalog-filter-section"><summary>عامل شكل اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات عامل الشكل ستظهر عند توفرها.</div></details>
-          <details class="catalog-filter-section"><summary>تكنولوجيا الذاكرة <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات الذاكرة ستظهر عند توفرها.</div></details>
-          <details class="catalog-filter-section"><summary>عائلة شرائح اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات الشرائح ستظهر عند توفرها.</div></details>
-          <details class="catalog-filter-section"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات عائلة المعالج ستظهر عند توفرها.</div></details>
-          <details class="catalog-filter-section"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body catalog-filter-placeholder">خيارات اللون ستظهر عند توفرها.</div></details>
+          <details class="catalog-filter-section" id="catalogFormFactorSection"><summary>عامل شكل اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogFormFactorFilters" class="catalog-facet-options"></div></div></details>
+          <details class="catalog-filter-section" id="catalogMemoryTypeSection"><summary>تكنولوجيا الذاكرة <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogMemoryTypeFilters" class="catalog-facet-options"></div></div></details>
+          <details class="catalog-filter-section" id="catalogChipsetSection"><summary>عائلة شرائح اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogChipsetFilters" class="catalog-facet-options"></div></div></details>
+          <details class="catalog-filter-section" id="catalogCpuFamilySection"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogCpuFamilyFilters" class="catalog-facet-options"></div></div></details>
+          <details class="catalog-filter-section" id="catalogColorSection"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogColorFilters" class="catalog-facet-options"></div></div></details>
 
           <div class="catalog-filter-actions"><button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button><button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button></div>
         </form>
@@ -546,6 +546,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="script.js?v=20261006-brand-logo-fallback2"></script>
+<script type="module" src="script.js?v=20261030-guest-catalog-filter-fix"></script>
 </body>
 </html>
