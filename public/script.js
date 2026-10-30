@@ -1135,43 +1135,65 @@ function commitCatalogRangeFilters() {
   commitCatalogPriceFilters();
 }
 
-let isDesktopFilterExpanded = false;
+let isCatalogFiltersOpen = false;
 
-function toggleDesktopCatalogFilter(forceState) {
-  isDesktopFilterExpanded = forceState !== undefined ? Boolean(forceState) : !isDesktopFilterExpanded;
-  const body = $('catalogFiltersBody');
-  const arrow = $('catalogFilterArrow');
+function toggleCatalogFilters(forceState) {
+  isCatalogFiltersOpen = forceState !== undefined ? Boolean(forceState) : !isCatalogFiltersOpen;
+  const isOpen = isCatalogFiltersOpen;
+  
+  const toggleBtn = $('openCatalogFilters');
+  const btnArrow = $('openCatalogFiltersArrow');
+  const headerArrow = $('catalogFilterArrow');
   const header = $('catalogFiltersHeader');
+  const layout = document.querySelector('.catalog-layout');
   const form = $('catalogFilters');
-  if (body) body.hidden = !isDesktopFilterExpanded;
-  if (arrow) {
-    arrow.className = `fa-solid ${isDesktopFilterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} filter-toggle-arrow`;
-  }
-  if (header) header.setAttribute('aria-expanded', String(isDesktopFilterExpanded));
-  if (form) form.classList.toggle('is-expanded', isDesktopFilterExpanded);
-}
-
-function setCatalogFiltersOpen(open) {
-  const isOpen = Boolean(open);
-  document.body.classList.toggle('catalog-filters-open', isOpen);
-  $('catalogFilterScrim')?.toggleAttribute('hidden', !isOpen);
-  $('openCatalogFilters')?.setAttribute('aria-expanded', String(isOpen));
   const body = $('catalogFiltersBody');
+  const scrim = $('catalogFilterScrim');
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', String(isOpen));
+    toggleBtn.classList.toggle('is-active', isOpen);
+  }
+  if (btnArrow) {
+    btnArrow.className = `fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} filter-btn-arrow`;
+  }
+  if (headerArrow) {
+    headerArrow.className = `fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} filter-toggle-arrow`;
+  }
+  if (header) {
+    header.setAttribute('aria-expanded', String(isOpen));
+  }
+  if (body) {
+    body.hidden = !isOpen;
+  }
+
   if (window.innerWidth <= 760) {
-    if (body && isOpen) body.hidden = false;
+    document.body.classList.toggle('catalog-filters-open', isOpen);
+    if (scrim) scrim.hidden = !isOpen;
     if (isOpen) {
       setScrollLock(true);
     } else {
       setScrollLock(false);
-      // Ensure zero lingering scroll lock
       document.body.classList.remove('overlay-open');
       document.body.style.top = '';
       document.body.style.position = '';
       document.body.style.overflow = '';
     }
   } else {
-    toggleDesktopCatalogFilter(isOpen);
+    if (layout) layout.classList.toggle('filters-expanded', isOpen);
+    if (form) form.classList.toggle('is-expanded', isOpen);
+    document.body.classList.remove('catalog-filters-open');
+    document.body.classList.remove('overlay-open');
+    if (scrim) scrim.hidden = true;
   }
+}
+
+function setCatalogFiltersOpen(open) {
+  toggleCatalogFilters(Boolean(open));
+}
+
+function toggleDesktopCatalogFilter(forceState) {
+  toggleCatalogFilters(forceState);
 }
 
 function restoreFiltersFromUrl() {
@@ -2669,7 +2691,7 @@ function bindEvents() {
   $('catalogStockOnly')?.addEventListener('change', (event) => { state.filters.inStockOnly = event.target.checked; syncFiltersToUrl(); renderProducts(); });
   $('catalogViewGrid')?.addEventListener('click', () => { state.catalogView = 'grid'; renderProducts(); });
   $('catalogViewList')?.addEventListener('click', () => { state.catalogView = 'list'; renderProducts(); });
-  $('openCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(true));
+  $('openCatalogFilters')?.addEventListener('click', (e) => { e.preventDefault(); toggleCatalogFilters(); });
   $('closeCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('catalogFilterScrim')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('applyCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));

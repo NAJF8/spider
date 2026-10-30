@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="style.css?v=20261030-final-repair-v1">
+<link rel="stylesheet" href="style.css?v=20261030-filter-toggle-v2">
 </head>
 <body>
 
@@ -133,7 +133,7 @@
           <h2 id="productsSectionTitle">أحدث المنتجات</h2>
         </div>
         <div class="catalog-heading-actions">
-          <button class="catalog-filter-toggle" id="openCatalogFilters" type="button" aria-expanded="false" aria-controls="catalogFilters"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span class="catalog-filter-label">الفلتر</span> <span id="catalogFilterCount" class="catalog-filter-badge" hidden>0</span></button>
+          <button class="catalog-filter-toggle" id="openCatalogFilters" type="button" aria-expanded="false" aria-controls="catalogFilters" title="فتح/إغلاق الفلتر"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span class="catalog-filter-label">الفلتر</span> <i class="fa-solid fa-chevron-down filter-btn-arrow" id="openCatalogFiltersArrow" aria-hidden="true"></i> <span id="catalogFilterCount" class="catalog-filter-badge" hidden>0</span></button>
           <button class="text-btn" id="viewAllProdBtn" type="button">عرض الكل <i class="fa-solid fa-arrow-left"></i></button>
         </div>
       </div>
@@ -565,6 +565,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="script.js?v=20261030-final-repair-v1"></script>
+<script type="module" src="script.js?v=20261030-filter-toggle-v2"></script>
 </body>
 </html>
