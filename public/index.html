@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="style.css?v=20261030-guest-catalog-filter-fix">
+<link rel="stylesheet" href="style.css?v=20261030-final-repair-v1">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
         <!-- Left side: Cart, Favorites, Account, appearance, language. -->
         <div class="header-actions" aria-label="اختصارات المتجر">
           <button class="icon-btn" id="openCartBtn" type="button" aria-label="فتح السلة">
-            <span class="cart-icon" aria-hidden="true"></span>
+            <svg class="cart-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
             <span class="cart-badge" id="cartBadge">0</span>
           </button>
           <button class="icon-btn" id="favBtn" type="button" aria-label="المفضلة">
@@ -119,7 +119,7 @@
     <section class="section-pad categories-section" aria-label="أقسام المتجر">
       <div class="section-heading categories-heading"><div class="section-title-bar"><h2 id="categoriesSectionTitle">تصفح حسب القسم</h2></div></div>
       <nav class="catalog-breadcrumb" id="catalogBreadcrumb" aria-label="مسار الأقسام"></nav>
-      <div class="category-card-grid" id="categoriesRow" aria-live="polite">
+      <div class="category-card-grid categories-row" id="categoriesRow" aria-live="polite">
         <div class="loading-state">جاري تحميل الأقسام...</div>
       </div>
       <section class="subcategory-panel hidden" id="subcategoryPanel" aria-labelledby="subcategoryPanelTitle"></section>
@@ -133,7 +133,7 @@
           <h2 id="productsSectionTitle">أحدث المنتجات</h2>
         </div>
         <div class="catalog-heading-actions">
-          <button class="catalog-filter-toggle" id="openCatalogFilters" type="button" aria-expanded="false" aria-controls="catalogFilters"><i class="fa-solid fa-sliders"></i> الفلاتر <span id="catalogFilterCount" hidden>0</span></button>
+          <button class="catalog-filter-toggle" id="openCatalogFilters" type="button" aria-expanded="false" aria-controls="catalogFilters"><i class="fa-solid fa-sliders" aria-hidden="true"></i> <span class="catalog-filter-label">الفلتر</span> <span id="catalogFilterCount" class="catalog-filter-badge" hidden>0</span></button>
           <button class="text-btn" id="viewAllProdBtn" type="button">عرض الكل <i class="fa-solid fa-arrow-left"></i></button>
         </div>
       </div>
@@ -141,55 +141,74 @@
       <div class="catalog-filter-scrim" id="catalogFilterScrim" hidden></div>
       <div class="catalog-layout">
         <form class="catalog-filters" id="catalogFilters" aria-label="فلترة المنتجات">
-          <div class="catalog-filters-head">
-            <div class="catalog-filters-title"><i class="fa-solid fa-filter" aria-hidden="true"></i><strong>المرشحات</strong></div>
-            <button class="icon-btn" id="closeCatalogFilters" type="button" aria-label="إغلاق الفلاتر"><i class="fa-solid fa-xmark"></i></button>
+          <div class="catalog-filters-head" id="catalogFiltersHeader" role="button" tabindex="0" aria-expanded="false" aria-controls="catalogFiltersBody" title="انقر لفتح/إغلاق الفلتر">
+            <div class="catalog-filters-title">
+              <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+              <strong id="catalogFiltersHeadingText">الفلتر</strong>
+              <span class="catalog-filter-badge" id="catalogFilterActiveCount" hidden>0</span>
+            </div>
+            <div class="catalog-filters-head-actions">
+              <i class="fa-solid fa-chevron-down filter-toggle-arrow" id="catalogFilterArrow" aria-hidden="true"></i>
+              <button class="icon-btn mobile-close-filter" id="closeCatalogFilters" type="button" aria-label="إغلاق الفلتر"><i class="fa-solid fa-xmark"></i></button>
+            </div>
           </div>
-          <div class="catalog-filter-reset-row"><span>تخصيص النتائج</span><button class="clear-all-filters" id="resetCatalogFilters" type="button">إعادة تعيين الكل <i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button></div>
-          <label class="catalog-stock-toggle" for="catalogStockOnly"><span>في المخزون فقط</span><input id="catalogStockOnly" type="checkbox"><span class="catalog-switch" aria-hidden="true"></span></label>
-
-          <details class="catalog-filter-section" open>
-            <summary>العلامة التجارية <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
-            <div class="catalog-filter-section-body">
-              <label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label>
-              <div id="catalogBrandFilters" class="catalog-brand-filters"></div>
-              <button class="text-btn hidden" id="showMoreBrands" type="button" aria-expanded="false">عرض المزيد</button>
+          <div class="catalog-filters-body" id="catalogFiltersBody" hidden>
+            <div class="catalog-filter-reset-row">
+              <span>تخصيص النتائج</span>
+              <button class="clear-all-filters" id="resetCatalogFilters" type="button">إعادة تعيين الكل <i class="fa-solid fa-rotate-left" aria-hidden="true"></i></button>
             </div>
-          </details>
+            <label class="catalog-stock-toggle" for="catalogStockOnly">
+              <span>في المخزون فقط</span>
+              <input id="catalogStockOnly" type="checkbox">
+              <span class="catalog-switch" aria-hidden="true"></span>
+            </label>
 
-          <details class="catalog-filter-section" open>
-            <summary>السعر <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
-            <div class="catalog-filter-section-body catalog-price-group">
-              <div class="catalog-range-heading"><span>نطاق السعر</span><small>د.ع</small></div>
-              <div class="catalog-range-slider" id="catalogRangeSlider">
-                <div class="catalog-range-track" aria-hidden="true"></div>
-                <input id="catalogMinRange" type="range" min="0" max="1000000" step="1000" value="0" aria-label="الحد الأدنى للسعر">
-                <input id="catalogMaxRange" type="range" min="0" max="1000000" step="1000" value="1000000" aria-label="الحد الأعلى للسعر">
+            <details class="catalog-filter-section" id="catalogBrandSection">
+              <summary>العلامة التجارية <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+              <div class="catalog-filter-section-body">
+                <label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label>
+                <div id="catalogBrandFilters" class="catalog-brand-filters"></div>
+                <button class="text-btn hidden" id="showMoreBrands" type="button" aria-expanded="false">عرض المزيد</button>
               </div>
-              <div class="catalog-range-labels" aria-hidden="true"><span id="catalogMinRangeLabel">0</span><span id="catalogMaxRangeLabel">0</span></div>
-              <div class="catalog-price-inputs">
-                <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
-                <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+            </details>
+
+            <details class="catalog-filter-section" id="catalogPriceSection">
+              <summary>السعر <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+              <div class="catalog-filter-section-body catalog-price-group">
+                <div class="catalog-range-heading"><span>نطاق السعر</span><small>د.ع</small></div>
+                <div class="catalog-range-slider" id="catalogRangeSlider">
+                  <div class="catalog-range-track" aria-hidden="true"></div>
+                  <input id="catalogMinRange" type="range" min="0" max="1000000" step="1000" value="0" aria-label="الحد الأدنى للسعر">
+                  <input id="catalogMaxRange" type="range" min="0" max="1000000" step="1000" value="1000000" aria-label="الحد الأعلى للسعر">
+                </div>
+                <div class="catalog-range-labels" aria-hidden="true"><span id="catalogMinRangeLabel">0</span><span id="catalogMaxRangeLabel">0</span></div>
+                <div class="catalog-price-inputs">
+                  <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+                  <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+                </div>
+                <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
               </div>
-              <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
+            </details>
+
+            <details class="catalog-filter-section" id="catalogCategorySection">
+              <summary>القسم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+              <div class="catalog-filter-section-body"><div id="catalogCategoryFilters" class="catalog-facet-options"></div></div>
+            </details>
+            <details class="catalog-filter-section" id="catalogSocketSection">
+              <summary>مقبس المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
+              <div class="catalog-filter-section-body"><div id="catalogSocketFilters" class="catalog-facet-options"></div></div>
+            </details>
+            <details class="catalog-filter-section" id="catalogFormFactorSection"><summary>عامل شكل اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogFormFactorFilters" class="catalog-facet-options"></div></div></details>
+            <details class="catalog-filter-section" id="catalogMemoryTypeSection"><summary>تكنولوجيا الذاكرة <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogMemoryTypeFilters" class="catalog-facet-options"></div></div></details>
+            <details class="catalog-filter-section" id="catalogChipsetSection"><summary>عائلة شرائح اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogChipsetFilters" class="catalog-facet-options"></div></div></details>
+            <details class="catalog-filter-section" id="catalogCpuFamilySection"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogCpuFamilyFilters" class="catalog-facet-options"></div></div></details>
+            <details class="catalog-filter-section" id="catalogColorSection"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogColorFilters" class="catalog-facet-options"></div></div></details>
+
+            <div class="catalog-filter-actions">
+              <button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button>
+              <button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button>
             </div>
-          </details>
-
-          <details class="catalog-filter-section" id="catalogCategorySection" open>
-            <summary>القسم <i class="fa-solid fa-chevron-up" aria-hidden="true"></i></summary>
-            <div class="catalog-filter-section-body"><div id="catalogCategoryFilters" class="catalog-facet-options"></div></div>
-          </details>
-          <details class="catalog-filter-section" id="catalogSocketSection">
-            <summary>مقبس المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-            <div class="catalog-filter-section-body"><div id="catalogSocketFilters" class="catalog-facet-options"></div></div>
-          </details>
-          <details class="catalog-filter-section" id="catalogFormFactorSection"><summary>عامل شكل اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogFormFactorFilters" class="catalog-facet-options"></div></div></details>
-          <details class="catalog-filter-section" id="catalogMemoryTypeSection"><summary>تكنولوجيا الذاكرة <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogMemoryTypeFilters" class="catalog-facet-options"></div></div></details>
-          <details class="catalog-filter-section" id="catalogChipsetSection"><summary>عائلة شرائح اللوحة الأم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogChipsetFilters" class="catalog-facet-options"></div></div></details>
-          <details class="catalog-filter-section" id="catalogCpuFamilySection"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogCpuFamilyFilters" class="catalog-facet-options"></div></div></details>
-          <details class="catalog-filter-section" id="catalogColorSection"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogColorFilters" class="catalog-facet-options"></div></div></details>
-
-          <div class="catalog-filter-actions"><button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button><button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button></div>
+          </div>
         </form>
         <div class="catalog-results">
           <div class="catalog-results-bar">
@@ -333,7 +352,7 @@
 
   <!-- ===== FLOATING BUTTONS ===== -->
   <button class="floating-cart" id="floatingCartBtn" type="button" aria-label="فتح السلة">
-    <span class="cart-icon" aria-hidden="true"></span>
+    <svg class="cart-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
     <span id="floatingCartBadge">0</span>
   </button>
   <button class="chatbot-fab" id="chatbotFab" type="button" aria-label="فتح مساعد سبايدر">
@@ -344,7 +363,7 @@
   <div class="drawer-overlay" id="cartOverlay"></div>
   <aside class="cart-drawer" id="cartSidebar" aria-label="سلة المشتريات">
     <div class="drawer-head">
-      <h2><span class="cart-icon" aria-hidden="true"></span> سلة المشتريات</h2>
+      <h2><svg class="cart-icon-svg" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> سلة المشتريات</h2>
       <button class="icon-btn" id="closeCartBtn" type="button" aria-label="إغلاق السلة">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -546,6 +565,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="script.js?v=20261030-guest-catalog-filter-fix"></script>
+<script type="module" src="script.js?v=20261030-final-repair-v1"></script>
 </body>
 </html>

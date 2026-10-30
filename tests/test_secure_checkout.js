@@ -1,15 +1,24 @@
 const assert = require('assert');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const crypto = require('crypto');
 global.crypto = crypto;
 
 // We will test the worker's logic by mocking the global fetch and running the handler
 const workerCode = fs.readFileSync('cloudflare-worker/src/index.js', 'utf8');
 // We need to transform the ES module into something we can run in Node
-const transformedCode = workerCode.replace('export default {', 'module.exports = {');
-fs.writeFileSync('cloudflare-worker/src/index.test.js', transformedCode);
+const transformedCode = workerCode
+    .replace('export default {', 'module.exports = {')
+    .replace(/\r?\nexport \{[\s\S]*?\};\r?\n/, '\n');
+const tempWorkerFile = path.join(os.tmpdir(), `spider-worker-checkout-${process.pid}.cjs`);
+fs.writeFileSync(tempWorkerFile, transformedCode);
+process.on('exit', () => {
+    try { fs.unlinkSync(tempWorkerFile); } catch (_) { /* already removed */ }
+});
 
-const worker = require('../cloudflare-worker/src/index.test.js');
+const worker = require(tempWorkerFile);
+const validCustomer = { name: 'Ali', phone: '123', governorate: 'Najaf', district: 'Center', addressDetails: 'Test address' };
 
 const MOCK_PRODUCTS = {
     'prod-1': { id: 'prod-1', name: 'GPU RTX 4090', price: 2000000, stock: 5, status: 'published', isHidden: false },
@@ -80,7 +89,7 @@ async function runTests() {
         url: 'http://localhost/api/store/checkout',
         json: async () => ({ 
             items: [{ id: 'prod-1', qty: 2 }], // Notice NO PRICE is sent! 
-            customer: { name: 'Ali', phone: '123' } 
+            customer: validCustomer
         })
     };
     res = await worker.fetch(req, MOCK_ENV);
@@ -99,7 +108,7 @@ async function runTests() {
         url: 'http://localhost/api/store/checkout',
         json: async () => ({ 
             items: [{ id: 'prod-2', qty: 1 }],
-            customer: { name: 'Ali', phone: '123' } 
+            customer: validCustomer
         })
     };
     res = await worker.fetch(req, MOCK_ENV);
@@ -115,7 +124,7 @@ async function runTests() {
         url: 'http://localhost/api/store/checkout',
         json: async () => ({ 
             items: [{ id: 'prod-3', qty: 1 }],
-            customer: { name: 'Ali', phone: '123' } 
+            customer: validCustomer
         })
     };
     res = await worker.fetch(req, MOCK_ENV);

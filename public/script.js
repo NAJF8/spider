@@ -4,7 +4,7 @@ import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken,
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
 import { parseOptionalPrice, validateOptionalPriceRange } from './catalog-price-filters.mjs';
 
-const IS_LOCAL_EMULATOR = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const IS_LOCAL_EMULATOR = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (new URLSearchParams(location.search).get('emulator') === '1' || window.__FORCE_EMULATOR__ === true);
 const firebaseConfig = IS_LOCAL_EMULATOR ? {
   apiKey: 'demo-api-key', authDomain: 'demo-spider-staging.firebaseapp.com',
   databaseURL: 'http://127.0.0.1:9000?ns=demo-spider-staging', projectId: 'demo-spider-staging', storageBucket: 'demo-spider-staging.appspot.com'
@@ -177,7 +177,7 @@ const DIRECT_TRANSLATIONS = {
   'حسابي': ['Account', 'حسابي'], 'المفضلة': ['Favorites', 'المفضلة'], 'فتح السلة': ['Open cart', 'فتح السلة'], 'فتح قائمة الأقسام': ['Open categories', 'فتح قائمة الأقسام'], 'إغلاق القائمة': ['Close menu', 'إغلاق القائمة'], 'إغلاق السلة': ['Close cart', 'إغلاق السلة'], 'إغلاق': ['Close', 'إغلاق'],
   'أقسام المتجر': ['Store categories', 'أقسام المتجر'], 'جاري تحميل الأقسام...': ['Loading categories...', 'جاري تحميل الأقسام...'], 'انقر لعرض الأقسام': ['Click to show categories', 'انقر لعرض الأقسام'], 'أظهر': ['Show', 'أظهر'],
   'القسم': ['Category', 'القسم'], 'العلامة التجارية': ['Brand', 'العلامة التجارية'], 'المنتج الأول': ['First product', 'المنتج الأول'], 'المنتج الثاني': ['Second product', 'المنتج الثاني'], 'اختر المنتج الأول': ['Choose first product', 'اختر المنتج الأول'], 'اختر المنتج الثاني': ['Choose second product', 'اختر المنتج الثاني'], 'اختر منتجاً': ['Choose a product', 'اختر منتجاً'], 'اختر منتج المقارنة': ['Choose comparison product', 'اختر منتج المقارنة'], 'فلتر القسم': ['Category filter', 'فلتر القسم'], 'فلتر العلامة التجارية': ['Brand filter', 'فلتر العلامة التجارية'], 'ابحث بالاسم أو الموديل': ['Search by name or model', 'ابحث بالاسم أو الموديل'],
-  'المرشحات': ['Filters', 'المرشحات'], 'تخصيص النتائج': ['Refine results', 'تخصيص النتائج'], 'إعادة تعيين الكل': ['Reset all', 'إعادة تعيين الكل'], 'في المخزون فقط': ['In stock only', 'في المخزون فقط'], 'مقبس المعالج': ['CPU socket', 'مقبس المعالج'], 'عامل شكل اللوحة الأم': ['Motherboard form factor', 'عامل شكل اللوحة الأم'], 'تكنولوجيا الذاكرة': ['Memory technology', 'تكنولوجيا الذاكرة'], 'عائلة شرائح اللوحة الأم': ['Motherboard chipset family', 'عائلة شرائح اللوحة الأم'], 'عائلة المعالج': ['CPU family', 'عائلة المعالج'], 'لون': ['Color', 'لون'], 'نطاق السعر': ['Price range', 'نطاق السعر'], 'من السعر': ['Minimum price', 'من السعر'], 'إلى السعر': ['Maximum price', 'إلى السعر'], 'ترتيب حسب': ['Sort by', 'ترتيب حسب'], 'الأحدث': ['Newest', 'الأحدث'], 'الأقدم': ['Oldest', 'الأقدم'], 'السعر: من الأقل للأعلى': ['Price: low to high', 'السعر: من الأقل للأعلى'], 'السعر: من الأعلى للأقل': ['Price: high to low', 'السعر: من الأعلى للأقل'], 'عرض النتائج': ['Show results', 'عرض النتائج'], 'إعادة تعيين': ['Reset', 'إعادة تعيين'],
+  'الفلتر': ['Filter', 'الفلتر'], 'المرشحات': ['Filter', 'الفلتر'], 'تخصيص النتائج': ['Refine results', 'تخصيص النتائج'], 'إعادة تعيين الكل': ['Reset all', 'إعادة تعيين الكل'], 'في المخزون فقط': ['In stock only', 'في المخزون فقط'], 'مقبس المعالج': ['CPU socket', 'مقبس المعالج'], 'عامل شكل اللوحة الأم': ['Motherboard form factor', 'عامل شكل اللوحة الأم'], 'تكنولوجيا الذاكرة': ['Memory technology', 'تكنولوجيا الذاكرة'], 'عائلة شرائح اللوحة الأم': ['Motherboard chipset family', 'عائلة شرائح اللوحة الأم'], 'عائلة المعالج': ['CPU family', 'عائلة المعالج'], 'لون': ['Color', 'لون'], 'نطاق السعر': ['Price range', 'نطاق السعر'], 'من السعر': ['Minimum price', 'من السعر'], 'إلى السعر': ['Maximum price', 'إلى السعر'], 'ترتيب حسب': ['Sort by', 'ترتيب حسب'], 'الأحدث': ['Newest', 'الأحدث'], 'الأقدم': ['Oldest', 'الأقدم'], 'السعر: من الأقل للأعلى': ['Price: low to high', 'السعر: من الأقل للأعلى'], 'السعر: من الأعلى للأقل': ['Price: high to low', 'السعر: من الأعلى للأقل'], 'عرض النتائج': ['Show results', 'عرض النتائج'], 'إعادة تعيين': ['Reset', 'إعادة تعيين'],
   'مقارنة المنتجات': ['Compare products', 'مقارنة المنتجات'], 'مسح المقارنة': ['Clear comparison', 'مسح المقارنة'], 'قارن الآن': ['Compare now', 'قارن الآن'], 'أحدث المنتجات': ['Latest products', 'أحدث المنتجات'], 'عرض الكل': ['View all', 'عرض الكل'], 'العلامات التجارية': ['Brands', 'العلامات التجارية'], 'إظهار': ['Show', 'إظهار'], 'إلغاء الفلتر': ['Clear filter', 'إلغاء الفلتر'], 'طوّر حاسبتك': ['Upgrade your PC', 'طوّر حاسبتك'],
   'تفاصيل المنتج': ['Product details', 'تفاصيل المنتج'], 'عرض سعر للتجميعة': ['Build quote', 'عرض سعر للتجميعة'], 'حسابي والمفضلة': ['Account & favorites', 'حسابي والمفضلة'], 'نبّهني عند التوفر': ['Notify me when available', 'نبّهني عند التوفر'], 'مساعد SPIDER': ['SPIDER assistant', 'مساعد SPIDER'], 'الموقع الجغرافي': ['Location', 'الموقع الجغرافي'], 'نعتز بثقتكم': ['We value your trust', 'نعتز بثقتكم'],
   'السلة فارغة': ['Your cart is empty', 'السلة فارغة'], 'المجموع الكلي': ['Total', 'المجموع الكلي'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'إتمام الطلب': ['Checkout', 'إتمام الطلب'], 'عرض سعر': ['Quote', 'عرض سعر'], 'نسخ العرض': ['Copy quote', 'نسخ العرض'], 'مشاركة عبر واتساب': ['Share via WhatsApp', 'مشاركة عبر واتساب'], 'فتح': ['Open', 'فتح'], 'خروج': ['Sign out', 'خروج'], 'أضف للسلة': ['Add to cart', 'أضف للسلة'], 'التفاصيل': ['Details', 'التفاصيل'], 'إزالة من المفضلة': ['Remove from favorites', 'إزالة من المفضلة'], 'أضف للمفضلة': ['Add to favorites', 'أضف للمفضلة'], 'حفظ طلب التنبيه': ['Save alert request', 'حفظ طلب التنبيه'],
@@ -791,11 +791,13 @@ function renderCategories() {
     const imgSrc = CUSTOM_ICONS[cat.id] || cat.image || categoryFallback(cat);
     const fallback = categoryFallback(cat);
     const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
-    const hasChildren = categoryChildren(cat.id).length > 0;
-    return `<button class="category-card ${state.filters.category === cat.id ? 'is-active' : ''}" type="button" data-category-id="${esc(cat.id)}" aria-pressed="${state.filters.category === cat.id}">
-      <span class="category-card-icon">${imgHtml}</span>
-      <span class="category-card-copy"><strong>${esc(categoryLabel(cat))}</strong><small>${categoryProductCount(cat.id)} ${language === 'en' ? 'products' : 'منتج'}</small></span>
-      <i class="fa-solid ${hasChildren ? 'fa-layer-group' : 'fa-arrow-left'}" aria-hidden="true"></i>
+    const isActive = state.filters.category === cat.id || state.categoryPanelId === cat.id;
+    return `<button class="category-card cat-circle-item ${isActive ? 'is-active active' : ''}" type="button" data-category-id="${esc(cat.id)}" aria-pressed="${isActive ? 'true' : 'false'}">
+      <span class="category-card-icon cat-circle">${imgHtml}</span>
+      <span class="category-card-copy cat-copy">
+        <strong class="cat-name">${esc(categoryLabel(cat))}</strong>
+        <small class="cat-count">${categoryProductCount(cat.id)} ${language === 'en' ? 'products' : 'منتج'}</small>
+      </span>
     </button>`;
   }).join('');
 
@@ -971,9 +973,14 @@ function renderActiveCatalogFilters() {
   if (!root) return;
   const chips = activeCatalogFilterChips();
   const count = $('catalogFilterCount');
+  const desktopCount = $('catalogFilterActiveCount');
   if (count) {
     count.textContent = String(chips.length);
     count.hidden = chips.length === 0;
+  }
+  if (desktopCount) {
+    desktopCount.textContent = String(chips.length);
+    desktopCount.hidden = chips.length === 0;
   }
   root.classList.toggle('hidden', !chips.length);
   root.innerHTML = chips.length ? `<div class="active-filter-chips">${chips.map((chip) => `<button class="active-filter-chip" type="button" data-remove-filter="${esc(chip.key)}" data-filter-value="${esc(chip.value || '')}">${esc(chip.label)} <i class="fa-solid fa-xmark" aria-hidden="true"></i><span class="sr-only">${language === 'en' ? 'Remove' : 'إزالة'}</span></button>`).join('')}</div><button class="clear-all-filters" type="button" data-clear-all-filters>${language === 'en' ? 'Clear all filters' : 'مسح جميع الفلاتر'}</button>` : '';
@@ -1128,13 +1135,43 @@ function commitCatalogRangeFilters() {
   commitCatalogPriceFilters();
 }
 
+let isDesktopFilterExpanded = false;
+
+function toggleDesktopCatalogFilter(forceState) {
+  isDesktopFilterExpanded = forceState !== undefined ? Boolean(forceState) : !isDesktopFilterExpanded;
+  const body = $('catalogFiltersBody');
+  const arrow = $('catalogFilterArrow');
+  const header = $('catalogFiltersHeader');
+  const form = $('catalogFilters');
+  if (body) body.hidden = !isDesktopFilterExpanded;
+  if (arrow) {
+    arrow.className = `fa-solid ${isDesktopFilterExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} filter-toggle-arrow`;
+  }
+  if (header) header.setAttribute('aria-expanded', String(isDesktopFilterExpanded));
+  if (form) form.classList.toggle('is-expanded', isDesktopFilterExpanded);
+}
+
 function setCatalogFiltersOpen(open) {
   const isOpen = Boolean(open);
   document.body.classList.toggle('catalog-filters-open', isOpen);
   $('catalogFilterScrim')?.toggleAttribute('hidden', !isOpen);
   $('openCatalogFilters')?.setAttribute('aria-expanded', String(isOpen));
-  if (isOpen) setScrollLock(true);
-  else setScrollLock(false);
+  const body = $('catalogFiltersBody');
+  if (window.innerWidth <= 760) {
+    if (body && isOpen) body.hidden = false;
+    if (isOpen) {
+      setScrollLock(true);
+    } else {
+      setScrollLock(false);
+      // Ensure zero lingering scroll lock
+      document.body.classList.remove('overlay-open');
+      document.body.style.top = '';
+      document.body.style.position = '';
+      document.body.style.overflow = '';
+    }
+  } else {
+    toggleDesktopCatalogFilter(isOpen);
+  }
 }
 
 function restoreFiltersFromUrl() {
@@ -2636,6 +2673,23 @@ function bindEvents() {
   $('closeCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('catalogFilterScrim')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('applyCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
+  $('catalogFiltersHeader')?.addEventListener('click', (event) => {
+    if (event.target.closest('#closeCatalogFilters')) return;
+    if (window.innerWidth > 760) {
+      toggleDesktopCatalogFilter();
+    }
+  });
+  $('catalogFiltersHeader')?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (window.innerWidth > 760) toggleDesktopCatalogFilter();
+    }
+  });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 760 && document.body.classList.contains('catalog-filters-open')) {
+      setCatalogFiltersOpen(false);
+    }
+  });
 
   // Categories are always visible — no toggle needed
   const catToggleBtn = $('viewAllCatBtn');
@@ -2894,6 +2948,39 @@ function loadPublicCatalog({ force = false } = {}) {
       applySettings(data.settings || {});
       renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
     } catch (error) {
+      console.warn('Worker catalog fetch failed, attempting Firebase RTDB direct fallback...', error);
+      try {
+        const [productsSnap, categoriesSnap, settingsSnap] = await Promise.all([
+          get(ref(db, 'products')),
+          get(ref(db, 'categories')),
+          get(ref(db, 'settings'))
+        ]);
+        if (productsSnap.exists()) {
+          const rawProducts = productsSnap.val() || {};
+          state.products = Object.entries(rawProducts)
+            .filter(([, product]) => product && product.status === 'published' && product.isHidden !== true)
+            .map(([id, product]) => ({
+              id,
+              ...product,
+              priceVisible: product.priceVisible !== false,
+              customerPrice: Number(product.price || 0)
+            }));
+          if (categoriesSnap.exists()) {
+            const rawCat = categoriesSnap.val() || {};
+            state.categories = Object.entries(rawCat)
+              .map(([id, value]) => ({ id, ...(value || {}) }))
+              .filter((category) => category.enabled !== false && category.isHidden !== true);
+            state.categoryLoad = 'loaded';
+          }
+          if (settingsSnap.exists()) applySettings(settingsSnap.val() || {});
+          state.productsLoaded = true;
+          state.catalogLoad = 'loaded';
+          renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
+          return;
+        }
+      } catch (fallbackError) {
+        console.error('Firebase RTDB fallback also failed:', fallbackError);
+      }
       state.productsLoaded = false;
       state.catalogLoad = 'error';
       console.error('PUBLIC_CATALOG_LOAD_FAILED', {
