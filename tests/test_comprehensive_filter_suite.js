@@ -120,9 +120,17 @@ async function runTestSuite(baseUrl) {
       assert.ok(sidebarOpenData.layoutExpanded, `Layout must expand at ${vp.name}`);
       assert.ok(sidebarOpenData.formVisible, `Sidebar form must be visible at ${vp.name}`);
       assert.ok(sidebarOpenData.bodyVisible, `Sidebar body must be visible at ${vp.name}`);
-      assert.ok(sidebarOpenData.brandOpen, `Brand accordion must be open at ${vp.name}`);
-      assert.ok(sidebarOpenData.priceOpen, `Price accordion must be open at ${vp.name}`);
-      assert.ok(sidebarOpenData.brandsCount > 0, `Brand options must be populated at ${vp.name}`);
+      assert.equal(sidebarOpenData.brandOpen, false, `Brand accordion must be CLOSED by default at ${vp.name}`);
+      assert.equal(sidebarOpenData.priceOpen, false, `Price accordion must be CLOSED by default at ${vp.name}`);
+
+      // Test user expansion of accordion
+      await page.click('#catalogBrandSection > summary');
+      await new Promise(r => setTimeout(r, 400));
+      const brandExpanded = await page.evaluate(() => {
+        const s = document.getElementById('catalogBrandSection');
+        return s?.hasAttribute('open') && document.querySelectorAll('#catalogBrandFilters label').length > 0;
+      });
+      assert.ok(brandExpanded, `Brand accordion must open when clicked at ${vp.name}`);
 
       await page.close();
     }
@@ -153,13 +161,23 @@ async function runTestSuite(baseUrl) {
       const bodyOpen = document.body.classList.contains('catalog-filters-open');
       const scrimVisible = !document.getElementById('catalogFilterScrim')?.hasAttribute('hidden');
       const scrollLocked = document.body.classList.contains('overlay-open');
+      const brandSection = document.getElementById('catalogBrandSection');
+      const priceSection = document.getElementById('catalogPriceSection');
       const brandsCount = document.querySelectorAll('#catalogBrandFilters label').length;
-      return { bodyOpen, scrimVisible, scrollLocked, brandsCount };
+      return {
+        bodyOpen,
+        scrimVisible,
+        scrollLocked,
+        brandsCount,
+        brandClosed: !brandSection?.hasAttribute('open'),
+        priceClosed: !priceSection?.hasAttribute('open')
+      };
     });
     assert.ok(drawerOpenStatus.bodyOpen, 'Mobile drawer must be open');
     assert.ok(drawerOpenStatus.scrimVisible, 'Mobile scrim must be visible');
     assert.ok(drawerOpenStatus.scrollLocked, 'Body scroll must be locked');
-    assert.ok(drawerOpenStatus.brandsCount > 0, 'Brand options must be rendered');
+    assert.ok(drawerOpenStatus.brandClosed, 'Brand section must be closed by default');
+    assert.ok(drawerOpenStatus.priceClosed, 'Price section must be closed by default');
 
     // Test clicking scrim closes drawer
     console.log('  - Testing click outside (scrim) closes drawer...');
@@ -256,6 +274,9 @@ async function runTestSuite(baseUrl) {
     assert.ok(stockCount > 0, 'Must have in stock products');
 
     // 4.2 Brand filter (e.g. Hikvision)
+    console.log('  - Opening Brand accordion...');
+    await filterPage.click('#catalogBrandSection > summary');
+    await new Promise(r => setTimeout(r, 400));
     console.log('  - Selecting brand filter...');
     const brandName = await filterPage.evaluate(() => {
       const firstBrand = document.querySelector('#catalogBrandFilters input[type="checkbox"]');
@@ -442,6 +463,7 @@ async function runTestSuite(baseUrl) {
     assert.equal(priceAudit.nanPrice, 0, 'No products should have "NaN"');
     assert.equal(priceAudit.undefinedPrice, 0, 'No products should have "undefined"');
     assert.equal(priceAudit.demandPrice, 0, 'No products should have "السعر عند الطلب"');
+    assert.equal(priceAudit.unspecifiedPrice, 0, 'CRITICAL: No products should have "غير محدد"');
 
     await pricePage.close();
     console.log('  [PASS] Price labels verified cleanly!');

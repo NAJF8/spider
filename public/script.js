@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12
 import { getDatabase, ref, onValue, get, update, connectDatabaseEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithCustomToken, signInWithPopup, signOut, connectAuthEmulator } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { CATALOG_TRANSLATIONS } from './catalog-translations.js';
-import { parseOptionalPrice, validateOptionalPriceRange } from './catalog-price-filters.mjs';
+import { normalizeNumericString, parseOptionalPrice, priceInputIsInvalid, validateOptionalPriceRange, safeFloatingAdd, safeFloatingMultiply, normalizeMeasurement } from './catalog-price-filters.mjs';
 
 const IS_LOCAL_EMULATOR = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (new URLSearchParams(location.search).get('emulator') === '1' || window.__FORCE_EMULATOR__ === true);
 const firebaseConfig = IS_LOCAL_EMULATOR ? {
@@ -310,8 +310,12 @@ const priceInfo = (product, profile = null) => {
 const getEffectivePrice = (product, profile = null) => priceInfo(product, profile).price;
 const formatPrice = (value) => `${Number(value || 0).toLocaleString('en-IQ')} د.ع`;
 const productPrice = (product) => getEffectivePrice(product, state.accountProfile);
-const unspecifiedPriceLabel = () => language === 'en' ? 'Unspecified' : 'غير محدد';
-const productPriceMarkup = (product, value = productPrice(product)) => priceInfo(product).purchasable ? formatPrice(value) : unspecifiedPriceLabel();
+const unspecifiedPriceLabel = () => '';
+const productPriceMarkup = (product, value = productPrice(product)) => {
+  const info = priceInfo(product);
+  if (!info.purchasable || !validPrice(value)) return '';
+  return formatPrice(value);
+};
 const canPurchaseProduct = (product) => isAvailable(product) && priceInfo(product).purchasable;
 const builderPriceDetails = (product) => {
   const basePrice = productPrice(product);
@@ -673,7 +677,10 @@ function filteredProducts() {
     // sorted using a private/original price.
     // Products without a real price remain discoverable, but never match a
     // numerical range and are never treated as zero.
-    const priceMatches = !info.purchasable ? (min === null && max === null) : ((min === null || info.price >= min) && (max === null || info.price <= max));
+    const hasPrice = info.purchasable && Number.isFinite(info.price) && info.price > 0;
+    const priceMatches = (min === null && max === null)
+      ? true
+      : (hasPrice && (min === null || info.price >= min) && (max === null || info.price <= max));
     return productCategoryMatch(p, category) &&
     (!brands.length || brands.some((brand) => brandMatches(p.brand, brand))) &&
     CATALOG_FACETS.every((facet) => productMatchesCatalogFacet(p, facet, state.filters[facet.key])) &&
@@ -1066,12 +1073,6 @@ function renderActiveCatalogFilters() {
 
 function renderCatalogFilters() {
   const root = $('catalogBrandFilters'); if (!root) return;
-  if (state.filters.brands.length > 0 && $('catalogBrandSection')) $('catalogBrandSection').open = true;
-  if (state.filters.category && $('catalogCategorySection')) $('catalogCategorySection').open = true;
-  if ((state.filters.minPrice !== null || state.filters.maxPrice !== null) && $('catalogPriceSection')) $('catalogPriceSection').open = true;
-  CATALOG_FACETS.forEach((facet) => {
-    if (state.filters[facet.key]?.length > 0 && $(facet.section)) $(facet.section).open = true;
-  });
   const candidates = state.products.filter((p) => productCategoryMatch(p, state.filters.category) && (!state.filters.search || productText(p).includes(state.filters.search.toLowerCase())));
   const allBrands = canonicalBrandRecords(candidates);
   const search = state.brandSearch.trim().toLowerCase();
@@ -1083,8 +1084,12 @@ function renderCatalogFilters() {
   }).join('') || `<span class="no-brand-match">${language === 'en' ? 'No matching brands.' : 'لا توجد علامات مطابقة.'}</span>`;
   $('catalogSort').value = state.filters.sort || 'newest';
   if ($('catalogStockOnly')) $('catalogStockOnly').checked = state.filters.inStockOnly === true;
-  $('catalogMinPrice').value = state.filters.minPrice ?? '';
-  $('catalogMaxPrice').value = state.filters.maxPrice ?? '';
+  if ($('catalogMinPrice') && document.activeElement !== $('catalogMinPrice')) {
+    $('catalogMinPrice').value = state.filters.minPrice !== null ? String(state.filters.minPrice) : '';
+  }
+  if ($('catalogMaxPrice') && document.activeElement !== $('catalogMaxPrice')) {
+    $('catalogMaxPrice').value = state.filters.maxPrice !== null ? String(state.filters.maxPrice) : '';
+  }
   if ($('catalogBrandSearch')) $('catalogBrandSearch').value = state.brandSearch;
   $('catalogResultCount').textContent = `${filteredProducts().length} ${language === 'en' ? 'products' : 'منتجاً'}`;
   renderCatalogCategoryFilters(candidates);
@@ -1217,18 +1222,45 @@ function setCatalogPriceValidation(validation) {
     error.textContent = message;
     error.hidden = !message;
   }
-  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.setAttribute('aria-invalid', String(!validation.valid)));
+  const minError = $('catalogMinPriceError');
+  if (minError) {
+    minError.textContent = validation.minInvalid ? (language === 'en' ? 'Invalid price' : 'أدخل سعراً صحيحاً') : '';
+    minError.hidden = !validation.minInvalid;
+  }
+  const maxError = $('catalogMaxPriceError');
+  if (maxError) {
+    maxError.textContent = validation.maxInvalid ? (language === 'en' ? 'Invalid price' : 'أدخل سعراً صحيحاً') : '';
+    maxError.hidden = !validation.maxInvalid;
+  }
+  $('catalogMinPrice')?.setAttribute('aria-invalid', String(validation.minInvalid || validation.error === 'range'));
+  $('catalogMaxPrice')?.setAttribute('aria-invalid', String(validation.maxInvalid || validation.error === 'range'));
 }
 
-function commitCatalogPriceFilters() {
+let catalogPriceDebounceTimer = null;
+function commitCatalogPriceFilters({ push = false } = {}) {
   const validation = validateOptionalPriceRange($('catalogMinPrice')?.value, $('catalogMaxPrice')?.value);
   setCatalogPriceValidation(validation);
   // Preserve the last valid result set until the price range is valid again.
   if (!validation.valid) return;
   state.filters.minPrice = validation.min;
   state.filters.maxPrice = validation.max;
-  syncFiltersToUrl();
+  syncFiltersToUrl({ push });
   renderProducts();
+  syncCatalogPriceRange();
+}
+
+function onCatalogPriceInput() {
+  clearTimeout(catalogPriceDebounceTimer);
+  const validation = validateOptionalPriceRange($('catalogMinPrice')?.value, $('catalogMaxPrice')?.value);
+  setCatalogPriceValidation(validation);
+  catalogPriceDebounceTimer = setTimeout(() => {
+    commitCatalogPriceFilters({ push: false });
+  }, 250);
+}
+
+function onCatalogPriceChange() {
+  clearTimeout(catalogPriceDebounceTimer);
+  commitCatalogPriceFilters({ push: true });
 }
 
 function commitCatalogRangeFilters() {
@@ -1238,7 +1270,7 @@ function commitCatalogRangeFilters() {
   const min = Number(minRange.value), max = Number(maxRange.value);
   $('catalogMinPrice').value = min > bounds.min ? String(min) : '';
   $('catalogMaxPrice').value = max < bounds.max ? String(max) : '';
-  commitCatalogPriceFilters();
+  commitCatalogPriceFilters({ push: true });
 }
 
 let isCatalogFiltersOpen = false;
@@ -1359,13 +1391,18 @@ function clearFilters({ syncUrl = true, push = true } = {}) {
   state.brandSearch = '';
   state.showAllBrands = false;
   if ($('searchInput')) $('searchInput').value = '';
+  if ($('catalogMinPrice')) $('catalogMinPrice').value = '';
+  if ($('catalogMaxPrice')) $('catalogMaxPrice').value = '';
+  if ($('catalogSort')) $('catalogSort').value = 'newest';
+  if ($('catalogStockOnly')) $('catalogStockOnly').checked = false;
   document.querySelectorAll('.brand-item').forEach((b) => b.classList.remove('active'));
   $('clearBrandBtn')?.classList.add('hidden');
-  setCatalogPriceValidation({ valid: true, error: '' });
+  setCatalogPriceValidation({ valid: true, error: '', minInvalid: false, maxInvalid: false });
   if (syncUrl) syncFiltersToUrl({ push });
   renderBrands();
   renderCategories();
   renderProducts();
+  renderCatalogFilters();
 }
 
 // ===== Brands =====
@@ -1913,7 +1950,8 @@ function compatibilityStatus(selected) {
 function calculateBuilderTotals(selected) {
   const details = selected.map((product) => ({ ...builderPriceDetails(product), visible: priceInfo(product).visible }));
   const hasHiddenPrice = details.some((item) => !item.visible);
-  const subtotal = Math.max(0, Math.round(details.reduce((sum, item) => sum + (item.visible ? item.basePrice : 0), 0)));
+  const rawSubtotal = details.reduce((sum, item) => safeFloatingAdd(sum, item.visible ? item.basePrice : 0), 0);
+  const subtotal = Math.max(0, Math.round(rawSubtotal));
   const builderSubtotal = subtotal;
   const invoice = state.settings?.buildGlobalDiscount || {};
   const tiers = Object.entries(invoice.invoiceTiers && typeof invoice.invoiceTiers === 'object' ? invoice.invoiceTiers : {})
@@ -1922,7 +1960,8 @@ function calculateBuilderTotals(selected) {
     .sort((a, b) => b.min - a.min || Number(a.order || 0) - Number(b.order || 0));
   const matchedTier = invoice.invoiceDiscountEnabled === true ? tiers.find((tier) => builderSubtotal >= tier.min && (tier.max === null || builderSubtotal <= tier.max)) || null : null;
   const invoiceDiscount = matchedTier ? Math.min(builderSubtotal, Math.round(matchedTier.discount)) : 0;
-  return { subtotal, builderSubtotal, invoiceDiscount, invoiceDiscountTier: matchedTier?.id || null, discount: invoiceDiscount, finalTotal: Math.max(0, builderSubtotal - invoiceDiscount), hasHiddenPrice };
+  const finalTotal = Math.max(0, Math.round(builderSubtotal - invoiceDiscount));
+  return { subtotal, builderSubtotal, invoiceDiscount, invoiceDiscountTier: matchedTier?.id || null, discount: invoiceDiscount, finalTotal, hasHiddenPrice };
 }
 
 function updateBuilder() {
@@ -1931,12 +1970,12 @@ function updateBuilder() {
   const totals = calculateBuilderTotals(selected);
   const total = totals.finalTotal;
   const visible = state.builderPriceVisible === true;
-  $('builderTotal').textContent = visible ? (totals.hasHiddenPrice ? unspecifiedPriceLabel() : formatPrice(total)) : '—';
+  $('builderTotal').textContent = visible ? (totals.hasHiddenPrice ? '' : formatPrice(total)) : '—';
   if ($('builderPriceCards')) $('builderPriceCards').hidden = !visible;
-  if ($('builderSubtotal')) $('builderSubtotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.subtotal) : (totals.hasHiddenPrice ? (language === 'en' ? 'Partial total' : 'مجموع جزئي') : '—');
+  if ($('builderSubtotal')) $('builderSubtotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.subtotal) : (totals.hasHiddenPrice ? '' : '—');
   if ($('builderInvoiceDiscount')) $('builderInvoiceDiscount').textContent = formatPrice(totals.invoiceDiscount);
   if ($('builderInvoiceDiscountRow')) $('builderInvoiceDiscountRow').hidden = !visible || totals.invoiceDiscount <= 0;
-  if ($('builderFinalTotal')) $('builderFinalTotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.finalTotal) : (totals.hasHiddenPrice ? unspecifiedPriceLabel() : '—');
+  if ($('builderFinalTotal')) $('builderFinalTotal').textContent = visible && !totals.hasHiddenPrice ? formatPrice(totals.finalTotal) : (totals.hasHiddenPrice ? '' : '—');
   if ($('builderStatus')) $('builderStatus').textContent = `${englishDigits(selected.length)} ${t('selectedParts')}`;
   const [msg, tone] = compatibilityStatus(selected);
   if ($('compatibilityBox')) { $('compatibilityBox').className = `compatibility-box ${tone}`; $('compatibilityBox').innerHTML = `<i class="fa-solid ${tone === 'bad' ? 'fa-circle-xmark' : tone === 'ok' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${esc(msg)}</span>`; }
@@ -1951,9 +1990,10 @@ function quoteLines(products) {
 function openQuote(products = selectedBuilderProducts()) {
   if (!products.length) return;
   const totals = calculateBuilderTotals(products);
-  const partialLabel = unspecifiedPriceLabel();
-  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>المجموع قبل الخصم</span><span>${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.subtotal)}</span></div>${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `<div class="quote-total"><span>خصم فاتورة التجميعة</span><span>-${formatPrice(totals.invoiceDiscount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.finalTotal)}</span></div>`;
-    $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${priceInfo(p).visible ? formatPrice(builderProductPrice(p)) : partialLabel}`).join('\n') + `\nالمجموع قبل الخصم: ${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.subtotal)}${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `\nخصم فاتورة التجميعة: -${formatPrice(totals.invoiceDiscount)}` : ''}\n${t('total')}: ${totals.hasHiddenPrice ? partialLabel : formatPrice(totals.finalTotal)}`;
+  const subtotalVal = totals.hasHiddenPrice ? '' : formatPrice(totals.subtotal);
+  const totalVal = totals.hasHiddenPrice ? '' : formatPrice(totals.finalTotal);
+  $('quoteSummary').innerHTML = `${quoteLines(products)}<div class="quote-total"><span>${language === 'en' ? 'Subtotal' : 'المجموع قبل الخصم'}</span><span>${subtotalVal}</span></div>${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `<div class="quote-total"><span>خصم فاتورة التجميعة</span><span>-${formatPrice(totals.invoiceDiscount)}</span></div>` : ''}<div class="quote-total"><span>${t('total')}</span><span>${totalVal}</span></div>`;
+  $('quoteModal').dataset.text = products.map((p) => `${productName(p)}: ${priceInfo(p).visible ? formatPrice(builderProductPrice(p)) : ''}`).join('\n') + `\nالمجموع قبل الخصم: ${subtotalVal}${totals.invoiceDiscount > 0 && !totals.hasHiddenPrice ? `\nخصم فاتورة التجميعة: -${formatPrice(totals.invoiceDiscount)}` : ''}\n${t('total')}: ${totalVal}`;
   modal('quoteModal', true);
 }
 
@@ -2806,23 +2846,32 @@ function bindEvents() {
   // Bind the catalog controls first so the filter surface remains usable even
   // if an unrelated optional storefront widget fails during initialization.
   $('catalogSort')?.addEventListener('change', (event) => { state.filters.sort = event.target.value; syncFiltersToUrl({ push: true }); renderProducts(); });
-  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => $(id)?.addEventListener('input', commitCatalogPriceFilters));
+  ['catalogMinPrice', 'catalogMaxPrice'].forEach((id) => {
+    $(id)?.addEventListener('input', onCatalogPriceInput);
+    $(id)?.addEventListener('change', onCatalogPriceChange);
+  });
   ['catalogMinRange', 'catalogMaxRange'].forEach((id) => {
     $(id)?.addEventListener('input', previewCatalogPriceRange);
     $(id)?.addEventListener('change', commitCatalogRangeFilters);
   });
   $('catalogBrandSearch')?.addEventListener('input', (event) => { state.brandSearch = event.target.value; renderCatalogFilters(); });
   $('showMoreBrands')?.addEventListener('click', () => { state.showAllBrands = !state.showAllBrands; renderCatalogFilters(); });
-  const resetCatalog = () => { clearFilters(); syncFiltersToUrl(); };
+  const resetCatalog = () => { clearFilters({ syncUrl: true, push: true }); };
   $('resetCatalogFilters')?.addEventListener('click', resetCatalog);
   $('resetCatalogFiltersMobile')?.addEventListener('click', resetCatalog);
-  $('catalogStockOnly')?.addEventListener('change', (event) => { state.filters.inStockOnly = event.target.checked; syncFiltersToUrl(); renderProducts(); });
+  $('catalogStockOnly')?.addEventListener('change', (event) => { state.filters.inStockOnly = event.target.checked; syncFiltersToUrl({ push: true }); renderProducts(); });
   $('catalogViewGrid')?.addEventListener('click', () => { state.catalogView = 'grid'; renderProducts(); });
   $('catalogViewList')?.addEventListener('click', () => { state.catalogView = 'list'; renderProducts(); });
   $('openCatalogFilters')?.addEventListener('click', (e) => { e.preventDefault(); toggleCatalogFilters(); });
   $('closeCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
   $('catalogFilterScrim')?.addEventListener('click', () => setCatalogFiltersOpen(false));
-  $('applyCatalogFilters')?.addEventListener('click', () => setCatalogFiltersOpen(false));
+  $('applyCatalogFilters')?.addEventListener('click', () => {
+    if (window.innerWidth <= 760) {
+      setCatalogFiltersOpen(false);
+    }
+    const target = $('productsSection') || $('productsGrid');
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
   $('catalogFiltersHeader')?.addEventListener('click', (event) => {
     if (event.target.closest('#closeCatalogFilters')) return;
     if (window.innerWidth > 760) {
@@ -3097,6 +3146,7 @@ function loadPublicCatalog({ force = false } = {}) {
         state.categoryLoad = 'loaded';
       }
       state.productsLoaded = true;
+      window.__SPIDER_PRODUCTS_LOADED__ = true;
       state.catalogLoad = 'loaded';
       applySettings(data.settings || {});
       renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
@@ -3127,6 +3177,7 @@ function loadPublicCatalog({ force = false } = {}) {
           }
           if (settingsSnap.exists()) applySettings(settingsSnap.val() || {});
           state.productsLoaded = true;
+      window.__SPIDER_PRODUCTS_LOADED__ = true;
           state.catalogLoad = 'loaded';
           renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
           return;

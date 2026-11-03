@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="style.css?v=20261103-catalog-filter-v3">
+<link rel="stylesheet" href="style.css?v=20261104-filter-calculator-overhaul">
 </head>
 <body>
 
@@ -163,7 +163,7 @@
               <span class="catalog-switch" aria-hidden="true"></span>
             </label>
 
-            <details class="catalog-filter-section" id="catalogBrandSection" open>
+            <details class="catalog-filter-section" id="catalogBrandSection">
               <summary>العلامة التجارية <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body">
                 <label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label>
@@ -172,7 +172,7 @@
               </div>
             </details>
 
-            <details class="catalog-filter-section" id="catalogPriceSection" open>
+            <details class="catalog-filter-section" id="catalogPriceSection">
               <summary>السعر <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body catalog-price-group">
                 <div class="catalog-range-heading"><span>نطاق السعر</span><small>د.ع</small></div>
@@ -183,14 +183,14 @@
                 </div>
                 <div class="catalog-range-labels" aria-hidden="true"><span id="catalogMinRangeLabel">0</span><span id="catalogMaxRangeLabel">0</span></div>
                 <div class="catalog-price-inputs">
-                  <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
-                  <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogPriceError"></label>
+                  <label>من السعر<input id="catalogMinPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogMinPriceError"><span id="catalogMinPriceError" class="catalog-field-error" hidden></span></label>
+                  <label>إلى السعر<input id="catalogMaxPrice" type="text" inputmode="numeric" autocomplete="off" aria-describedby="catalogMaxPriceError"><span id="catalogMaxPriceError" class="catalog-field-error" hidden></span></label>
                 </div>
                 <p id="catalogPriceError" class="catalog-price-error" role="alert" hidden></p>
               </div>
             </details>
 
-            <details class="catalog-filter-section" id="catalogCategorySection" open>
+            <details class="catalog-filter-section" id="catalogCategorySection">
               <summary>القسم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body"><div id="catalogCategoryFilters" class="catalog-facet-options"></div></div>
             </details>
@@ -565,6 +565,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="script.js?v=20261103-catalog-filter-v3"></script>
+<script type="module" src="script.js?v=20261104-filter-calculator-overhaul"></script>
 </body>
 </html>
