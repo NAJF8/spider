@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="style.css?v=20261030-filter-toggle-v2">
+<link rel="stylesheet" href="style.css?v=20261103-catalog-filter-v3">
 </head>
 <body>
 
@@ -163,7 +163,7 @@
               <span class="catalog-switch" aria-hidden="true"></span>
             </label>
 
-            <details class="catalog-filter-section" id="catalogBrandSection">
+            <details class="catalog-filter-section" id="catalogBrandSection" open>
               <summary>العلامة التجارية <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body">
                 <label class="brand-filter-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="catalogBrandSearch" type="search" autocomplete="off" placeholder="ابحث عن علامة تجارية" aria-label="ابحث عن علامة تجارية"></label>
@@ -172,7 +172,7 @@
               </div>
             </details>
 
-            <details class="catalog-filter-section" id="catalogPriceSection">
+            <details class="catalog-filter-section" id="catalogPriceSection" open>
               <summary>السعر <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body catalog-price-group">
                 <div class="catalog-range-heading"><span>نطاق السعر</span><small>د.ع</small></div>
@@ -190,7 +190,7 @@
               </div>
             </details>
 
-            <details class="catalog-filter-section" id="catalogCategorySection">
+            <details class="catalog-filter-section" id="catalogCategorySection" open>
               <summary>القسم <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
               <div class="catalog-filter-section-body"><div id="catalogCategoryFilters" class="catalog-facet-options"></div></div>
             </details>
@@ -204,10 +204,10 @@
             <details class="catalog-filter-section" id="catalogCpuFamilySection"><summary>عائلة المعالج <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogCpuFamilyFilters" class="catalog-facet-options"></div></div></details>
             <details class="catalog-filter-section" id="catalogColorSection"><summary>لون <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary><div class="catalog-filter-section-body"><div id="catalogColorFilters" class="catalog-facet-options"></div></div></details>
 
-            <div class="catalog-filter-actions">
-              <button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button>
-              <button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button>
-            </div>
+          </div>
+          <div class="catalog-filter-actions" id="catalogFilterActions">
+            <button class="btn btn-outline" id="resetCatalogFiltersMobile" type="button">إعادة تعيين</button>
+            <button class="btn btn-primary" id="applyCatalogFilters" type="button">عرض النتائج</button>
           </div>
         </form>
         <div class="catalog-results">
@@ -565,6 +565,6 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="script.js?v=20261030-filter-toggle-v2"></script>
+<script type="module" src="script.js?v=20261103-catalog-filter-v3"></script>
 </body>
 </html>

@@ -545,6 +545,36 @@ function brandMatches(value, selected) {
   return !selected || normalizeBrandKey(value) === normalizeBrandKey(selected);
 }
 
+function parseTimestampValue(val) {
+  if (val == null) return null;
+  if (typeof val === 'number' && Number.isFinite(val) && val > 0) {
+    return val > 1e11 ? val : val * 1000;
+  }
+  if (typeof val === 'object') {
+    const s = val.seconds ?? val._seconds;
+    if (typeof s === 'number' && Number.isFinite(s) && s > 0) {
+      const ns = val.nanoseconds ?? val._nanoseconds ?? 0;
+      return Math.round(s * 1000 + ns / 1e6);
+    }
+    if (typeof val.toDate === 'function') {
+      try {
+        const t = val.toDate().getTime();
+        if (Number.isFinite(t) && t > 0) return t;
+      } catch {}
+    }
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      if (Number.isFinite(num) && num > 0) return num > 1e11 ? num : num * 1000;
+    }
+    const parsed = Date.parse(trimmed);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
 const PUSH_CHARS = '-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 function parseFirebasePushIdTimestamp(id) {
   if (typeof id !== 'string' || id.length < 8) return null;
@@ -559,26 +589,17 @@ function parseFirebasePushIdTimestamp(id) {
 
 function productCreationTime(product) {
   if (!product) return 0;
-  if (product.createdAt != null) {
-    const num = Number(product.createdAt);
-    if (Number.isFinite(num) && num > 0) return num;
-    const dateNum = Date.parse(product.createdAt);
-    if (Number.isFinite(dateNum) && dateNum > 0) return dateNum;
-  }
-  if (product.created_at != null) {
-    const num = Number(product.created_at);
-    if (Number.isFinite(num) && num > 0) return num;
-    const dateNum = Date.parse(product.created_at);
-    if (Number.isFinite(dateNum) && dateNum > 0) return dateNum;
-  }
-  if (product.publishedAt != null) {
-    const num = Number(product.publishedAt);
-    if (Number.isFinite(num) && num > 0) return num;
-    const dateNum = Date.parse(product.publishedAt);
-    if (Number.isFinite(dateNum) && dateNum > 0) return dateNum;
+  for (const key of ['createdAt', 'created_at', 'publishedAt', 'published_at', 'updatedAt', 'updated_at', 'timestamp']) {
+    const parsed = parseTimestampValue(product[key]);
+    if (parsed !== null) return parsed;
   }
   const pushTime = parseFirebasePushIdTimestamp(product.id);
   if (pushTime !== null) return pushTime;
+  const match = String(product.id || '').match(/product-(\d{12,14})/);
+  if (match) {
+    const num = Number(match[1]);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
   return 0;
 }
 
@@ -1045,6 +1066,12 @@ function renderActiveCatalogFilters() {
 
 function renderCatalogFilters() {
   const root = $('catalogBrandFilters'); if (!root) return;
+  if (state.filters.brands.length > 0 && $('catalogBrandSection')) $('catalogBrandSection').open = true;
+  if (state.filters.category && $('catalogCategorySection')) $('catalogCategorySection').open = true;
+  if ((state.filters.minPrice !== null || state.filters.maxPrice !== null) && $('catalogPriceSection')) $('catalogPriceSection').open = true;
+  CATALOG_FACETS.forEach((facet) => {
+    if (state.filters[facet.key]?.length > 0 && $(facet.section)) $(facet.section).open = true;
+  });
   const candidates = state.products.filter((p) => productCategoryMatch(p, state.filters.category) && (!state.filters.search || productText(p).includes(state.filters.search.toLowerCase())));
   const allBrands = canonicalBrandRecords(candidates);
   const search = state.brandSearch.trim().toLowerCase();
@@ -1151,23 +1178,28 @@ function previewCatalogPriceRange() {
   }
   updateCatalogRangeTrack(catalogPriceBounds(), minRange.value, maxRange.value);
 }
-function syncFiltersToUrl({ push = false } = {}) {
+function syncFiltersToUrl({ push = true } = {}) {
   const p = new URLSearchParams();
   const f = state.filters;
   if (f.category) p.set('category', f.category);
-  if (f.brands?.length) p.set('brands', f.brands.join(','));
-  CATALOG_FACETS.forEach((facet) => { if (f[facet.key]?.length) p.set(facet.param, f[facet.key].join(',')); });
+  if (f.brands?.length) p.set('brand', f.brands.join(','));
+  CATALOG_FACETS.forEach((facet) => {
+    if (f[facet.key]?.length) {
+      const singular = facet.param.endsWith('s') ? facet.param.slice(0, -1) : facet.param;
+      p.set(singular, f[facet.key].join(','));
+    }
+  });
   if (f.search) p.set('q', f.search);
-  if (f.minPrice !== null) p.set('min', String(f.minPrice));
-  if (f.maxPrice !== null) p.set('max', String(f.maxPrice));
-  if (f.sort && f.sort !== '') p.set('sort', f.sort);
+  if (f.minPrice !== null) p.set('minPrice', String(f.minPrice));
+  if (f.maxPrice !== null) p.set('maxPrice', String(f.maxPrice));
+  if (f.sort && f.sort !== '' && f.sort !== 'newest') p.set('sort', f.sort);
   if (f.inStockOnly) p.set('stock', '1');
   const nextQuery = p.toString();
   const nextUrl = `${location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
   const currentUrl = `${location.pathname}${location.search}`;
   if (push && nextUrl !== currentUrl) {
     history.pushState(null, '', nextUrl);
-  } else {
+  } else if (!push && nextUrl !== currentUrl) {
     history.replaceState(null, '', nextUrl);
   }
 }
@@ -1272,20 +1304,40 @@ function toggleDesktopCatalogFilter(forceState) {
 
 function restoreFiltersFromUrl() {
   const query = new URLSearchParams(location.search);
-  const range = validateOptionalPriceRange(query.get('min'), query.get('max'));
+  const minRaw = query.get('minPrice') ?? query.get('min');
+  const maxRaw = query.get('maxPrice') ?? query.get('max');
+  const range = validateOptionalPriceRange(minRaw, maxRaw);
+
+  const rawBrand = query.get('brand') || query.get('brands') || '';
+  const brands = rawBrand ? rawBrand.split(',').map((brand) => brand.trim()).filter(Boolean) : [];
+
+  const facetEntries = CATALOG_FACETS.map((facet) => {
+    const singular = facet.param.endsWith('s') ? facet.param.slice(0, -1) : facet.param;
+    const rawVal = query.get(facet.param) || query.get(singular) || '';
+    const vals = rawVal ? rawVal.split(',').map((value) => value.trim()).filter(Boolean) : [];
+    return [facet.key, vals];
+  });
+
+  const rawSearch = query.get('search') ?? query.get('q') ?? '';
+  const rawStock = query.get('stock') ?? query.get('inStock');
+  const inStockOnly = rawStock === '1' || rawStock === 'true';
+  const sortParam = query.get('sort');
+  const sort = ['newest', 'oldest', 'price-asc', 'price-desc'].includes(sortParam) ? sortParam : 'newest';
+
   state.filters = {
     ...state.filters,
     category: String(query.get('category') || '').trim(),
-    brands: String(query.get('brands') || '').split(',').map((brand) => brand.trim()).filter(Boolean),
-    ...Object.fromEntries(CATALOG_FACETS.map((facet) => [facet.key, String(query.get(facet.param) || '').split(',').map((value) => value.trim()).filter(Boolean)])),
-    search: String(query.get('q') || '').trim(),
+    brands,
+    ...Object.fromEntries(facetEntries),
+    search: String(rawSearch).trim(),
     minPrice: range.valid ? range.min : null,
     maxPrice: range.valid ? range.max : null,
-    sort: ['newest', 'oldest', 'price-asc', 'price-desc'].includes(query.get('sort')) ? query.get('sort') : 'newest',
-    inStockOnly: query.get('stock') === '1'
+    sort,
+    inStockOnly
   };
   if ($('searchInput')) $('searchInput').value = state.filters.search;
   if ($('catalogSort')) $('catalogSort').value = state.filters.sort;
+  if ($('catalogStockOnly')) $('catalogStockOnly').checked = state.filters.inStockOnly;
 }
 
 function filterProductsByCategory(categoryId) {
@@ -1301,15 +1353,16 @@ function filterProductsByCategory(categoryId) {
 }
 window.filterProductsByCategory = filterProductsByCategory;
 
-function clearFilters() {
+function clearFilters({ syncUrl = true, push = true } = {}) {
   state.filters = emptyCatalogFilters();
   state.categoryPanelId = '';
   state.brandSearch = '';
   state.showAllBrands = false;
-  $('searchInput').value = '';
+  if ($('searchInput')) $('searchInput').value = '';
   document.querySelectorAll('.brand-item').forEach((b) => b.classList.remove('active'));
-  $('clearBrandBtn').classList.add('hidden');
+  $('clearBrandBtn')?.classList.add('hidden');
   setCatalogPriceValidation({ valid: true, error: '' });
+  if (syncUrl) syncFiltersToUrl({ push });
   renderBrands();
   renderCategories();
   renderProducts();
@@ -2791,13 +2844,16 @@ function bindEvents() {
   // Categories are always visible — no toggle needed
   const catToggleBtn = $('viewAllCatBtn');
   if (catToggleBtn) catToggleBtn.addEventListener('click', () => { state.showCategories = !state.showCategories; renderCategories(); });
-  $('viewAllProdBtn').addEventListener('click', clearFilters);
+  $('viewAllProdBtn').addEventListener('click', () => clearFilters({ syncUrl: true, push: true }));
   $('clearBrandBtn').addEventListener('click', clearFilters);
   $('searchInput').addEventListener('input', (e) => {
     state.filters.search = e.target.value;
     renderSuggestions(e.target.value);
-    syncFiltersToUrl();
+    syncFiltersToUrl({ push: false });
     renderProducts();
+  });
+  $('searchInput').addEventListener('change', () => {
+    syncFiltersToUrl({ push: true });
   });
   document.addEventListener('click', (e) => { if (!e.target.closest('.search-wrap')) $('searchSuggestions').classList.add('hidden'); });
 
@@ -3141,6 +3197,9 @@ renderBuilder();
 localizeDom();
 
 window.addEventListener('popstate', () => {
+  if (isCatalogFiltersOpen && window.innerWidth <= 760) {
+    setCatalogFiltersOpen(false);
+  }
   restoreFiltersFromUrl();
   state.categoryPanelId = topLevelCategoryId(state.filters.category);
   renderCategories();
