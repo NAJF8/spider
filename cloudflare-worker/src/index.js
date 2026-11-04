@@ -565,6 +565,10 @@ async function handleRequest(request, env) {
         const secret = String(env.FIREBASE_DATABASE_SECRET || '').trim();
         if (!secret) return errorResponse('CATALOG_BACKEND_NOT_CONFIGURED', 503);
         const databaseQuery = firebaseAuthQuery(env, secret);
+        const sourceFetchOptions = {
+          cf: { cacheTtl: 0, cacheEverything: false },
+          headers: { 'Cache-Control': 'no-cache' }
+        };
         const token = (request.headers?.get?.('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
         let accountType = 'public';
         if (token) {
@@ -575,10 +579,10 @@ async function handleRequest(request, env) {
           accountType = normalizePricingTier(profile);
         }
         const [productsResponse, settingsResponse, categoriesResponse, privatePricesResponse] = await Promise.all([
-          fetch(`${firebaseBaseUrl(env, 'products.json')}${databaseQuery}`),
-          fetch(`${firebaseBaseUrl(env, 'settings.json')}${databaseQuery}`),
-          fetch(`${firebaseBaseUrl(env, 'categories.json')}${databaseQuery}`),
-          accountType === 'public' ? Promise.resolve(null) : fetch(`${firebaseBaseUrl(env, 'private_prices.json')}${databaseQuery}`)
+          fetch(`${firebaseBaseUrl(env, 'products.json')}${databaseQuery}`, sourceFetchOptions),
+          fetch(`${firebaseBaseUrl(env, 'settings.json')}${databaseQuery}`, sourceFetchOptions),
+          fetch(`${firebaseBaseUrl(env, 'categories.json')}${databaseQuery}`, sourceFetchOptions),
+          accountType === 'public' ? Promise.resolve(null) : fetch(`${firebaseBaseUrl(env, 'private_prices.json')}${databaseQuery}`, sourceFetchOptions)
         ]);
         if (!productsResponse.ok || !settingsResponse.ok || !categoriesResponse.ok) return errorResponse('CATALOG_DATABASE_ERROR', 503);
         const products = await productsResponse.json() || {};
@@ -588,7 +592,17 @@ async function handleRequest(request, env) {
         const safeProducts = Object.fromEntries(Object.entries(products && typeof products === 'object' ? products : {})
           .filter(([, product]) => product && product.status === 'published' && product.isHidden !== true)
           .map(([id, product]) => [id, publicCatalogProduct(id, product, privatePrices?.[id] || {}, accountType, settings || {}, categories || {})]));
-        return jsonResponse({ success: true, accountType, products: safeProducts, settings: publicCatalogSettings(settings), categories: categories || {} });
+        const catalogVersionResponse = await fetch(`${firebaseBaseUrl(env, 'catalogVersion.json')}${databaseQuery}`, sourceFetchOptions);
+        const catalogVersion = catalogVersionResponse.ok ? await catalogVersionResponse.json() : null;
+        return jsonResponse(
+          { success: true, accountType, catalogVersion, products: safeProducts, settings: publicCatalogSettings(settings), categories: categories || {} },
+          200,
+          {
+            'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate',
+            'Cloudflare-CDN-Cache-Control': 'no-store',
+            'X-Catalog-Version': catalogVersion === null ? '' : String(catalogVersion)
+          }
+        );
       } catch (error) {
         console.error(JSON.stringify({ code: 'CATALOG_LOOKUP_FAILED', kind: error?.message || 'unknown' }));
         return errorResponse(error?.message === 'AUTH_SERVICE_ACCOUNT_ERROR' ? 'CATALOG_BACKEND_NOT_CONFIGURED' : 'CATALOG_LOOKUP_FAILED', 503);
@@ -1636,11 +1650,12 @@ function errorResponse(code, status, details = {}) {
   });
 }
 
-function jsonResponse(payload, status = 200) {
+function jsonResponse(payload, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...extraHeaders
     }
   });
 }

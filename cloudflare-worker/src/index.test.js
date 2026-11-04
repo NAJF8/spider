@@ -167,6 +167,7 @@ test('public catalog endpoint strips hidden prices and pricing policy', async ()
     if (url.includes('/products.json')) return Response.json({ hidden: { name: 'Hidden', price: 900000, status: 'published', pricingOverride: { hidePrice: true } }, visible: { name: 'Visible', price: 100000, status: 'published' } });
     if (url.includes('/settings.json')) return Response.json({ deliveryFee: 5000, pricingConfig: { forceHideAll: true, site: { percentAdjustment: 10 } }, storeNameAr: 'Spider' });
     if (url.includes('/categories.json')) return Response.json({});
+    if (url.includes('/catalogVersion.json')) return Response.json(123);
     throw new Error(`unexpected fetch: ${url}`);
   };
   try {
@@ -179,6 +180,37 @@ test('public catalog endpoint strips hidden prices and pricing policy', async ()
     assert.equal(body.products.visible.priceVisible, false, 'global hide must override an otherwise visible product');
     assert.equal(Object.prototype.hasOwnProperty.call(body.products.visible, 'customerPrice'), false);
     assert.equal(Object.prototype.hasOwnProperty.call(body.settings, 'pricingConfig'), false);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('public catalog reads the pinned Production RTDB without cacheable responses', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (input, options = {}) => {
+    const url = String(input);
+    calls.push({ url, options });
+    if (url.includes('/products.json')) return Response.json({ p1: { name: 'AMD Ryzen 5 5600X Tray', price: 221111, status: 'published' } });
+    if (url.includes('/settings.json')) return Response.json({});
+    if (url.includes('/categories.json')) return Response.json({});
+    if (url.includes('/catalogVersion.json')) return Response.json(456);
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+  try {
+    const response = await worker.fetch(request('/api/store/catalog'), baseEnv);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.catalogVersion, 456);
+    assert.equal(body.products.p1.customerPrice, 221111);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store, no-cache, max-age=0, must-revalidate');
+    assert.equal(response.headers.get('Cloudflare-CDN-Cache-Control'), 'no-store');
+    assert.equal(response.headers.get('X-Catalog-Version'), '456');
+    const catalogCalls = calls.filter(({ url }) => /\/(products|settings|categories|catalogVersion)\.json/.test(url));
+    assert.ok(catalogCalls.length >= 4);
+    catalogCalls.forEach(({ url, options }) => {
+      assert.match(url, /^https:\/\/spider-aaa19-default-rtdb\.asia-southeast1\.firebasedatabase\.app\//);
+      assert.deepEqual(options.cf, { cacheTtl: 0, cacheEverything: false });
+      assert.equal(options.headers['Cache-Control'], 'no-cache');
+    });
   } finally { globalThis.fetch = originalFetch; }
 });
 
