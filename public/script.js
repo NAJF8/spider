@@ -3155,6 +3155,7 @@ function loadPublicCatalog({ force = false } = {}) {
       applySettings(data.settings || {});
       renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
       if ($('searchInput')) renderSuggestions($('searchInput').value);
+      if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) openProductDetails(activeProductDetailsId);
     } catch (error) {
       console.warn('Worker catalog fetch failed, attempting Firebase RTDB direct fallback...', error);
       try {
@@ -3186,6 +3187,7 @@ function loadPublicCatalog({ force = false } = {}) {
           state.catalogLoad = 'loaded';
           renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
           if ($('searchInput')) renderSuggestions($('searchInput').value);
+          if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) openProductDetails(activeProductDetailsId);
           return;
         }
       } catch (fallbackError) {
