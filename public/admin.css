@@ -460,6 +460,19 @@ ul { list-style: none; }
 
 /* Top Products List */
 .top-products-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* Inline price management: stable controls keep the old fast row-editing workflow. */
+.pricing-table-scroll{overflow-x:auto}
+.pricing-management-table{min-width:1080px}
+.pricing-management-table td,.pricing-management-table th{vertical-align:middle}
+.pricing-inline-input{width:132px;min-height:38px;padding:7px 9px;border:1px solid #d7dee4;border-radius:7px;background:#fff;color:var(--dark);font:inherit;font-size:.86rem;transition:border-color .15s ease,box-shadow .15s ease}
+.pricing-inline-input:focus{border-color:var(--primary);outline:0;box-shadow:0 0 0 3px rgba(31,143,76,.14)}
+.pricing-inline-input:disabled{background:#f3f5f6;color:#7b858d}
+.pricing-product-model{display:block;color:#7c8790;font-size:.72rem;margin-top:3px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pricing-row-message{display:block;min-height:18px;margin-top:4px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.pricing-row-message.success{color:#1f8f4c}.pricing-row-message.error{color:#b4232d}
+.pricing-save-btn:disabled{opacity:.7;cursor:wait}
+@media(max-width:700px){.pricing-management-table{min-width:980px}.pricing-inline-input{width:118px}}
 .top-product-item {
     display: flex;
     align-items: center;

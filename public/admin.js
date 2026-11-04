@@ -60,6 +60,8 @@ let categoriesChart = null;
 let currentAdminUser = null;
 let customers = [];
 let privatePricesByProduct = {};
+const pricingDraftsByProduct = Object.create(null);
+const pricingSaveInFlight = new Set();
 let pendingPricingIdentities = {};
 let englishDescriptionManuallyEdited = false;
 let descriptionTranslationTimer = null;
@@ -426,7 +428,7 @@ function updateAllDashboardViews() {
     renderDashboardCharts();
     renderCategoryDistribution();
     renderProductsManagementTable();
-    renderPricingManagementTable();
+    if (!document.querySelector('#pricingManagementBody input[data-pricing-field]:focus')) renderPricingManagementTable();
     renderCategoryPriceControls();
     renderBuilderSectionsSettings();
     renderPricingCustomers();
@@ -484,7 +486,7 @@ function loadDashboardData() {
     onValue(ref(db, 'private_prices'), (snapshot) => {
         if (isDemoMode) return;
         privatePricesByProduct = snapshot.exists() ? snapshot.val() || {} : {};
-        renderPricingManagementTable();
+        if (!document.querySelector('#pricingManagementBody input[data-pricing-field]:focus')) renderPricingManagementTable();
     });
     onValue(ref(db, 'pricing_identities'), (snapshot) => {
         if (isDemoMode) return;
@@ -654,9 +656,45 @@ function updateCategorySelects() {
     }
 }
 
+function normalizeAdminPrice(value) {
+    return String(value ?? '')
+        .replace(/[٠-٩۰-۹]/g, (digit) => {
+            const code = digit.charCodeAt(0);
+            return String(code >= 0x06f0 ? code - 0x06f0 : code - 0x0660);
+        })
+        .replace(/[,،\s]/g, '')
+        .trim();
+}
+
+function parseAdminOptionalPrice(value) {
+    const clean = normalizeAdminPrice(value);
+    if (clean === '') return null;
+    if (!/^\d+(\.\d+)?$/.test(clean)) return { error: 'يجب إدخال رقم موجب أو ترك الحقل فارغاً.' };
+    const parsed = Number(clean);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : { error: 'قيمة السعر غير صالحة.' };
+}
+
+function pricingDraftValue(id, field, fallback) {
+    return Object.prototype.hasOwnProperty.call(pricingDraftsByProduct[id] || {}, field)
+        ? pricingDraftsByProduct[id][field]
+        : (fallback ?? '');
+}
+
+function capturePricingDrafts() {
+    document.querySelectorAll('#pricingManagementBody tr[data-pricing-row]').forEach((row) => {
+        const id = row.dataset.pricingRow;
+        if (!id) return;
+        pricingDraftsByProduct[id] = pricingDraftsByProduct[id] || {};
+        row.querySelectorAll('[data-pricing-field]').forEach((input) => {
+            pricingDraftsByProduct[id][input.dataset.pricingField] = input.value;
+        });
+    });
+}
+
 function renderPricingManagementTable() {
     const tbody = document.getElementById('pricingManagementBody');
     if (!tbody) return;
+    capturePricingDrafts();
     const query = String(document.getElementById('pricingSearch')?.value || '').trim().toLowerCase();
     const category = document.getElementById('pricingCategoryFilter')?.value || '';
     const status = document.getElementById('pricingStatusFilter')?.value || '';
@@ -665,10 +703,20 @@ function renderPricingManagementTable() {
         return (!query || text.includes(query)) && (!category || (p.categoryId || p.category) === category) && (!status || (p.status || (p.isHidden ? 'hidden' : 'published')) === status);
     });
     tbody.innerHTML = filtered.length ? filtered.map((p) => {
-        const prices = privatePricesByProduct[p.id] || {}; const preview = adminPricePreview(p); const categoryName = categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '';
-        return `<tr><td><input type="checkbox" data-pricing-product-select="${escapeHtml(p.id)}" aria-label="تحديد ${escapeHtml(p.name || '')}"></td><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td>${escapeHtml(p.name || '')}</td><td>${escapeHtml(categoryName)}</td><td>${preview.base.toLocaleString('en-IQ')} د.ع</td><td>${preview.hidden ? 'غير محدد' : `${preview.final.toLocaleString('en-IQ')} د.ع`}</td><td>${Math.round(preview.percent)}%</td><td><span class="visibility-badge ${preview.hidden ? 'hidden' : 'visible'}">${preview.hidden ? 'غير محدد' : 'ظاهر'}</span></td><td><button class="btn btn-primary btn-sm" data-save-pricing="${escapeHtml(p.id)}">تعديل الأسعار</button></td></tr>`;
+        const prices = privatePricesByProduct[p.id] || {};
+        const categoryName = categories.find((c) => c.id === (p.categoryId || p.category))?.name || p.category || '';
+        const statusText = p.status === 'draft' ? 'مسودة' : p.isHidden === true || p.status === 'hidden' ? 'مخفي' : 'نشط';
+        const statusClass = p.status === 'draft' || p.isHidden === true || p.status === 'hidden' ? 'hidden' : 'visible';
+        const publicValue = pricingDraftValue(p.id, 'public', p.public_price ?? p.price);
+        const wholesaleValue = pricingDraftValue(p.id, 'wholesale', prices.wholesale_price);
+        const specialValue = pricingDraftValue(p.id, 'special', prices.special_price);
+        return `<tr data-pricing-row="${escapeHtml(p.id)}"><td><input type="checkbox" data-pricing-product-select="${escapeHtml(p.id)}" aria-label="تحديد ${escapeHtml(p.name || '')}"></td><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td><strong>${escapeHtml(p.name || '')}</strong>${p.model ? `<small class="pricing-product-model">${escapeHtml(p.model)}</small>` : ''}</td><td>${escapeHtml(categoryName)}</td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="public" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(publicValue)}" aria-label="السعر العام لـ ${escapeHtml(p.name || '')}"></td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="wholesale" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(wholesaleValue)}" aria-label="سعر الجملة لـ ${escapeHtml(p.name || '')}"></td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="special" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(specialValue)}" aria-label="السعر الخاص لـ ${escapeHtml(p.name || '')}"></td><td><span class="visibility-badge ${statusClass}" data-pricing-status>${statusText}</span><small class="pricing-row-message" data-pricing-message aria-live="polite"></small></td><td><button class="btn btn-primary btn-sm pricing-save-btn" type="button" data-save-pricing="${escapeHtml(p.id)}">حفظ</button></td></tr>`;
     }).join('') : '<tr><td colspan="9" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
-    tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => openProductModal(button.dataset.savePricing)));
+    tbody.querySelectorAll('[data-pricing-field]').forEach((input) => input.addEventListener('input', () => {
+        pricingDraftsByProduct[input.dataset.pricingId] = pricingDraftsByProduct[input.dataset.pricingId] || {};
+        pricingDraftsByProduct[input.dataset.pricingId][input.dataset.pricingField] = input.value;
+    }));
+    tbody.querySelectorAll('[data-save-pricing]').forEach((button) => button.addEventListener('click', () => saveProductPricing(button.dataset.savePricing)));
     const selectAll = document.getElementById('selectAllPricingProducts'); if (selectAll) { selectAll.checked = false; selectAll.onchange = () => tbody.querySelectorAll('[data-pricing-product-select]').forEach((input) => { input.checked = selectAll.checked; }); }
 }
 
@@ -678,22 +726,34 @@ async function saveProductPricing(id) {
         return;
     }
     const product = products.find((p) => p.id === id);
-    const publicInput = document.querySelector(`[data-public-price="${CSS.escape(id)}"]`);
-    const specialInput = document.querySelector(`[data-special-price="${CSS.escape(id)}"]`);
-    const wholesaleInput = document.querySelector(`[data-wholesale-price="${CSS.escape(id)}"]`);
-    const publicPrice = Number(publicInput?.value);
-    const specialPrice = specialInput?.value === '' ? null : Number(specialInput.value);
-    const wholesalePrice = wholesaleInput?.value === '' ? null : Number(wholesaleInput.value);
-    if (!product || !Number.isFinite(publicPrice) || publicPrice <= 0 || (specialPrice !== null && (!Number.isFinite(specialPrice) || specialPrice <= 0)) || (wholesalePrice !== null && (!Number.isFinite(wholesalePrice) || wholesalePrice <= 0))) {
-        alert('السعر العام موجب، والخاص/الجملة إما فارغ أو رقم موجب.');
+    const publicInput = document.querySelector(`[data-pricing-field="public"][data-pricing-id="${CSS.escape(id)}"]`);
+    const specialInput = document.querySelector(`[data-pricing-field="special"][data-pricing-id="${CSS.escape(id)}"]`);
+    const wholesaleInput = document.querySelector(`[data-pricing-field="wholesale"][data-pricing-id="${CSS.escape(id)}"]`);
+    const publicPrice = parseAdminOptionalPrice(publicInput?.value);
+    const specialPrice = parseAdminOptionalPrice(specialInput?.value);
+    const wholesalePrice = parseAdminOptionalPrice(wholesaleInput?.value);
+    const errors = [publicPrice, specialPrice, wholesalePrice].filter((value) => value && typeof value === 'object');
+    if (!product || errors.length) {
+        const message = errors[0]?.error || 'تعذر العثور على المنتج.';
+        const row = document.querySelector(`[data-pricing-row="${CSS.escape(id)}"]`);
+        const errorNode = row?.querySelector('[data-pricing-message]');
+        if (errorNode) { errorNode.textContent = message; errorNode.className = 'pricing-row-message error'; }
         return;
     }
+    if (pricingSaveInFlight.has(id)) return;
+    pricingSaveInFlight.add(id);
+    const row = document.querySelector(`[data-pricing-row="${CSS.escape(id)}"]`);
+    const saveButton = row?.querySelector('[data-save-pricing]');
+    const messageNode = row?.querySelector('[data-pricing-message]');
+    if (saveButton) { saveButton.disabled = true; saveButton.textContent = 'جارٍ الحفظ…'; }
+    if (messageNode) { messageNode.textContent = ''; messageNode.className = 'pricing-row-message'; }
     const now = Date.now();
     try {
         await update(ref(db), {
             [`products/${id}/price`]: publicPrice,
             [`products/${id}/public_price`]: publicPrice,
             [`private_prices/${id}`]: { special_price: specialPrice, wholesale_price: wholesalePrice, updatedAt: now, updatedBy: currentAdminUser.uid },
+            catalogVersion: now,
             [`auditLogs/${push(ref(db, 'auditLogs')).key}`]: { action: 'product_pricing_changed', productId: id, actorUid: currentAdminUser.uid, publicPrice, specialPrice, wholesalePrice, timestamp: now }
         });
         const [productSnapshot, privateSnapshot] = await Promise.all([get(ref(db, `products/${id}`)), get(ref(db, `private_prices/${id}`))]);
@@ -703,15 +763,19 @@ async function saveProductPricing(id) {
         const readPublic = Number(readProduct.public_price ?? readProduct.price);
         const readSpecial = readPrivate.special_price == null ? null : Number(readPrivate.special_price);
         const readWholesale = readPrivate.wholesale_price == null ? null : Number(readPrivate.wholesale_price);
-        if (readPublic !== publicPrice || readSpecial !== specialPrice || readWholesale !== wholesalePrice) throw new Error('PRICE_READBACK_MISMATCH');
+        if ((publicPrice === null ? (readProduct.price ?? readProduct.public_price ?? null) : readPublic) !== publicPrice || readSpecial !== specialPrice || readWholesale !== wholesalePrice) throw new Error('PRICE_READBACK_MISMATCH');
         const productIndex = products.findIndex((item) => item.id === id);
         if (productIndex >= 0) products[productIndex] = { ...products[productIndex], ...readProduct };
         privatePricesByProduct[id] = readPrivate;
-        renderPricingManagementTable();
-        alert('تم حفظ الأسعار والتحقق منها من Firebase.');
+        delete pricingDraftsByProduct[id];
+        if (messageNode) { messageNode.textContent = 'تم الحفظ والمزامنة'; messageNode.className = 'pricing-row-message success'; }
+        if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'حفظ'; }
     } catch (error) {
         console.error('Pricing save failed', { code: error?.message || 'PRICING_SAVE_FAILED' });
-        alert(`تعذر حفظ الأسعار: ${error?.message || 'خطأ غير معروف'}`);
+        if (messageNode) { messageNode.textContent = `تعذر الحفظ: ${error?.message || 'خطأ غير معروف'}`; messageNode.className = 'pricing-row-message error'; }
+    } finally {
+        pricingSaveInFlight.delete(id);
+        if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'حفظ'; }
     }
 }
 window.saveProductPricing = saveProductPricing;

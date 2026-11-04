@@ -1146,11 +1146,14 @@ function renderCatalogFacetFilters(facet, candidates) {
   }));
 }
 function catalogPriceBounds() {
-  const values = state.products.map((product) => priceInfo(product).purchasable ? priceInfo(product).price : null).filter((value) => Number.isFinite(value) && value >= 0);
-  if (!values.length) return { min: 0, max: 1000000 };
-  const min = Math.floor(Math.min(...values) / 1000) * 1000;
-  const max = Math.ceil(Math.max(...values) / 1000) * 1000;
-  return { min, max: Math.max(min + 1000, max) };
+  const values = state.products.map((product) => {
+    const info = priceInfo(product);
+    return info.purchasable && Number.isFinite(info.price) && info.price > 0 ? info.price : null;
+  }).filter((value) => value !== null);
+  if (!values.length) return { min: 0, max: 1 };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return { min, max: max > min ? max : min + 1 };
 }
 function formatCatalogInputPrice(value) { return Number(value || 0).toLocaleString('en-IQ'); }
 function updateCatalogRangeTrack(bounds, minValue, maxValue) {
@@ -1168,9 +1171,10 @@ function syncCatalogPriceRange() {
   const minRange = $('catalogMinRange'), maxRange = $('catalogMaxRange');
   if (!minRange || !maxRange) return;
   const bounds = catalogPriceBounds();
-  const selectedMin = state.filters.minPrice === null ? bounds.min : Math.max(bounds.min, Number(state.filters.minPrice));
-  const selectedMax = state.filters.maxPrice === null ? bounds.max : Math.min(bounds.max, Number(state.filters.maxPrice));
+  const selectedMin = state.filters.minPrice === null ? bounds.min : Math.min(bounds.max, Math.max(bounds.min, Number(state.filters.minPrice)));
+  const selectedMax = state.filters.maxPrice === null ? bounds.max : Math.min(bounds.max, Math.max(bounds.min, Number(state.filters.maxPrice)));
   minRange.min = String(bounds.min); maxRange.min = String(bounds.min); minRange.max = String(bounds.max); maxRange.max = String(bounds.max);
+  minRange.step = '1'; maxRange.step = '1';
   minRange.value = String(Math.min(selectedMin, selectedMax)); maxRange.value = String(Math.max(selectedMin, selectedMax));
   updateCatalogRangeTrack(bounds, minRange.value, maxRange.value);
 }
@@ -3032,7 +3036,7 @@ async function checkForSafeAppUpdate() {
 
 onValue(catalogVersionRef, (snapshot) => {
   const next = snapshot.val();
-  if (catalogVersionObserved && next !== lastCatalogVersion) schedulePublicCatalogReload();
+  if (catalogVersionObserved && next !== lastCatalogVersion) loadPublicCatalog({ force: true });
   lastCatalogVersion = next;
   catalogVersionObserved = true;
 });
