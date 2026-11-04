@@ -451,7 +451,11 @@ function priceRuleFor(product, settings = {}, categories = {}) {
 
 function resolveConfiguredPrice(product, privatePrice = {}, tier = 'public', settings = {}, categories = {}) {
   const rule = priceRuleFor(product, settings, categories);
-  const basePrice = resolveProductPrice({ ...product, public_price: product?.basePrice ?? product?.public_price ?? product?.retail_price ?? product?.price }, privatePrice, tier);
+  // Admin pricing writes the live public price to public_price/price. Keep
+  // basePrice only as a legacy fallback; preferring it would silently return
+  // an old snapshot after an inline price update.
+  const livePublicPrice = product?.public_price ?? product?.price ?? product?.retail_price ?? product?.basePrice;
+  const basePrice = resolveProductPrice({ ...product, public_price: livePublicPrice }, privatePrice, tier);
   const percent = Number(rule.percentAdjustment ?? 0);
   const unrounded = Math.round(basePrice * (1 + (Number.isFinite(percent) ? percent : 0) / 100));
   // Final Iraqi-dinar price is rounded only to the nearest one dinar.

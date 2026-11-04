@@ -148,6 +148,12 @@ test('pricing resolver uses only the site percentage and rounds the final dinar 
   assert.equal(resolved.visible, true);
 });
 
+test('pricing resolver prefers the live Admin public price over the legacy base snapshot', () => {
+  const resolved = resolveConfiguredPrice({ basePrice: 220000, price: 221111, public_price: 221111 }, {}, 'public', {}, {});
+  assert.equal(resolved.basePrice, 221111);
+  assert.equal(resolved.price, 221111);
+});
+
 test('public catalog sanitizer never returns source price fields or hidden price values', () => {
   const hidden = publicCatalogProduct('p1', { name: 'Hidden', price: 123400, basePrice: 123400, metadata: { originalPrice: 123400, safeLabel: 'GPU' }, pricingOverride: { hidePrice: true }, status: 'published' }, {}, 'public', {}, {});
   assert.equal(hidden.priceVisible, false);
