@@ -60,6 +60,7 @@ let categoriesChart = null;
 let currentAdminUser = null;
 let customers = [];
 let privatePricesByProduct = {};
+let privatePricesLoaded = false;
 const pricingDraftsByProduct = Object.create(null);
 const pricingSaveInFlight = new Set();
 let pendingPricingIdentities = {};
@@ -485,6 +486,7 @@ function loadDashboardData() {
 
     onValue(ref(db, 'private_prices'), (snapshot) => {
         if (isDemoMode) return;
+        privatePricesLoaded = true;
         privatePricesByProduct = snapshot.exists() ? snapshot.val() || {} : {};
         if (!document.querySelector('#pricingManagementBody input[data-pricing-field]:focus')) renderPricingManagementTable();
     });
@@ -684,9 +686,11 @@ function capturePricingDrafts() {
     document.querySelectorAll('#pricingManagementBody tr[data-pricing-row]').forEach((row) => {
         const id = row.dataset.pricingRow;
         if (!id) return;
-        pricingDraftsByProduct[id] = pricingDraftsByProduct[id] || {};
         row.querySelectorAll('[data-pricing-field]').forEach((input) => {
-            pricingDraftsByProduct[id][input.dataset.pricingField] = input.value;
+            if (input.dataset.dirty === 'true') {
+                pricingDraftsByProduct[id] = pricingDraftsByProduct[id] || {};
+                pricingDraftsByProduct[id][input.dataset.pricingField] = input.value;
+            }
         });
     });
 }
@@ -694,6 +698,10 @@ function capturePricingDrafts() {
 function renderPricingManagementTable() {
     const tbody = document.getElementById('pricingManagementBody');
     if (!tbody) return;
+    if (!privatePricesLoaded && !isDemoMode && products.length > 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">جاري تحميل الأسعار...</td></tr>';
+        return;
+    }
     capturePricingDrafts();
     const query = String(document.getElementById('pricingSearch')?.value || '').trim().toLowerCase();
     const category = document.getElementById('pricingCategoryFilter')?.value || '';
@@ -713,6 +721,7 @@ function renderPricingManagementTable() {
         return `<tr data-pricing-row="${escapeHtml(p.id)}"><td><input type="checkbox" data-pricing-product-select="${escapeHtml(p.id)}" aria-label="تحديد ${escapeHtml(p.name || '')}"></td><td><img src="${escapeHtml(p.image || '/images/default-product.svg')}" class="tp-img" alt=""></td><td><strong>${escapeHtml(p.name || '')}</strong>${p.model ? `<small class="pricing-product-model">${escapeHtml(p.model)}</small>` : ''}</td><td>${escapeHtml(categoryName)}</td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="public" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(publicValue)}" aria-label="السعر العام لـ ${escapeHtml(p.name || '')}"></td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="wholesale" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(wholesaleValue)}" aria-label="سعر الجملة لـ ${escapeHtml(p.name || '')}"></td><td><input class="pricing-inline-input" type="text" inputmode="decimal" dir="ltr" data-pricing-field="special" data-pricing-id="${escapeHtml(p.id)}" value="${escapeHtml(specialValue)}" aria-label="السعر الخاص لـ ${escapeHtml(p.name || '')}"></td><td><span class="visibility-badge ${statusClass}" data-pricing-status>${statusText}</span><small class="pricing-row-message" data-pricing-message aria-live="polite"></small></td><td><button class="btn btn-primary btn-sm pricing-save-btn" type="button" data-save-pricing="${escapeHtml(p.id)}">حفظ</button></td></tr>`;
     }).join('') : '<tr><td colspan="9" class="text-center">لا توجد منتجات مطابقة.</td></tr>';
     tbody.querySelectorAll('[data-pricing-field]').forEach((input) => input.addEventListener('input', () => {
+        input.dataset.dirty = 'true';
         pricingDraftsByProduct[input.dataset.pricingId] = pricingDraftsByProduct[input.dataset.pricingId] || {};
         pricingDraftsByProduct[input.dataset.pricingId][input.dataset.pricingField] = input.value;
     }));
@@ -721,7 +730,7 @@ function renderPricingManagementTable() {
 }
 
 async function saveProductPricing(id) {
-    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.special_prices !== true)) {
+    if (!currentAdminUser || (!window.isSuperAdmin && window.currentAdminPermissions?.special_prices !== true && window.currentAdminPermissions?.wholesale_prices !== true)) {
         alert('ليست لديك صلاحية تعديل الأسعار.');
         return;
     }
@@ -768,6 +777,7 @@ async function saveProductPricing(id) {
         if (productIndex >= 0) products[productIndex] = { ...products[productIndex], ...readProduct };
         privatePricesByProduct[id] = readPrivate;
         delete pricingDraftsByProduct[id];
+        row?.querySelectorAll('[data-pricing-field]').forEach((input) => { delete input.dataset.dirty; });
         if (messageNode) { messageNode.textContent = 'تم الحفظ والمزامنة'; messageNode.className = 'pricing-row-message success'; }
         if (saveButton) { saveButton.disabled = false; saveButton.textContent = 'حفظ'; }
     } catch (error) {
@@ -1508,6 +1518,18 @@ window.openProductModal = function(id = null) {
             const privatePrice = privatePricesByProduct[id] || {};
             document.getElementById('prodWholesalePrice').value = privatePrice.wholesale_price ?? prod.wholesale_price ?? '';
             document.getElementById('prodSpecialPrice').value = privatePrice.special_price ?? prod.special_price ?? '';
+            if (id && (!privatePricesLoaded || !privatePricesByProduct[id])) {
+                get(ref(db, `private_prices/${id}`)).then((snap) => {
+                    if (snap.exists()) {
+                        const pp = snap.val() || {};
+                        privatePricesByProduct[id] = pp;
+                        const wInput = document.getElementById('prodWholesalePrice');
+                        const sInput = document.getElementById('prodSpecialPrice');
+                        if (wInput && !wInput.value) wInput.value = pp.wholesale_price ?? '';
+                        if (sInput && !sInput.value) sInput.value = pp.special_price ?? '';
+                    }
+                }).catch(() => {});
+            }
             document.getElementById('prodOriginalPrice').value = prod.originalPrice || '';
             document.getElementById('prodStock').value = prod.stock || '';
             document.getElementById('prodWarranty').value = prod.warranty || '';

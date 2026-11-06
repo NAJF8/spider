@@ -7,8 +7,8 @@
       }
     },
     "private_prices": {
-      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'special_prices').val() === true))",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'special_prices').val() === true)"
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/special_prices').val() === true || root.child('admins/'+auth.uid+'/permissions/wholesale_prices').val() === true)",
+      ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/special_prices').val() === true || root.child('admins/'+auth.uid+'/permissions/wholesale_prices').val() === true)"
     },
     "categories": {
       ".read": true,
