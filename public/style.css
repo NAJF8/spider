@@ -2196,3 +2196,13 @@ html[data-theme="dark"] .product-skeleton{border-color:#353b3d;background:linear
   .catalog-results .products-grid.is-list .product-body{padding:8px}
 }
 @media (prefers-reduced-motion:reduce){.category-card,.cat-circle-item,.cat-circle,.catalog-switch,.catalog-switch::after,.catalog-filter-section>summary i,.catalog-filters{transition:none}.product-skeleton{animation:none}}
+
+/* ===== FOOTER SUBTEXT ===== */
+.footer-brand .footer-subtext {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+html[data-theme="dark"] .footer-brand .footer-subtext {
+  color: #9299a6;
+}

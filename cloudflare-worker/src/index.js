@@ -265,7 +265,13 @@ async function verifyFirebaseIdToken(token, env) {
   });
   const data = await response.json().catch(() => ({}));
   const user = data?.users?.[0];
-  return response.ok && user?.localId ? { uid: String(user.localId), email: user.email || '', displayName: user.displayName || '' } : null;
+  return response.ok && user?.localId ? {
+    uid: String(user.localId),
+    email: user.email || '',
+    displayName: user.displayName || '',
+    phoneNumber: user.phoneNumber || '',
+    email_verified: Boolean(user.emailVerified)
+  } : null;
 }
 
 function authDatabaseUrl(env, path) {
@@ -302,6 +308,9 @@ async function serviceDatabaseResponse(env, path, options = {}) {
   try {
     token = await getFirebaseDatabaseAccessToken(env);
   } catch {
+    if (String(env.FIREBASE_DATABASE_SECRET || '').trim()) {
+      return fetch(authDatabaseUrl(env, path), options);
+    }
     throw new Error('AUTH_SERVICE_ACCOUNT_ERROR');
   }
   const headers = new Headers(options.headers || {});
@@ -702,19 +711,19 @@ async function handleRequest(request, env) {
         const user = await verifyFirebaseIdToken(token, env);
         if (!user?.uid) return errorResponse('AUTH_INVALID', 401);
         if (!String(env.FIREBASE_DATABASE_SECRET || '').trim()) return errorResponse('ORDER_BACKEND_NOT_CONFIGURED', 503);
-        const [orders, profile] = await Promise.all([
-          readServiceDatabase(env, 'orders.json'),
-          readServiceDatabase(env, `profiles/${encodeURIComponent(user.uid)}.json`)
-        ]);
-        const phone = normalizeIraqPhone(profile?.phone || user.phoneNumber || '');
-        const email = String(profile?.email || user.email || '').trim().toLowerCase();
+        const orders = await readServiceDatabase(env, 'orders.json');
+        // Only trust cryptographically verified claims from user token (prevent IDOR via profile manipulation)
+        const verifiedPhone = user.phoneNumber ? normalizeIraqPhone(user.phoneNumber) : '';
+        const verifiedEmail = (user.email && (user.email_verified || user.firebase?.sign_in_provider === 'google.com'))
+          ? String(user.email).trim().toLowerCase()
+          : '';
         const matches = Object.entries(orders && typeof orders === 'object' ? orders : {})
           .filter(([, order]) => {
             const orderUid = String(order?.uid || order?.userId || order?.customerUid || order?.customer?.uid || '').trim();
             if (orderUid) return orderUid === user.uid;
             const orderPhone = normalizeIraqPhone(order?.customerPhone || order?.phone || order?.customer?.phone || '');
             const orderEmail = String(order?.customerEmail || order?.email || order?.customer?.email || '').trim().toLowerCase();
-            return Boolean((phone && orderPhone === phone) || (email && orderEmail === email));
+            return Boolean((verifiedPhone && orderPhone && orderPhone === verifiedPhone) || (verifiedEmail && orderEmail && orderEmail === verifiedEmail));
           })
           .map(([id, order]) => ({ id, ...(order || {}) }))
           .sort((a, b) => Number(b.createdAt || b.timestamp || 0) - Number(a.createdAt || a.timestamp || 0));
@@ -1225,18 +1234,18 @@ async function handleRequest(request, env) {
         const orderPayload = {
           orderNumber,
           ...(authenticatedUser?.uid ? { uid: authenticatedUser.uid, userId: authenticatedUser.uid, customerUid: authenticatedUser.uid } : {}),
-          customerName: String(customer.name),
-          customerPhone: String(customer.phone),
-          ...(customer.email || authenticatedUser?.email ? { customerEmail: String(customer.email || authenticatedUser.email) } : {}),
+          customerName: String(customer.name || '').replace(/[<>]/g, '').trim().slice(0, 100),
+          customerPhone: String(customer.phone || '').replace(/[<>]/g, '').trim().slice(0, 30),
+          ...(customer.email || authenticatedUser?.email ? { customerEmail: String(customer.email || authenticatedUser.email).replace(/[<>]/g, '').trim().slice(0, 120) } : {}),
           deliveryMethod,
-          governorate: String(customer.governorate || customer.gov || ''),
-          city: String(customer.district || customer.city || ''),
-          district: String(customer.district || ''),
-          subdistrict: String(customer.subdistrict || ''),
-          neighborhood: String(customer.neighborhood || ''),
-          address: String(customer.addressDetails || customer.address || ''),
-          addressDetails: String(customer.addressDetails || customer.address || ''),
-          notes: String(customer.notes || ''),
+          governorate: String(customer.governorate || customer.gov || '').replace(/[<>]/g, '').trim().slice(0, 60),
+          city: String(customer.district || customer.city || '').replace(/[<>]/g, '').trim().slice(0, 60),
+          district: String(customer.district || '').replace(/[<>]/g, '').trim().slice(0, 60),
+          subdistrict: String(customer.subdistrict || '').replace(/[<>]/g, '').trim().slice(0, 60),
+          neighborhood: String(customer.neighborhood || '').replace(/[<>]/g, '').trim().slice(0, 60),
+          address: String(customer.addressDetails || customer.address || '').replace(/[<>]/g, '').trim().slice(0, 250),
+          addressDetails: String(customer.addressDetails || customer.address || '').replace(/[<>]/g, '').trim().slice(0, 250),
+          notes: String(customer.notes || '').replace(/[<>]/g, '').trim().slice(0, 500),
           subtotal,
           builderOriginalSubtotal,
           builderSubtotal,

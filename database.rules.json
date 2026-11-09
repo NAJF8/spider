@@ -92,10 +92,10 @@
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'reports').val() === true)"
     },
     "admins": {
-      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)",
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
-        ".write": "auth != null && ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
+        ".read": "auth != null && (auth.uid === $uid || auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
+        ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
         ".validate": "$uid !== 'e8uTdYi5TQOsrztxPnlD7X4GKAx1'",
         "role": {
           ".validate": "(data.val() === newData.val()) || ((auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') && auth.uid !== $uid && newData.val() !== 'Super Admin') || ((auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true) && auth.uid !== $uid && newData.val() !== 'Super Admin') || (!data.exists() && newData.val() !== 'Super Admin')"
@@ -217,10 +217,18 @@
       }
     },
     "pending_admins": {
-      ".read": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)",
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
       "$key": {
-        ".read": "auth != null && (data.child('email').val() === auth.token.email || (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true))",
-        ".write": "(auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1') || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_staff').val() === true) || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'manage_permissions').val() === true)"
+        ".read": "auth != null && (data.child('email').val() === auth.token.email || auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
+        ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (root.child('admins/'+auth.uid+'/status').val() === 'active' && root.child('admins/'+auth.uid+'/active').val() !== false && (root.child('admins/'+auth.uid+'/permissions/manage_staff').val() === true || root.child('admins/'+auth.uid+'/permissions/manage_permissions').val() === true)))",
+        "role": {
+          ".validate": "newData.val() !== 'Super Admin'"
+        },
+        "permissions": {
+          "$permId": {
+            ".validate": "auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/'+$permId).val() === true"
+          }
+        }
       }
     },
     "profile_credentials": {

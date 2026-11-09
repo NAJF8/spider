@@ -216,8 +216,8 @@ function applyAppearance() {
   document.body?.setAttribute('data-theme', theme);
   const page = document.body?.dataset.page;
   document.title = language === 'en'
-    ? (page === 'builder' ? 'Build your PC | Spider Electronics' : page === 'upgrade' ? 'Upgrade your PC | Spider Electronics' : 'Spider Electronics | Computer & Electronics Store')
-    : (page === 'builder' ? 'ابنِ تجميعتك | سبايدر للإلكترونيات' : page === 'upgrade' ? 'طوّر حاسبتك | سبايدر للإلكترونيات' : 'سبايدر للإلكترونيات | متجر الأجهزة والكمبيوتر');
+    ? (page === 'builder' ? 'Build Your PC | Spider Electronics - Najaf' : page === 'upgrade' ? 'Upgrade Your PC | Spider Electronics - Najaf' : 'Spider Electronics | Electronics Store in Najaf')
+    : (page === 'builder' ? 'ابنِ تجميعتك | سبايدر للإلكترونيات - النجف' : page === 'upgrade' ? 'طوّر حاسبتك | سبايدر للإلكترونيات - النجف' : 'سبايدر للإلكترونيات | متجر الإلكترونيات في النجف');
   const themeButton = $('themeToggle');
   const languageButton = $('languageToggle');
   if (themeButton) { themeButton.innerHTML = `<i class="fa-solid ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}"></i>`; themeButton.title = theme === 'dark' ? t('themeLight') : t('themeDark'); themeButton.setAttribute('aria-label', themeButton.title); }
@@ -242,6 +242,125 @@ function localizeBuilderPage() {
 function setTheme(next = theme === 'dark' ? 'light' : 'dark') {
   theme = next === 'dark' ? 'dark' : 'light';
   localStorage.setItem(THEME_STORAGE_KEY, theme); applyAppearance();
+}
+
+function updateCanonicalUrl(url) {
+  let link = document.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'canonical';
+    document.head.appendChild(link);
+  }
+  link.href = url;
+}
+
+function updateProductSchema(p) {
+  if (!p) return;
+  let scriptEl = document.getElementById('productSchema');
+  if (!scriptEl) {
+    scriptEl = document.createElement('script');
+    scriptEl.id = 'productSchema';
+    scriptEl.type = 'application/ld+json';
+    document.head.appendChild(scriptEl);
+  }
+  const rawDesc = typeof p.description === 'string'
+    ? p.description.trim()
+    : (p.description?.ar || p.description?.en || '');
+  const brandName = p.brand || 'Spider Electronics';
+  const price = Number(p.price || p.public_price || p.customerPrice || 0);
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    'name': productName(p),
+    'image': imageFor(p) ? [imageFor(p)] : undefined,
+    'description': rawDesc || `${productName(p)} متوفر في سبايدر للإلكترونيات في النجف، العراق.`,
+    'sku': p.id,
+    'brand': {
+      '@type': 'Brand',
+      'name': brandName
+    },
+    'category': p.categoryId || p.category,
+    'offers': price > 0 ? {
+      '@type': 'Offer',
+      'url': `https://spidernajaf.com/?product=${encodeURIComponent(p.id)}`,
+      'priceCurrency': 'IQD',
+      'price': price,
+      'itemCondition': 'https://schema.org/NewCondition',
+      'availability': isAvailable(p) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      'seller': {
+        '@type': 'ElectronicsStore',
+        'name': 'سبايدر للإلكترونيات',
+        'url': 'https://spidernajaf.com'
+      }
+    } : undefined
+  };
+  scriptEl.textContent = JSON.stringify(schema);
+}
+
+function clearProductSchema() {
+  const scriptEl = document.getElementById('productSchema');
+  if (scriptEl) scriptEl.remove();
+}
+
+function syncSeoMetadata() {
+  const page = document.body?.dataset.page;
+  if (page === 'builder') {
+    document.title = language === 'en'
+      ? 'Build Your PC | Spider Electronics - Najaf'
+      : 'ابنِ تجميعتك | سبايدر للإلكترونيات - النجف';
+    updateCanonicalUrl('https://spidernajaf.com/builder.html');
+    return;
+  }
+  if (page === 'upgrade') {
+    document.title = language === 'en'
+      ? 'Upgrade Your PC | Spider Electronics - Najaf'
+      : 'طوّر حاسبتك | سبايدر للإلكترونيات - النجف';
+    updateCanonicalUrl('https://spidernajaf.com/upgrade.html');
+    return;
+  }
+
+  if (activeProductDetailsId) {
+    const product = state.products?.find((p) => p.id === activeProductDetailsId);
+    if (product) {
+      document.title = `${productName(product)} | سبايدر للإلكترونيات`;
+      updateCanonicalUrl(`https://spidernajaf.com/?product=${encodeURIComponent(product.id)}`);
+      return;
+    }
+  }
+
+  if (state.filters?.category) {
+    const KNOWN_CATEGORY_NAMES = {
+      'cat-computers': language === 'en' ? 'Computers' : 'أجهزة الكمبيوتر',
+      'cat-pc-parts': language === 'en' ? 'PC Parts' : 'مكونات الحاسوب الشخصي',
+      'cat-cpus': language === 'en' ? 'Processors' : 'المعالجات',
+      'cat-gpus': language === 'en' ? 'Graphics Cards' : 'كروت الشاشة',
+      'cat-motherboards': language === 'en' ? 'Motherboards' : 'اللوحات الأم',
+      'cat-ram': language === 'en' ? 'RAM' : 'الرامات',
+      'cat-storage': language === 'en' ? 'Storage' : 'الهارد والتخزين',
+      'cat-psu': language === 'en' ? 'Power Supplies' : 'مجهز الطاقة',
+      'cat-cooling': language === 'en' ? 'Cooling Systems' : 'أنظمة التبريد',
+      'cat-cases': language === 'en' ? 'Cases' : 'صندوق الحاسبة',
+      'cat-monitors': language === 'en' ? 'Monitors' : 'الشاشات وأجهزة العرض',
+      'cat-printers': language === 'en' ? 'Printers & Scanners' : 'الطابعات والماسحات الضوئية',
+      'cat-network': language === 'en' ? 'Networking' : 'الشبكات',
+      'cat-security': language === 'en' ? 'Cameras & Security' : 'الكاميرات وأنظمة الأمان',
+      'cat-power': language === 'en' ? 'Power' : 'الطاقة',
+      'cat-accessories': language === 'en' ? 'Accessories' : 'ملحقات الكمبيوتر'
+    };
+    const cat = state.categories?.find((c) => c.id === state.filters.category);
+    const catName = cat ? categoryLabel(cat) : (KNOWN_CATEGORY_NAMES[state.filters.category] || '');
+    if (catName) {
+      document.title = `${catName} | ${language === 'en' ? 'Spider Electronics' : 'سبايدر للإلكترونيات'}`;
+    }
+    updateCanonicalUrl(`https://spidernajaf.com/?category=${encodeURIComponent(state.filters.category)}`);
+    return;
+  }
+
+  document.title = language === 'en'
+    ? 'Spider Electronics | Electronics Store in Najaf'
+    : 'سبايدر للإلكترونيات | متجر الإلكترونيات في النجف';
+  updateCanonicalUrl('https://spidernajaf.com/');
 }
 
 function setLanguage(next = language === 'ar' ? 'en' : 'ar') {
@@ -418,7 +537,23 @@ const modal = (id, open) => {
   const wasOpen = element.classList.contains('open');
   element.classList.toggle('open', open);
   if (open && !wasOpen) setScrollLock(true);
-  if (!open && wasOpen) setScrollLock(false);
+  if (!open && wasOpen) {
+    setScrollLock(false);
+    if (id === 'productDetailsModal') {
+      activeProductDetailsId = null;
+      state.pendingProductId = null;
+      clearProductSchema();
+      const currentQuery = new URLSearchParams(location.search);
+      if (currentQuery.has('product') || currentQuery.has('id')) {
+        currentQuery.delete('product');
+        currentQuery.delete('id');
+        const qStr = currentQuery.toString();
+        const nextUrl = `${location.pathname}${qStr ? `?${qStr}` : ''}${location.hash}`;
+        history.replaceState(null, '', nextUrl);
+      }
+      syncSeoMetadata();
+    }
+  }
 };
 
 // ===== Category fallbacks =====
@@ -753,7 +888,8 @@ function applySettings(settings = {}) {
     icon.className = 'fa-solid fa-arrow-left';
     $('heroBuilderBtn').append(icon);
   }
-  if ($('heroKicker')) $('heroKicker').textContent = t('store');
+  if ($('heroKicker')) $('heroKicker').textContent = language === 'en' ? 'Spider Electronics in Najaf' : 'سبايدر للإلكترونيات في النجف';
+  if ($('heroSubtitle')) $('heroSubtitle').textContent = language === 'en' ? 'Original devices .. Higher performance .. Better experience | Official Website' : 'أجهزة أصلية .. أداء أعلى .. تجربة أفضل | الموقع الرسمي';
   if ($('upgradePromoTitle')) $('upgradePromoTitle').textContent = t('upgrade');
   if ($('upgradePromoDescription')) $('upgradePromoDescription').textContent = language === 'en' ? 'Choose the right parts to improve your computer performance.' : 'اختَر القطع المناسبة لتطوير أداء جهازك';
 
@@ -940,7 +1076,7 @@ function productCard(p, ctx) {
       <i class="fa-${fav ? 'solid' : 'regular'} fa-heart"></i>
     </button>
     <div class="product-image" data-details="${esc(p.id)}">
-      <img src="${esc(imageFor(p))}" alt="${esc(productName(p))}" loading="lazy">
+      <img src="${esc(imageFor(p))}" alt="${esc(productName(p) || 'منتج إلكتروني - سبايدر للإلكترونيات')}" loading="lazy" decoding="async">
     </div>
     <div class="product-body">
       <span class="product-brand">${esc(p.brand || 'سبايدر')}</span>
@@ -1211,6 +1347,7 @@ function syncFiltersToUrl({ push = true } = {}) {
   } else if (!push && nextUrl !== currentUrl) {
     history.replaceState(null, '', nextUrl);
   }
+  syncSeoMetadata();
 }
 
 function catalogPriceValidationMessage(validation) {
@@ -1360,6 +1497,11 @@ function restoreFiltersFromUrl() {
   const sortParam = query.get('sort');
   const sort = ['newest', 'oldest', 'price-asc', 'price-desc'].includes(sortParam) ? sortParam : 'newest';
 
+  const productParam = query.get('product') || query.get('id');
+  if (productParam) {
+    state.pendingProductId = productParam;
+  }
+
   state.filters = {
     ...state.filters,
     category: String(query.get('category') || '').trim(),
@@ -1374,6 +1516,7 @@ function restoreFiltersFromUrl() {
   if ($('searchInput')) $('searchInput').value = state.filters.search;
   if ($('catalogSort')) $('catalogSort').value = state.filters.sort;
   if ($('catalogStockOnly')) $('catalogStockOnly').checked = state.filters.inStockOnly;
+  syncSeoMetadata();
 }
 
 function filterProductsByCategory(categoryId) {
@@ -2281,6 +2424,17 @@ function openProductDetails(id) {
   if (!p) return;
   activeProductDetailsId = id;
   activeProductGalleryIndex = 0;
+
+  const currentParams = new URLSearchParams(location.search);
+  if (currentParams.get('product') !== id) {
+    currentParams.set('product', id);
+    const qStr = currentParams.toString();
+    history.replaceState(null, '', `${location.pathname}?${qStr}${location.hash}`);
+  }
+
+  updateProductSchema(p);
+  syncSeoMetadata();
+
   const specs = specificationEntries(p);
   $('modalProductTitle').textContent = englishDigits(productName(p));
   
@@ -3155,7 +3309,12 @@ function loadPublicCatalog({ force = false } = {}) {
       applySettings(data.settings || {});
       renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
       if ($('searchInput')) renderSuggestions($('searchInput').value);
-      if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) openProductDetails(activeProductDetailsId);
+      if (state.pendingProductId) {
+        openProductDetails(state.pendingProductId);
+      } else if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) {
+        openProductDetails(activeProductDetailsId);
+      }
+      syncSeoMetadata();
     } catch (error) {
       console.warn('Worker catalog fetch failed, attempting Firebase RTDB direct fallback...', error);
       try {
@@ -3187,7 +3346,12 @@ function loadPublicCatalog({ force = false } = {}) {
           state.catalogLoad = 'loaded';
           renderCategories(); renderProducts(); renderBrands(); renderBuilder(); renderUpgrade(); populateCompareFilters(); renderCart(); renderAccount();
           if ($('searchInput')) renderSuggestions($('searchInput').value);
-          if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) openProductDetails(activeProductDetailsId);
+          if (state.pendingProductId) {
+            openProductDetails(state.pendingProductId);
+          } else if (activeProductDetailsId && $('productDetailsModal')?.classList.contains('open')) {
+            openProductDetails(activeProductDetailsId);
+          }
+          syncSeoMetadata();
           return;
         }
       } catch (fallbackError) {
@@ -3263,5 +3427,11 @@ window.addEventListener('popstate', () => {
   state.categoryPanelId = topLevelCategoryId(state.filters.category);
   renderCategories();
   renderProducts();
+  if (state.pendingProductId) {
+    openProductDetails(state.pendingProductId);
+  } else if ($('productDetailsModal')?.classList.contains('open')) {
+    modal('productDetailsModal', false);
+  }
+  syncSeoMetadata();
 });
 

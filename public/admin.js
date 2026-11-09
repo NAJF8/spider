@@ -964,12 +964,12 @@ function renderRecentOrders() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>#${order.orderNumber || idx + 1}</strong></td>
-            <td>${order.customerName || 'عميل'}</td>
+            <td><strong>#${escapeHtml(order.orderNumber || idx + 1)}</strong></td>
+            <td>${escapeHtml(order.customerName || 'عميل')}</td>
             <td>${itemsCount} قطع</td>
             <td><strong style="color:var(--dark);">${formatPrice(order.grandTotal || 0)}</strong></td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-            <td><button class="table-btn btn-edit" onclick="viewOrder('${order.id}')"><i class="fa-solid fa-eye"></i> عرض</button></td>
+            <td><button class="table-btn btn-edit" data-order-id="${escapeHtml(order.id)}" onclick="viewOrder(this.dataset.orderId)"><i class="fa-solid fa-eye"></i> عرض</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -2105,15 +2105,15 @@ function renderOrdersManagementTable() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><strong>#${order.orderNumber || idx + 1}</strong></td>
-            <td><strong>${order.customerName || 'عميل'}</strong></td>
-            <td><a href="tel:${order.customerPhone}" style="color:var(--primary);font-weight:700;">${order.customerPhone || '-'}</a></td>
-            <td>${order.governorate || ''} - ${order.city || ''}</td>
+            <td><strong>#${escapeHtml(order.orderNumber || idx + 1)}</strong></td>
+            <td><strong>${escapeHtml(order.customerName || 'عميل')}</strong></td>
+            <td><a href="tel:${escapeHtml(order.customerPhone || '')}" style="color:var(--primary);font-weight:700;">${escapeHtml(order.customerPhone || '-')}</a></td>
+            <td>${escapeHtml(order.governorate || '')} - ${escapeHtml(order.city || '')}</td>
             <td><strong style="color:var(--dark);">${formatPrice(order.grandTotal || 0)}</strong></td>
             <td>${formatDate(order.timestamp)}</td>
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>
-                <button class="table-btn btn-edit" onclick="viewOrder('${order.id}')">
+                <button class="table-btn btn-edit" data-order-id="${escapeHtml(order.id)}" onclick="viewOrder(this.dataset.orderId)">
                     <i class="fa-solid fa-list-check"></i> تفاصيل وتحديث
                 </button>
             </td>
@@ -2139,7 +2139,7 @@ window.viewOrder = function(orderId) {
             itemsHtml += `
                 <li style="padding:10px 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <strong>${item.name}</strong>
+                        <strong>${escapeHtml(item.name || '')}</strong>
                         <span style="display:block;font-size:0.8rem;color:#777;">الكمية: ${item.quantity}</span>
                     </div>
                     <strong>${formatPrice((item.price || 0) * (item.quantity || 1))}</strong>
@@ -2153,14 +2153,14 @@ window.viewOrder = function(orderId) {
     content.innerHTML = `
         <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px;border:1px solid #eee;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <p><strong>رقم الطلب:</strong> #${order.orderNumber || orderId}</p>
+                <p><strong>رقم الطلب:</strong> #${escapeHtml(order.orderNumber || orderId)}</p>
                 <p><strong>تاريخ الطلب:</strong> ${formatDate(order.timestamp)}</p>
-                <p><strong>اسم العميل:</strong> ${order.customerName}</p>
-                <p><strong>رقم الهاتف:</strong> <a href="tel:${order.customerPhone}" style="color:var(--primary);">${order.customerPhone}</a></p>
+                <p><strong>اسم العميل:</strong> ${escapeHtml(order.customerName || '')}</p>
+                <p><strong>رقم الهاتف:</strong> <a href="tel:${escapeHtml(order.customerPhone || '')}" style="color:var(--primary);">${escapeHtml(order.customerPhone || '')}</a></p>
             </div>
             <p style="margin-top:8px;"><strong>طريقة الاستلام:</strong> ${order.deliveryMethod === 'pickup' ? 'استلام من المتجر' : 'توصيل'}</p>
-            ${order.deliveryMethod === 'pickup' ? '' : `<p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${order.governorate} - ${order.city} - ${order.address}</p>`}
-            ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>ملاحظات العميل:</strong> ${order.notes}</p>` : ''}
+            ${order.deliveryMethod === 'pickup' ? '' : `<p style="margin-top:8px;"><strong>العنوان بالتفصيل:</strong> ${escapeHtml(order.governorate || '')} - ${escapeHtml(order.city || '')} - ${escapeHtml(order.address || '')}</p>`}
+            ${order.notes ? `<p style="margin-top:8px;color:#c62828;"><strong>ملاحظات العميل:</strong> ${escapeHtml(order.notes)}</p>` : ''}
         </div>
 
         <h4 style="font-weight:800;color:var(--dark);"><i class="fa-solid fa-boxes-packing"></i> المنتجات المطلوبة</h4>

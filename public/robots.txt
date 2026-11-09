@@ -1,0 +1,62 @@
+# robots.txt for https://spidernajaf.com
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /builder.html
+Allow: /upgrade.html
+Allow: /favicon.ico
+Allow: /favicon-*.png
+Allow: /apple-touch-icon*.png
+Allow: /assets/
+Allow: /images/
+
+# Dedicated Googlebot and Googlebot-Image rules
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /favicon.ico
+Allow: /favicon-*.png
+
+User-agent: Googlebot-Image
+Allow: /
+Allow: /assets/
+Allow: /favicon.ico
+Allow: /favicon-*.png
+
+# Social Crawlers (WhatsApp, Facebook, Twitter)
+User-agent: facebookexternalhit
+Allow: /
+Allow: /assets/
+
+User-agent: Facebot
+Allow: /
+Allow: /assets/
+
+User-agent: Twitterbot
+Allow: /
+Allow: /assets/
+
+# Block admin and internal preview routes
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /preview.html
+Disallow: /api/
+Disallow: /version.json
+
+# Prevent crawl bloat from arbitrary filter combinations and internal search
+Disallow: /*?*sort=
+Disallow: /*?*minPrice=
+Disallow: /*?*maxPrice=
+Disallow: /*?*stock=
+Disallow: /*?*socket=
+Disallow: /*?*formFactor=
+Disallow: /*?*memoryType=
+Disallow: /*?*chipset=
+Disallow: /*?*cpuFamily=
+Disallow: /*?*color=
+Disallow: /*?*q=
+Disallow: /*?*search=
+
+# Canonical XML Sitemap
+Sitemap: https://spidernajaf.com/sitemap.xml

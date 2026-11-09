@@ -405,3 +405,54 @@ test('all requested production origins are allowlisted', async () => {
     assert.equal(response.headers.get('Vary'), 'Origin');
   }
 });
+
+test('GET /api/store/orders requires authentication', async () => {
+  const response = await worker.fetch(request('/api/store/orders', { method: 'GET' }), baseEnv);
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: 'AUTH_REQUIRED' });
+});
+
+test('GET /api/store/orders strictly matches verified claims and prevents IDOR', async () => {
+  const originalFetch = globalThis.fetch;
+  const mockOrders = {
+    'order-1': { uid: 'user-alice', grandTotal: 50000, customerName: 'Alice' },
+    'order-2': { uid: 'user-bob', grandTotal: 90000, customerName: 'Bob' },
+    'order-3': { customerPhone: '07801112233', grandTotal: 15000, customerName: 'Guest Charlie' },
+    'order-4': { customerEmail: 'david@test.com', grandTotal: 25000, customerName: 'Guest David' }
+  };
+
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes('identitytoolkit.googleapis.com')) {
+      return new Response(JSON.stringify({
+        users: [{
+          localId: 'user-alice',
+          phoneNumber: '+9647801112233',
+          email: 'alice@test.com',
+          emailVerified: true
+        }]
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url.includes('firebasedatabase.app/orders.json')) {
+      return new Response(JSON.stringify(mockOrders), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`unexpected fetch: ${url}`);
+  };
+
+  try {
+    const response = await worker.fetch(request('/api/store/orders', {
+      method: 'GET',
+      headers: { Authorization: 'Bearer valid-alice-token' }
+    }), baseEnv);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.success, true);
+    const returnedIds = body.orders.map(o => o.id);
+    assert.ok(returnedIds.includes('order-1'), 'Alice should see her own order');
+    assert.ok(returnedIds.includes('order-3'), 'Alice should see guest order matching verified phone');
+    assert.ok(!returnedIds.includes('order-2'), 'Alice must NOT see Bob order (IDOR prevented)');
+    assert.ok(!returnedIds.includes('order-4'), 'Alice must NOT see David order (IDOR prevented)');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -67,3 +67,13 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Backups & local test artifacts
+*-backup*/
+*-backup*
+*.rollback.json
+.wrangler/
+live_current_view.png
+production-products-before-filter.json
+categories-before-pc-parts-normalization*.json
+current-rtdb-rules.json
