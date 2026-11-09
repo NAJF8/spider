@@ -1,14 +1,35 @@
 {
   "name": "سبايدر للإلكترونيات",
-  "short_name": "SPIDER",
+  "short_name": "سبايدر",
+  "description": "الموقع الرسمي لـ سبايدر للإلكترونيات في النجف، العراق",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#22a39e",
-  "icons": [{
-    "src": "assets/spider-logo-teal.png?v=20261006-brand-migration2",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any maskable"
-  }]
+  "icons": [
+    {
+      "src": "assets/spider-logo-square-192.png?v=20261110-brand-icon",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/spider-logo-square-192.png?v=20261110-brand-icon",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/spider-logo-square-512.png?v=20261110-brand-icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/spider-logo-square-512.png?v=20261110-brand-icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
