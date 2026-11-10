@@ -97,6 +97,25 @@ async function runAudit() {
   }
   console.log('  [PASS] Google site verification file exists');
 
+  const requiredIcons = [
+    'favicon.ico',
+    'favicon-48x48.png',
+    'icon-192.png',
+    'apple-touch-icon.png',
+    'spider-og-card.png',
+    'manifest.webmanifest'
+  ];
+  for (const iconFile of requiredIcons) {
+    if (!fs.existsSync(path.join(PUBLIC_DIR, iconFile))) {
+      throw new Error(`Required icon asset missing: ${iconFile}`);
+    }
+  }
+  const manifestData = JSON.parse(fs.readFileSync(path.join(PUBLIC_DIR, 'manifest.webmanifest'), 'utf8'));
+  if (!manifestData.icons || manifestData.icons.length < 2) {
+    throw new Error('manifest.webmanifest missing required icons');
+  }
+  console.log('  [PASS] All core icon assets and webmanifest exist and are valid');
+
   // 2. Start HTTP server for browser audit
   const server = createServer();
   await new Promise((resolve) => server.listen(PORT, resolve));
@@ -138,7 +157,13 @@ async function runAudit() {
         h1Text,
         h1Count,
         schemas,
-        hasAboutSection: Boolean(document.querySelector('.store-about-section'))
+        hasAboutSection: Boolean(document.querySelector('.store-about-section')),
+        iconLinks: Array.from(document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"], link[rel="manifest"]')).map(l => ({
+          rel: l.getAttribute('rel'),
+          href: l.getAttribute('href'),
+          sizes: l.getAttribute('sizes'),
+          type: l.getAttribute('type')
+        }))
       };
     });
 
@@ -168,6 +193,41 @@ async function runAudit() {
     const storeSchema = metadata.schemas.find(s => s['@graph']?.some(g => g['@id']?.includes('#store')));
     if (!storeSchema) throw new Error('Missing Schema.org Store graph');
     console.log('  [PASS] Schema.org Store/LocalBusiness JSON-LD is valid');
+
+    // 3b. Verify Google Search Favicon and Identity Metadata
+    console.log('\n3b. Verifying Favicon & Identity tags against Google Search guidelines...');
+    const manifestLink = metadata.iconLinks.find(l => l.rel === 'manifest');
+    if (!manifestLink || manifestLink.href !== '/manifest.webmanifest') {
+      throw new Error('Missing or invalid manifest link');
+    }
+    const icoLink = metadata.iconLinks.find(l => l.rel === 'shortcut icon' || (l.rel === 'icon' && l.href === '/favicon.ico'));
+    if (!icoLink) throw new Error('Missing /favicon.ico link');
+
+    const icon48 = metadata.iconLinks.find(l => l.rel === 'icon' && l.sizes === '48x48');
+    if (!icon48 || icon48.href !== '/favicon-48x48.png') {
+      throw new Error('Missing 48x48 Google search favicon link');
+    }
+
+    const icon192 = metadata.iconLinks.find(l => l.rel === 'icon' && l.sizes === '192x192');
+    if (!icon192 || icon192.href !== '/icon-192.png') {
+      throw new Error('Missing 192x192 high-res favicon link');
+    }
+
+    // Google guideline: Do not provide a 16x16px favicon link
+    const badSmallIcon = metadata.iconLinks.find(l => l.rel === 'icon' && (l.sizes === '16x16' || l.sizes === '32x32'));
+    if (badSmallIcon) {
+      throw new Error(`Google Search violation: sub-48px favicon link detected in <head>: sizes="${badSmallIcon.sizes}"`);
+    }
+
+    const appleIcon = metadata.iconLinks.find(l => l.rel === 'apple-touch-icon');
+    if (!appleIcon || appleIcon.href !== '/apple-touch-icon.png') {
+      throw new Error('Missing apple-touch-icon link');
+    }
+
+    if (!metadata.ogImage || !metadata.ogImage.includes('spider-og-card.png')) {
+      throw new Error('Missing or invalid og:image');
+    }
+    console.log('  [PASS] All favicon and identity tags strictly satisfy Google Search criteria');
 
     // 4. Test Viewports & Responsive Overflow
     console.log('\n4. Testing Mobile Responsiveness across 5 required viewports...');
