@@ -560,78 +560,138 @@ const modal = (id, open) => {
 // Firebase keeps any valid custom image URL. These local GitHub-hosted assets
 // are used only when that URL is absent or fails to load.
 
-const UNIFIED_CATEGORY_ICONS = {
+// ===== Category Icons (Spider Najaf Premium E-Commerce Artwork) =====
+// Two distinct versions:
+// - HOMEPAGE_CATEGORY_ICONS: High-resolution (512x512) studio artwork for circular homepage cards
+// - SIDEBAR_CATEGORY_ICONS: High-contrast (128x128) sharp centered composition for 3-lines sidebar drawer
+const HOMEPAGE_CATEGORY_ICONS = {
   // Top-Level Categories
-  'cat-computers': 'assets/category-modern/computers.svg?v=1',
-  'cat-pc-parts': 'assets/category-modern/pc-parts.svg?v=1',
-  'cat-security': 'assets/category-modern/security.svg?v=1',
-  'cat-printers': 'assets/category-modern/printers.svg?v=1',
-  'cat-monitors': 'assets/category-modern/monitors.svg?v=1',
-  'cat-network': 'assets/category-modern/network.svg?v=1',
-  'cat-power': 'assets/category-modern/power.svg?v=1',
-  'cat-accessories': 'assets/category-modern/accessories.svg?v=1',
+  'cat-computers': 'images/categories/home/computers-home.png?v=2',
+  'cat-pc-parts': 'images/categories/home/cases-home.png?v=2',
+  'cat-security': 'images/categories/home/security-home.png?v=2',
+  'cat-printers': 'images/categories/home/printers-home.png?v=2',
+  'cat-monitors': 'images/categories/home/monitors-home.png?v=2',
+  'cat-network': 'images/categories/home/other-home.png?v=2',
+  'cat-power': 'images/categories/home/power-home.png?v=2',
+  'cat-accessories': 'images/categories/home/headsets-home.png?v=2',
 
   // PC Parts Subcategories
-  'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
-  'cat-ram': 'assets/category-fallbacks/ram.svg?v=3',
-  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=3',
-  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=3',
-  'cat-cases': 'assets/category-fallbacks/computer.svg?v=3',
-  'cat-psu': 'assets/category-fallbacks/power.svg?v=3',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=3',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=3'
+  'cat-storage': 'images/categories/home/storage-home.png?v=2',
+  'cat-ram': 'images/categories/home/motherboards-home.png?v=2',
+  'cat-motherboards': 'images/categories/home/motherboards-home.png?v=2',
+  'cat-cpus': 'images/categories/home/motherboards-home.png?v=2',
+  'cat-cases': 'images/categories/home/cases-home.png?v=2',
+  'cat-psu': 'images/categories/home/power-home.png?v=2',
+  'cat-cooling': 'images/categories/home/cooling-home.png?v=2',
+  'cat-gpus': 'images/categories/home/gpus-home.png?v=2',
+
+  // Dedicated Peripherals & Hardware Subcategories
+  'cat-headsets': 'images/categories/home/headsets-home.png?v=2',
+  'cat-headphones': 'images/categories/home/headsets-home.png?v=2',
+  'cat-mice': 'images/categories/home/mice-home.png?v=2',
+  'cat-chairs': 'images/categories/home/chairs-home.png?v=2',
+  'cat-desks': 'images/categories/home/desks-home.png?v=2',
+  'cat-microphones': 'images/categories/home/microphones-home.png?v=2',
+  'cat-mics': 'images/categories/home/microphones-home.png?v=2',
+  'cat-dashcam': 'images/categories/home/dashcam-home.png?v=2',
+  'cat-cables': 'images/categories/home/cables-home.png?v=2',
+  'cat-adapters': 'images/categories/home/adapters-home.png?v=2',
+  'cat-chargers': 'images/categories/home/chargers-home.png?v=2',
+  'cat-bags': 'images/categories/home/bags-home.png?v=2',
+  'cat-other': 'images/categories/home/other-home.png?v=2'
 };
 
-const CUSTOM_ICONS = UNIFIED_CATEGORY_ICONS;
-const SIDEBAR_ICONS = UNIFIED_CATEGORY_ICONS;
+const SIDEBAR_CATEGORY_ICONS = {
+  // Top-Level Categories
+  'cat-computers': 'images/categories/menu/computers-menu.png?v=2',
+  'cat-pc-parts': 'images/categories/menu/cases-menu.png?v=2',
+  'cat-security': 'images/categories/menu/security-menu.png?v=2',
+  'cat-printers': 'images/categories/menu/printers-menu.png?v=2',
+  'cat-monitors': 'images/categories/menu/monitors-menu.png?v=2',
+  'cat-network': 'images/categories/menu/other-menu.png?v=2',
+  'cat-power': 'images/categories/menu/power-menu.png?v=2',
+  'cat-accessories': 'images/categories/menu/headsets-menu.png?v=2',
 
-// Main category cards keep the modern icon family. The browse drawer uses the
-// historical FontAwesome contract from `cat.icon` so the two surfaces stay
-// visually independent.
+  // PC Parts Subcategories
+  'cat-storage': 'images/categories/menu/storage-menu.png?v=2',
+  'cat-ram': 'images/categories/menu/motherboards-menu.png?v=2',
+  'cat-motherboards': 'images/categories/menu/motherboards-menu.png?v=2',
+  'cat-cpus': 'images/categories/menu/motherboards-menu.png?v=2',
+  'cat-cases': 'images/categories/menu/cases-menu.png?v=2',
+  'cat-psu': 'images/categories/menu/power-menu.png?v=2',
+  'cat-cooling': 'images/categories/menu/cooling-menu.png?v=2',
+  'cat-gpus': 'images/categories/menu/gpus-menu.png?v=2',
+
+  // Dedicated Peripherals & Hardware Subcategories
+  'cat-headsets': 'images/categories/menu/headsets-menu.png?v=2',
+  'cat-headphones': 'images/categories/menu/headsets-menu.png?v=2',
+  'cat-mice': 'images/categories/menu/mice-menu.png?v=2',
+  'cat-chairs': 'images/categories/menu/chairs-menu.png?v=2',
+  'cat-desks': 'images/categories/menu/desks-menu.png?v=2',
+  'cat-microphones': 'images/categories/menu/microphones-menu.png?v=2',
+  'cat-mics': 'images/categories/menu/microphones-menu.png?v=2',
+  'cat-dashcam': 'images/categories/menu/dashcam-menu.png?v=2',
+  'cat-cables': 'images/categories/menu/cables-menu.png?v=2',
+  'cat-adapters': 'images/categories/menu/adapters-menu.png?v=2',
+  'cat-chargers': 'images/categories/menu/chargers-menu.png?v=2',
+  'cat-bags': 'images/categories/menu/bags-menu.png?v=2',
+  'cat-other': 'images/categories/menu/other-menu.png?v=2'
+};
+
+const UNIFIED_CATEGORY_ICONS = HOMEPAGE_CATEGORY_ICONS;
+const CUSTOM_ICONS = HOMEPAGE_CATEGORY_ICONS;
+const SIDEBAR_ICONS = SIDEBAR_CATEGORY_ICONS;
+
+// Main category cards use the 512x512 homepage studio compositions.
+// The sidebar drawer uses the 128x128 menu compositions.
 function sidebarCategoryIcon(cat) {
-  const unified = SIDEBAR_ICONS[cat?.id];
-  if (unified) return `<img class="sidebar-category-icon" src="${esc(unified)}" alt="" aria-hidden="true">`;
+  const unified = SIDEBAR_ICONS[cat?.id] || (cat ? categoryFallback(cat, 'menu') : null);
+  if (unified) return `<img class="sidebar-category-icon" src="${esc(unified)}" alt="" aria-hidden="true" onerror="this.style.display='none'">`;
   const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
   const icon = key.includes('network') || key.includes('شبك') ? 'fa-circle-nodes'
     : key.includes('power') || key.includes('طاقة') || key.includes('psu') ? 'fa-power-off'
       : key.includes('accessor') || key.includes('ملحق') ? 'fa-keyboard'
-        : (cat.icon || 'fa-folder');
+        : (cat?.icon || 'fa-folder');
   return `<i class="fa-solid ${esc(icon)} sidebar-category-fa"></i>`;
 }
 
-const FALLBACK_IMAGES = {
-  'cat-computers': 'assets/category-modern/computers.svg?v=1',
-  'cat-storage': 'assets/category-fallbacks/storage.svg?v=3',
-  'cat-ram': 'assets/category-fallbacks/ram.svg?v=3',
-  'cat-monitors': 'assets/category-modern/monitors.svg?v=1',
-  'cat-printers': 'assets/category-modern/printers.svg?v=1',
-  'cat-network': 'assets/category-modern/network.svg?v=1',
-  'cat-pc-parts': 'assets/category-modern/pc-parts.svg?v=1',
-  'cat-cpus': 'assets/category-fallbacks/cpu.svg?v=3',
-  'cat-gpus': 'assets/category-fallbacks/gpu.svg?v=3',
-  'cat-motherboards': 'assets/category-fallbacks/motherboard.svg?v=3',
-  'cat-psu': 'assets/category-fallbacks/power.svg?v=3',
-  'cat-cooling': 'assets/category-fallbacks/cooling.svg?v=3',
-  'cat-cases': 'assets/category-fallbacks/computer.svg?v=3',
-  'cat-accessories': 'assets/category-modern/accessories.svg?v=1',
-  'cat-power': 'assets/category-modern/power.svg?v=1',
-  'cat-security': 'assets/category-modern/security.svg?v=1'
-};
 const FALLBACK_KEYWORDS = [
-  ['معالج', 'cpu'], ['cpu', 'cpu'], ['رام', 'ram'], ['ذاكرة', 'ram'],
-  ['لوحة', 'motherboard'], ['motherboard', 'motherboard'], ['كرت', 'gpu'], ['gpu', 'gpu'],
-  ['تخزين', 'storage'], ['ssd', 'storage'], ['hdd', 'storage'], ['شاشة', 'monitor'], ['monitor', 'monitor'],
-  ['طابعة', 'printer'], ['ماسح', 'printer'], ['شبك', 'network'], ['router', 'network'], ['راوتر', 'network'],
-  ['تبريد', 'cooling'], ['مجهز', 'power'], ['طاقة', 'power'], ['كاميرا', 'security'], ['أمان', 'security'],
-  ['ملحق', 'accessories'], ['سماعة', 'accessories'], ['حاسوب', 'computer'], ['كمبيوتر', 'computer']
+  ['سماعة', 'headsets'], ['سماعات', 'headsets'], ['headset', 'headsets'], ['headphone', 'headsets'],
+  ['ماوس', 'mice'], ['ماوسات', 'mice'], ['فأرة', 'mice'], ['mouse', 'mice'], ['mice', 'mice'],
+  ['كرسي', 'chairs'], ['كراسي', 'chairs'], ['chair', 'chairs'],
+  ['طاولة', 'desks'], ['طاولات', 'desks'], ['desk', 'desks'], ['table', 'desks'],
+  ['مايك', 'microphones'], ['مايكرفون', 'microphones'], ['ميكروفون', 'microphones'], ['mic', 'microphones'],
+  ['تخزين', 'storage'], ['خارجي', 'storage'], ['خارحي', 'storage'], ['ssd', 'storage'], ['hdd', 'storage'], ['storage', 'storage'],
+  ['سيار', 'dashcam'], ['داش', 'dashcam'], ['dashcam', 'dashcam'],
+  ['كامير', 'security'], ['امان', 'security'], ['أمان', 'security'], ['مراقب', 'security'], ['security', 'security'],
+  ['تبريد', 'cooling'], ['cooling', 'cooling'], ['cooler', 'cooling'],
+  ['طاقة', 'power'], ['ups', 'power'], ['psu', 'power'], ['مجهز', 'power'], ['power', 'power'],
+  ['كيبل', 'cables'], ['كيبلات', 'cables'], ['كابل', 'cables'], ['cable', 'cables'],
+  ['تحويل', 'adapters'], ['تحويلات', 'adapters'], ['وصل', 'adapters'], ['adapter', 'adapters'], ['hub', 'adapters'],
+  ['شاحن', 'chargers'], ['شواحن', 'chargers'], ['محول', 'chargers'], ['محولات', 'chargers'], ['charger', 'chargers'],
+  ['حقيب', 'bags'], ['حقائب', 'bags'], ['شنط', 'bags'], ['bag', 'bags'], ['backpack', 'bags'],
+  ['شاش', 'monitors'], ['monitor', 'monitors'], ['screen', 'monitors'],
+  ['طابع', 'printers'], ['printer', 'printers'], ['ماسح', 'printers'],
+  ['كيس', 'cases'], ['case', 'cases'], ['صندوق', 'cases'],
+  ['لوح', 'motherboards'], ['مذربورد', 'motherboards'], ['motherboard', 'motherboards'],
+  ['كرت', 'gpus'], ['gpu', 'gpus'], ['graphics', 'gpus'],
+  ['معالج', 'motherboards'], ['cpu', 'motherboards'],
+  ['رام', 'motherboards'], ['ram', 'motherboards'], ['ذاكر', 'motherboards'],
+  ['كمبيوتر', 'computers'], ['حاسوب', 'computers'], ['حاسب', 'computers'], ['لابتوب', 'computers'], ['computer', 'computers'], ['laptop', 'computers'],
+  ['ملحق', 'other'], ['إكسسوار', 'other'], ['اكسسوار', 'other'], ['شبك', 'other'], ['network', 'other'], ['اخرى', 'other'], ['أخرى', 'other'], ['other', 'other']
 ];
-function categoryFallback(cat) {
-  const key = `${cat.id || ''} ${cat.name || ''}`.toLowerCase();
-  if (FALLBACK_IMAGES[cat.id]) return FALLBACK_IMAGES[cat.id];
+
+function categoryFallback(cat, variant = 'home') {
+  const isMenu = variant === 'menu';
+  const iconMap = isMenu ? SIDEBAR_CATEGORY_ICONS : HOMEPAGE_CATEGORY_ICONS;
+  if (cat?.id && iconMap[cat.id]) return iconMap[cat.id];
+  const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
   for (const [keyword, asset] of FALLBACK_KEYWORDS) {
-    if (key.includes(keyword)) return `assets/category-fallbacks/${asset}.svg?v=2`;
+    if (key.includes(keyword)) {
+      return `images/categories/${isMenu ? 'menu' : 'home'}/${asset}-${isMenu ? 'menu' : 'home'}.png?v=2`;
+    }
   }
-  return 'assets/category-fallbacks/pc-parts.svg?v=2';
+  return `images/categories/${isMenu ? 'menu' : 'home'}/other-${isMenu ? 'menu' : 'home'}.png?v=2`;
 }
 
 // ===== Product category matching =====
@@ -1007,8 +1067,8 @@ function renderCategories() {
 
 
   row.innerHTML = categories.map((cat) => {
-    const imgSrc = CUSTOM_ICONS[cat.id] || cat.image || categoryFallback(cat);
-    const fallback = categoryFallback(cat);
+    const imgSrc = CUSTOM_ICONS[cat.id] || (cat.image && !cat.image.includes('category-modern') && !cat.image.includes('category-fallbacks') ? cat.image : null) || categoryFallback(cat, 'home');
+    const fallback = categoryFallback(cat, 'home');
     const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     const isActive = state.filters.category === cat.id || state.categoryPanelId === cat.id;
     return `<button class="category-card cat-circle-item ${isActive ? 'is-active active' : ''}" type="button" data-category-id="${esc(cat.id)}" aria-pressed="${isActive ? 'true' : 'false'}">
