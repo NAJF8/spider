@@ -23,6 +23,26 @@ if (IS_LOCAL_EMULATOR) {
 }
 const provider = new GoogleAuthProvider();
 
+// Defensive service worker & legacy cache storage unregistration
+if ('serviceWorker' in navigator) {
+  try {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    }).catch(() => {});
+  } catch {}
+}
+if ('caches' in window) {
+  try {
+    caches.keys().then((names) => {
+      for (const name of names) {
+        caches.delete(name);
+      }
+    }).catch(() => {});
+  } catch {}
+}
+
 const CART_STORAGE_KEY = 'spider.cart.v1';
 const FAVORITES_KEY = 'spider.favorites.v1';
 const ALERTS_KEY = 'spider.availability-alerts.v1';
@@ -560,100 +580,67 @@ const modal = (id, open) => {
 // Firebase keeps any valid custom image URL. These local GitHub-hosted assets
 // are used only when that URL is absent or fails to load.
 
-// ===== Category Icons (Spider Najaf Premium E-Commerce Artwork) =====
-// Two distinct versions:
-// - HOMEPAGE_CATEGORY_ICONS: High-resolution (512x512) studio artwork for circular homepage cards
-// - SIDEBAR_CATEGORY_ICONS: High-contrast (128x128) sharp centered composition for 3-lines sidebar drawer
-const HOMEPAGE_CATEGORY_ICONS = {
+// ===== Category Icons =====
+// All categories (including Dash Cam & Power) use clean transparent flat teal SVG icons matching the reference style.
+const CATEGORY_ASSET_VERSION = '20261118-studio-v3';
+const CATEGORY_FLAT_VERSION = '20261123-flat-v2';
+const PRESERVED_STUDIO_ASSETS = new Set();
+
+const CATEGORY_ID_TO_ASSET = {
   // Top-Level Categories
-  'cat-computers': 'images/categories/home/computers-home.png?v=2',
-  'cat-pc-parts': 'images/categories/home/cases-home.png?v=2',
-  'cat-security': 'images/categories/home/security-home.png?v=2',
-  'cat-printers': 'images/categories/home/printers-home.png?v=2',
-  'cat-monitors': 'images/categories/home/monitors-home.png?v=2',
-  'cat-network': 'images/categories/home/other-home.png?v=2',
-  'cat-power': 'images/categories/home/power-home.png?v=2',
-  'cat-accessories': 'images/categories/home/headsets-home.png?v=2',
+  'cat-computers': 'computers',
+  'cat-pc-parts': 'pc-parts',
+  'cat-security': 'security',
+  'cat-printers': 'printers',
+  'cat-monitors': 'monitors',
+  'cat-network': 'network',
+  'cat-power': 'power',
+  'cat-accessories': 'accessories',
 
   // PC Parts Subcategories
-  'cat-storage': 'images/categories/home/storage-home.png?v=2',
-  'cat-ram': 'images/categories/home/motherboards-home.png?v=2',
-  'cat-motherboards': 'images/categories/home/motherboards-home.png?v=2',
-  'cat-cpus': 'images/categories/home/motherboards-home.png?v=2',
-  'cat-cases': 'images/categories/home/cases-home.png?v=2',
-  'cat-psu': 'images/categories/home/power-home.png?v=2',
-  'cat-cooling': 'images/categories/home/cooling-home.png?v=2',
-  'cat-gpus': 'images/categories/home/gpus-home.png?v=2',
+  'cat-storage': 'storage',
+  'cat-ram': 'motherboards',
+  'cat-motherboards': 'motherboards',
+  'cat-cpus': 'pc-parts',
+  'cat-cases': 'cases',
+  'cat-psu': 'power',
+  'cat-cooling': 'cooling',
+  'cat-gpus': 'gpus',
 
   // Dedicated Peripherals & Hardware Subcategories
-  'cat-headsets': 'images/categories/home/headsets-home.png?v=2',
-  'cat-headphones': 'images/categories/home/headsets-home.png?v=2',
-  'cat-mice': 'images/categories/home/mice-home.png?v=2',
-  'cat-chairs': 'images/categories/home/chairs-home.png?v=2',
-  'cat-desks': 'images/categories/home/desks-home.png?v=2',
-  'cat-microphones': 'images/categories/home/microphones-home.png?v=2',
-  'cat-mics': 'images/categories/home/microphones-home.png?v=2',
-  'cat-dashcam': 'images/categories/home/dashcam-home.png?v=2',
-  'cat-cables': 'images/categories/home/cables-home.png?v=2',
-  'cat-adapters': 'images/categories/home/adapters-home.png?v=2',
-  'cat-chargers': 'images/categories/home/chargers-home.png?v=2',
-  'cat-bags': 'images/categories/home/bags-home.png?v=2',
-  'cat-other': 'images/categories/home/other-home.png?v=2'
+  'cat-headsets': 'headsets',
+  'cat-headphones': 'headsets',
+  'cat-mice': 'mice',
+  'cat-chairs': 'chairs',
+  'cat-desks': 'desks',
+  'cat-microphones': 'microphones',
+  'cat-mics': 'microphones',
+  'cat-dashcam': 'dashcam',
+  'cat-cables': 'cables',
+  'cat-adapters': 'adapters',
+  'cat-chargers': 'chargers',
+  'cat-bags': 'bags',
+  'cat-other': 'other'
 };
 
-const SIDEBAR_CATEGORY_ICONS = {
-  // Top-Level Categories
-  'cat-computers': 'images/categories/menu/computers-menu.png?v=2',
-  'cat-pc-parts': 'images/categories/menu/cases-menu.png?v=2',
-  'cat-security': 'images/categories/menu/security-menu.png?v=2',
-  'cat-printers': 'images/categories/menu/printers-menu.png?v=2',
-  'cat-monitors': 'images/categories/menu/monitors-menu.png?v=2',
-  'cat-network': 'images/categories/menu/other-menu.png?v=2',
-  'cat-power': 'images/categories/menu/power-menu.png?v=2',
-  'cat-accessories': 'images/categories/menu/headsets-menu.png?v=2',
+function categoryAssetUrl(assetName, variant = 'home', format = 'png') {
+  if (!PRESERVED_STUDIO_ASSETS.has(assetName)) {
+    return `assets/category-flat/${assetName}.svg?v=${CATEGORY_FLAT_VERSION}`;
+  }
+  return `images/categories/${variant}/${assetName}-${variant}.${format}?v=${CATEGORY_ASSET_VERSION}`;
+}
 
-  // PC Parts Subcategories
-  'cat-storage': 'images/categories/menu/storage-menu.png?v=2',
-  'cat-ram': 'images/categories/menu/motherboards-menu.png?v=2',
-  'cat-motherboards': 'images/categories/menu/motherboards-menu.png?v=2',
-  'cat-cpus': 'images/categories/menu/motherboards-menu.png?v=2',
-  'cat-cases': 'images/categories/menu/cases-menu.png?v=2',
-  'cat-psu': 'images/categories/menu/power-menu.png?v=2',
-  'cat-cooling': 'images/categories/menu/cooling-menu.png?v=2',
-  'cat-gpus': 'images/categories/menu/gpus-menu.png?v=2',
+const HOMEPAGE_CATEGORY_ICONS = Object.fromEntries(
+  Object.entries(CATEGORY_ID_TO_ASSET).map(([id, asset]) => [id, categoryAssetUrl(asset, 'home', 'png')])
+);
 
-  // Dedicated Peripherals & Hardware Subcategories
-  'cat-headsets': 'images/categories/menu/headsets-menu.png?v=2',
-  'cat-headphones': 'images/categories/menu/headsets-menu.png?v=2',
-  'cat-mice': 'images/categories/menu/mice-menu.png?v=2',
-  'cat-chairs': 'images/categories/menu/chairs-menu.png?v=2',
-  'cat-desks': 'images/categories/menu/desks-menu.png?v=2',
-  'cat-microphones': 'images/categories/menu/microphones-menu.png?v=2',
-  'cat-mics': 'images/categories/menu/microphones-menu.png?v=2',
-  'cat-dashcam': 'images/categories/menu/dashcam-menu.png?v=2',
-  'cat-cables': 'images/categories/menu/cables-menu.png?v=2',
-  'cat-adapters': 'images/categories/menu/adapters-menu.png?v=2',
-  'cat-chargers': 'images/categories/menu/chargers-menu.png?v=2',
-  'cat-bags': 'images/categories/menu/bags-menu.png?v=2',
-  'cat-other': 'images/categories/menu/other-menu.png?v=2'
-};
+const SIDEBAR_CATEGORY_ICONS = Object.fromEntries(
+  Object.entries(CATEGORY_ID_TO_ASSET).map(([id, asset]) => [id, categoryAssetUrl(asset, 'menu', 'png')])
+);
 
 const UNIFIED_CATEGORY_ICONS = HOMEPAGE_CATEGORY_ICONS;
 const CUSTOM_ICONS = HOMEPAGE_CATEGORY_ICONS;
 const SIDEBAR_ICONS = SIDEBAR_CATEGORY_ICONS;
-
-// Main category cards use the 512x512 homepage studio compositions.
-// The sidebar drawer uses the 128x128 menu compositions.
-function sidebarCategoryIcon(cat) {
-  const unified = SIDEBAR_ICONS[cat?.id] || (cat ? categoryFallback(cat, 'menu') : null);
-  if (unified) return `<img class="sidebar-category-icon" src="${esc(unified)}" alt="" aria-hidden="true" onerror="this.style.display='none'">`;
-  const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
-  const icon = key.includes('network') || key.includes('شبك') ? 'fa-circle-nodes'
-    : key.includes('power') || key.includes('طاقة') || key.includes('psu') ? 'fa-power-off'
-      : key.includes('accessor') || key.includes('ملحق') ? 'fa-keyboard'
-        : (cat?.icon || 'fa-folder');
-  return `<i class="fa-solid ${esc(icon)} sidebar-category-fa"></i>`;
-}
 
 const FALLBACK_KEYWORDS = [
   ['سماعة', 'headsets'], ['سماعات', 'headsets'], ['headset', 'headsets'], ['headphone', 'headsets'],
@@ -675,23 +662,83 @@ const FALLBACK_KEYWORDS = [
   ['كيس', 'cases'], ['case', 'cases'], ['صندوق', 'cases'],
   ['لوح', 'motherboards'], ['مذربورد', 'motherboards'], ['motherboard', 'motherboards'],
   ['كرت', 'gpus'], ['gpu', 'gpus'], ['graphics', 'gpus'],
-  ['معالج', 'motherboards'], ['cpu', 'motherboards'],
+  ['معالج', 'pc-parts'], ['cpu', 'pc-parts'], ['مكونات', 'pc-parts'],
   ['رام', 'motherboards'], ['ram', 'motherboards'], ['ذاكر', 'motherboards'],
   ['كمبيوتر', 'computers'], ['حاسوب', 'computers'], ['حاسب', 'computers'], ['لابتوب', 'computers'], ['computer', 'computers'], ['laptop', 'computers'],
-  ['ملحق', 'other'], ['إكسسوار', 'other'], ['اكسسوار', 'other'], ['شبك', 'other'], ['network', 'other'], ['اخرى', 'other'], ['أخرى', 'other'], ['other', 'other']
+  ['شبك', 'network'], ['network', 'network'],
+  ['ملحق', 'accessories'], ['إكسسوار', 'accessories'], ['اكسسوار', 'accessories'],
+  ['اخرى', 'other'], ['أخرى', 'other'], ['other', 'other']
 ];
 
-function categoryFallback(cat, variant = 'home') {
-  const isMenu = variant === 'menu';
-  const iconMap = isMenu ? SIDEBAR_CATEGORY_ICONS : HOMEPAGE_CATEGORY_ICONS;
-  if (cat?.id && iconMap[cat.id]) return iconMap[cat.id];
+function resolveCategoryAssetKey(cat) {
+  if (cat?.id && CATEGORY_ID_TO_ASSET[cat.id]) {
+    return CATEGORY_ID_TO_ASSET[cat.id];
+  }
   const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
   for (const [keyword, asset] of FALLBACK_KEYWORDS) {
-    if (key.includes(keyword)) {
-      return `images/categories/${isMenu ? 'menu' : 'home'}/${asset}-${isMenu ? 'menu' : 'home'}.png?v=2`;
+    if (key.includes(keyword)) return asset;
+  }
+  return 'other';
+}
+
+function isPreservedStudioCategory(cat) {
+  return PRESERVED_STUDIO_ASSETS.has(resolveCategoryAssetKey(cat));
+}
+
+function categoryFallback(cat, variant = 'home', format = 'png') {
+  const isMenu = variant === 'menu';
+  const assetKey = resolveCategoryAssetKey(cat);
+  return categoryAssetUrl(assetKey, isMenu ? 'menu' : 'home', format);
+}
+
+function resolveCategoryImage(cat, variant = 'home') {
+  const isMenu = variant === 'menu';
+  const assetKey = resolveCategoryAssetKey(cat);
+  if (!PRESERVED_STUDIO_ASSETS.has(assetKey)) {
+    return categoryAssetUrl(assetKey, isMenu ? 'menu' : 'home', 'svg');
+  }
+  // Preserved studio categories (Dash Cam & Power) keep their exact existing resolution
+  if (cat?.image && typeof cat.image === 'string' && cat.image.trim()) {
+    const trimmed = cat.image.trim();
+    if (!trimmed.includes('category-modern') && !trimmed.includes('category-fallbacks')) {
+      if (trimmed.startsWith('images/categories/') && !trimmed.includes('?')) {
+        return `${trimmed}?v=${CATEGORY_ASSET_VERSION}`;
+      }
+      return trimmed;
     }
   }
-  return `images/categories/${isMenu ? 'menu' : 'home'}/other-${isMenu ? 'menu' : 'home'}.png?v=2`;
+  return categoryAssetUrl(assetKey, isMenu ? 'menu' : 'home', 'png');
+}
+
+function resolveCategoryWebp(cat, variant = 'home') {
+  const assetKey = resolveCategoryAssetKey(cat);
+  if (!PRESERVED_STUDIO_ASSETS.has(assetKey)) return null;
+  const customImg = (cat?.image && !cat.image.includes('category-modern') && !cat.image.includes('category-fallbacks')) ? cat.image : null;
+  if (customImg) return null;
+  const isMenu = variant === 'menu';
+  return categoryAssetUrl(assetKey, isMenu ? 'menu' : 'home', 'webp');
+}
+
+// Preserved categories (Dash Cam & Power) keep studio compositions.
+// Other categories use clean transparent flat teal SVG icons.
+function sidebarCategoryIcon(cat) {
+  const isPreserved = isPreservedStudioCategory(cat);
+  const unified = resolveCategoryImage(cat, 'menu');
+  const fallback = categoryFallback(cat, 'menu', 'png');
+  const webpSrc = resolveCategoryWebp(cat, 'menu');
+  const iconClass = isPreserved ? 'sidebar-category-icon' : 'sidebar-category-icon is-flat-icon';
+  if (unified) {
+    if (webpSrc) {
+      return `<picture class="sidebar-category-picture" style="display:contents;"><source type="image/webp" srcset="${esc(webpSrc)}"><img class="${iconClass}" src="${esc(unified)}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src='${esc(fallback)}'"></picture>`;
+    }
+    return `<img class="${iconClass}" src="${esc(unified)}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
+  }
+  const key = `${cat?.id || ''} ${cat?.name || ''} ${cat?.nameAr || ''}`.toLowerCase();
+  const icon = key.includes('network') || key.includes('شبك') ? 'fa-circle-nodes'
+    : key.includes('power') || key.includes('طاقة') || key.includes('psu') ? 'fa-power-off'
+      : key.includes('accessor') || key.includes('ملحق') ? 'fa-keyboard'
+        : (cat?.icon || 'fa-folder');
+  return `<i class="fa-solid ${esc(icon)} sidebar-category-fa"></i>`;
 }
 
 // ===== Product category matching =====
@@ -1067,11 +1114,16 @@ function renderCategories() {
 
 
   row.innerHTML = categories.map((cat) => {
-    const imgSrc = CUSTOM_ICONS[cat.id] || (cat.image && !cat.image.includes('category-modern') && !cat.image.includes('category-fallbacks') ? cat.image : null) || categoryFallback(cat, 'home');
-    const fallback = categoryFallback(cat, 'home');
-    const imgHtml = `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
+    const isPreserved = isPreservedStudioCategory(cat);
+    const imgSrc = resolveCategoryImage(cat, 'home');
+    const fallback = categoryFallback(cat, 'home', 'png');
+    const webpSrc = resolveCategoryWebp(cat, 'home');
+    const imgHtml = webpSrc
+      ? `<picture class="cat-picture"><source type="image/webp" srcset="${esc(webpSrc)}"><img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${esc(fallback)}'"></picture>`
+      : `<img src="${esc(imgSrc)}" alt="${esc(categoryLabel(cat))}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${esc(fallback)}'">`;
     const isActive = state.filters.category === cat.id || state.categoryPanelId === cat.id;
-    return `<button class="category-card cat-circle-item ${isActive ? 'is-active active' : ''}" type="button" data-category-id="${esc(cat.id)}" aria-pressed="${isActive ? 'true' : 'false'}">
+    const styleClass = isPreserved ? 'is-preserved-category' : 'is-flat-icon-category';
+    return `<button class="category-card cat-circle-item ${styleClass} ${isActive ? 'is-active active' : ''}" type="button" data-category-id="${esc(cat.id)}" aria-pressed="${isActive ? 'true' : 'false'}">
       <span class="category-card-icon cat-circle">${imgHtml}</span>
       <span class="category-card-copy cat-copy">
         <strong class="cat-name">${esc(categoryLabel(cat))}</strong>
