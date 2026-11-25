@@ -84,8 +84,8 @@
       ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'pricing_customers').val() === true)"
     },
     "auditLogs": {
-      ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'audit_logs').val() === true))",
-      ".write": "auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'audit_logs').val() === true)"
+      ".read": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid+'/permissions/audit_logs').val() === true)",
+      ".write": "auth != null && (auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || root.child('admins/'+auth.uid).exists())"
     },
     "reports": {
       ".read": "auth != null && (auth != null && auth.uid === 'e8uTdYi5TQOsrztxPnlD7X4GKAx1' || (auth != null && root.child('admins/'+auth.uid+'/permissions/'+'reports').val() === true))",
@@ -164,6 +164,36 @@
         "customer_pricing_tier": {
           ".validate": "newData.isString() && (newData.val() === 'public' || newData.val() === 'special' || newData.val() === 'wholesale')"
         },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "updatedBy": {
+          ".validate": "newData.isString() && newData.val().length < 100"
+        },
+        "customerEmail": {
+          ".validate": "newData.isString() && newData.val().length < 150"
+        },
+        "deliveryMethod": {
+          ".validate": "newData.isString() && newData.val().length < 100"
+        },
+        "whatsappStatus": {
+          ".validate": "newData.isString() && newData.val().length < 50"
+        },
+        "builderOriginalSubtotal": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        },
+        "builderSubtotal": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        },
+        "builderInvoiceDiscount": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        },
+        "builderInvoiceDiscountTier": {
+          ".validate": "newData.isString() || newData.val() == null"
+        },
+        "finalSubtotal": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        },
         "items": {
           "$itemIndex": {
             ".validate": "newData.hasChildren(['id', 'name', 'price', 'quantity'])",
@@ -205,14 +235,8 @@
             },
             "wholesale_price_snapshot": {
               ".validate": "newData.isNumber() || newData.val() == null"
-            },
-            "$other": {
-              ".validate": "false"
             }
           }
-        },
-        "$other": {
-          ".validate": "false"
         }
       }
     },

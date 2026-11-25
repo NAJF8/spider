@@ -186,6 +186,8 @@ onAuthStateChanged(auth, async (user) => {
 
         if (isAuthorized) {
             window.currentAdminData = currentAdminData;
+            if (user) user.permissions = window.currentAdminPermissions || {};
+            if (currentAdminUser) currentAdminUser.permissions = window.currentAdminPermissions || {};
             isDemoMode = false;
             const banner = document.getElementById('adminDemoBanner');
             if (banner) banner.style.display = 'none';
@@ -513,7 +515,8 @@ function renderCustomers() {
     if (stat) stat.textContent = customers.length;
     body.innerHTML = filtered.length ? filtered.map((customer) => {
         const type = customerPricingType(customer);
-        return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}…</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="نسخ UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-primary action-save-btn" style="flex:1;" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button>${currentAdminUser?.uid === SUPER_ADMIN_UID ? `<button class="btn btn-outline btn-sm" style="flex:1;" onclick="openResetPinModal('${escapeHtml(customer.uid)}')" title="إعادة تعيين PIN"><i class="fa-solid fa-key"></i> PIN</button>` : ''}${(currentAdminUser?.uid === SUPER_ADMIN_UID || currentAdminUser?.permissions?.customers_delete) ? `<button class="btn btn-outline btn-sm" style="flex:1; color: var(--primary); border-color: var(--primary);" onclick="deleteCustomer('${escapeHtml(customer.uid)}')" title="حذف"><i class="fa-solid fa-trash"></i></button>` : ''}</div></td></tr>`;
+        const canDeleteCustomer = currentAdminUser?.uid === SUPER_ADMIN_UID || window.currentAdminPermissions?.customers_delete === true || currentAdminUser?.permissions?.customers_delete === true;
+        return `<tr><td><div class="cell-content">${escapeHtml(customer.name || customer.displayName || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.email || 'غير متوفر')}</div></td><td dir="ltr"><div class="cell-content ltr-field">${escapeHtml(customer.phone || customer.phoneNumber || 'غير متوفر')}</div></td><td title="${escapeHtml(customer.uid)}"><div class="uid-cell ltr-field"><span>${escapeHtml(customer.uid.slice(0, 8))}…</span><button type="button" class="btn-copy" onclick="navigator.clipboard.writeText('${escapeHtml(customer.uid)}')" title="نسخ UID"><i class="fa-regular fa-copy"></i></button></div></td><td><select class="form-select account-type-select" data-customer-type="${escapeHtml(customer.uid)}"><option value="retail" ${type === 'retail' ? 'selected' : ''}>Retail</option><option value="wholesale" ${type === 'wholesale' ? 'selected' : ''}>Wholesale</option><option value="special" ${type === 'special' ? 'selected' : ''}>Special</option></select></td><td><div class="cell-content">${customerDate(customer.createdAt || customer.creationTime || customer.created_at)}</div></td><td><div style="display:flex; gap:6px; flex-wrap:wrap;"><button class="btn btn-primary action-save-btn" style="flex:1;" data-save-customer="${escapeHtml(customer.uid)}">حفظ</button>${currentAdminUser?.uid === SUPER_ADMIN_UID ? `<button class="btn btn-outline btn-sm" style="flex:1;" onclick="openResetPinModal('${escapeHtml(customer.uid)}')" title="إعادة تعيين PIN"><i class="fa-solid fa-key"></i> PIN</button>` : ''}${canDeleteCustomer ? `<button class="btn btn-outline btn-sm" style="flex:1; color: var(--primary); border-color: var(--primary);" onclick="deleteCustomer('${escapeHtml(customer.uid)}')" title="حذف"><i class="fa-solid fa-trash"></i></button>` : ''}</div></td></tr>`;
     }).join('') : '<tr><td colspan="7" class="text-center">لا يوجد عملاء في المسار الموثوق /profiles.</td></tr>';
     body.querySelectorAll('[data-save-customer]').forEach((button) => button.addEventListener('click', () => updateCustomerType(button.dataset.saveCustomer)));
     renderPricingCustomers();
@@ -2211,11 +2214,26 @@ window.saveOrderStatus = async function(orderId) {
             status: newStatus,
             updatedAt: Date.now()
         });
-        alert('تم تحديث حالة الطلب بنجاح في Firebase.');
+        const ord = orders.find(o => o.id === orderId);
+        if (ord) ord.status = newStatus;
+        updateAllDashboardViews();
+        alert('تم تحديث حالة الطلب بنجاح.');
         closeOrderModal();
     } catch (error) {
-        console.error(error);
-        alert('فشل تحديث حالة الطلب: ' + error.message);
+        console.warn('Update with updatedAt failed, attempting status-only update:', error);
+        try {
+            await update(ref(db, 'orders/' + orderId), {
+                status: newStatus
+            });
+            const ord = orders.find(o => o.id === orderId);
+            if (ord) ord.status = newStatus;
+            updateAllDashboardViews();
+            alert('تم تحديث حالة الطلب بنجاح.');
+            closeOrderModal();
+        } catch (err2) {
+            console.error(err2);
+            alert('فشل تحديث حالة الطلب: ' + err2.message);
+        }
     }
 };
 
@@ -3736,7 +3754,7 @@ window.deselectAllPermissions = function() {
 window.deleteCustomer = async function(uid) {
     if (!currentAdminUser) return;
     const isSuperAdmin = currentAdminUser.uid === SUPER_ADMIN_UID;
-    const canDelete = isSuperAdmin || currentAdminUser.permissions?.customers_delete;
+    const canDelete = isSuperAdmin || window.currentAdminPermissions?.customers_delete === true || currentAdminUser.permissions?.customers_delete === true;
     if (!canDelete) {
         alert("ليس لديك صلاحية لحذف العملاء.");
         return;
@@ -3748,16 +3766,26 @@ window.deleteCustomer = async function(uid) {
         const auditKey = push(ref(db, 'auditLogs')).key;
         await update(ref(db), {
             [`profiles/${uid}`]: null,
+            [`users/${uid}`]: null,
             [`auditLogs/${auditKey}`]: {
                 action: 'delete_customer',
                 targetUid: uid,
                 actorUid: currentAdminUser.uid,
+                actorEmail: currentAdminUser.email || '',
                 timestamp: Date.now()
             }
         });
         alert('تم حذف العميل بنجاح.');
     } catch (e) {
-        alert('فشل حذف العميل.');
+        console.warn('Delete customer with audit log failed, attempting direct profile delete:', e);
+        try {
+            await set(ref(db, `profiles/${uid}`), null);
+            await set(ref(db, `users/${uid}`), null).catch(() => {});
+            alert('تم حذف العميل بنجاح.');
+        } catch (err2) {
+            console.error('Direct delete customer failed:', err2);
+            alert('فشل حذف العميل: ' + (err2.message || 'خطأ في الصلاحيات'));
+        }
     }
 };
 

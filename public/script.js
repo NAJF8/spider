@@ -583,7 +583,7 @@ const modal = (id, open) => {
 // ===== Category Icons =====
 // All categories (including Dash Cam & Power) use clean transparent flat teal SVG icons matching the reference style.
 const CATEGORY_ASSET_VERSION = '20261118-studio-v3';
-const CATEGORY_FLAT_VERSION = '20261123-flat-v2';
+const CATEGORY_FLAT_VERSION = '20261125-flat-v3';
 const PRESERVED_STUDIO_ASSETS = new Set();
 
 const CATEGORY_ID_TO_ASSET = {
@@ -780,6 +780,14 @@ function canonicalBrandRecords(products) {
     record.values.set(raw, (record.values.get(raw) || 0) + 1);
     grouped.set(key, record);
   });
+  if (state.brandLogos && typeof state.brandLogos === 'object') {
+    Object.keys(state.brandLogos).forEach((key) => {
+      const normalizedKey = normalizeBrandKey(key);
+      if (normalizedKey && !grouped.has(normalizedKey)) {
+        grouped.set(normalizedKey, { key: normalizedKey, first: key, count: 0, values: new Map([[key, 1]]) });
+      }
+    });
+  }
   return [...grouped.values()].map((record) => ({
     key: record.key,
     name: CANONICAL_BRAND_NAMES[record.key] || [...record.values.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || record.first,
